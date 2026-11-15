@@ -38584,10 +38584,443 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
     return out.s;
 }
 
+/* ---------- AI detector + grammar checker (pure algorithms, offline) ---------- */
+
+enum { IS_GRAM, IS_SPELL, IS_PUNCT, IS_STYLE, IS_AI };
+static const wchar_t *ISNAME[] = { L"Grammar", L"Spelling", L"Punctuation", L"Style", L"AI phrase" };
+
+typedef struct { int s, len, kind; wchar_t msg[120]; } Issue;
+typedef struct {
+    int score, words, sents, paras, nGram, nAiHits, ok;
+    double burst, aiPer100, transFrac, contr100, triad, awl, casual100, err100;
+    Issue *iss; int nIss, capIss;
+    wchar_t verdict[64], conf[64];
+    wchar_t sig[6][96]; int nSig;
+} Detect;
+
+typedef struct { int s, len, sent; wchar_t l[40]; } DW;
+
+static void dtAdd(Detect *d, int s, int len, int kind, const wchar_t *fmt, ...) {
+    if (d->nIss >= 400 && kind != IS_AI) return;
+    for (int i = 0; i < d->nIss; i++) if (d->iss[i].s == s && d->iss[i].kind == kind) return;
+    if (d->nIss == d->capIss) { d->capIss = d->capIss ? d->capIss * 2 : 64; d->iss = realloc(d->iss, d->capIss * sizeof(Issue)); }
+    Issue *k = &d->iss[d->nIss++];
+    k->s = s; k->len = len; k->kind = kind;
+    va_list ap; va_start(ap, fmt); vswprintf(k->msg, 120, fmt, ap); va_end(ap);
+    if (kind != IS_AI) d->nGram++;
+}
+static void dtFree(Detect *d) { free(d->iss); memset(d, 0, sizeof *d); }
+
+static int dwIsLetter(wchar_t c) { return iswalpha(c) != 0; }
+static int wIn(const wchar_t *w, const wchar_t **L) { for (; *L; L++) if (!wcscmp(w, *L)) return 1; return 0; }
+
+static int knownNarrow(const wchar_t *w) {
+    char b[48]; int n = 0;
+    for (; w[n] && n < 47; n++) { if (w[n] > 127) return 1; b[n] = (char)w[n]; }
+    b[n] = 0;
+    return tagLookup(tw, ntw, b) != NULL;
+}
+static int knownW(const wchar_t *w) {
+    if (knownNarrow(w) || isKnownWord(w) || smGet(&vfIdx, w) >= 0) return 1;
+    int n = (int)wcslen(w); wchar_t b[48];
+    static const wchar_t *SUF[] = { L"s", L"es", L"ed", L"d", L"ing", L"ly", L"er", L"est", L"ness", L"ment", L"ful", L"less", L"able", L"ers", L"ings", NULL };
+    for (int k = 0; SUF[k]; k++) {
+        int sl = (int)wcslen(SUF[k]);
+        if (n - sl < 3 || wcscmp(w + n - sl, SUF[k])) continue;
+        wcsncpy(b, w, n - sl); b[n - sl] = 0;
+        if (knownNarrow(b) || isKnownWord(b)) return 1;
+        if (n - sl >= 3 && b[n - sl - 1] == b[n - sl - 2]) { b[n - sl - 1] = 0; if (knownNarrow(b)) return 1; }
+        b[n - sl] = L'e'; b[n - sl + 1] = 0; if (knownNarrow(b)) return 1;
+        if (b[n - sl - 1] == L'i') { b[n - sl - 1] = L'y'; b[n - sl] = 0; if (knownNarrow(b)) return 1; }
+    }
+    if (n > 5 && !wcscmp(w + n - 2, L"ly")) { wcscpy(b, w); b[n - 1] = L'e'; if (knownNarrow(b)) return 1; }
+    if (n > 4 && !wcsncmp(w, L"un", 2) && knownNarrow(w + 2)) return 1;
+    if (n > 4 && !wcsncmp(w, L"re", 2) && knownNarrow(w + 2)) return 1;
+    return 0;
+}
+static int typoSuggest(const wchar_t *w, wchar_t *out) {
+    int n = (int)wcslen(w); wchar_t c[48];
+    for (int i = 0; i + 1 < n; i++) { wcscpy(c, w); wchar_t t = c[i]; c[i] = c[i + 1]; c[i + 1] = t; if (knownNarrow(c)) { wcscpy(out, c); return 1; } }
+    for (int i = 0; i < n; i++) { int k = 0; for (int j = 0; j < n; j++) if (j != i) c[k++] = w[j]; c[k] = 0; if (k >= 3 && knownNarrow(c)) { wcscpy(out, c); return 1; } }
+    for (int i = 0; i <= n && n < 40; i++)
+        for (wchar_t ch = L'a'; ch <= L'z'; ch++) {
+            int k = 0; for (int j = 0; j < i; j++) c[k++] = w[j]; c[k++] = ch; for (int j = i; j < n; j++) c[k++] = w[j]; c[k] = 0;
+            if (knownNarrow(c)) { wcscpy(out, c); return 1; }
+        }
+    for (int i = 1; i < n; i++)
+        for (wchar_t ch = L'a'; ch <= L'z'; ch++) {
+            if (ch == w[i]) continue;
+            wcscpy(c, w); c[i] = ch; if (knownNarrow(c)) { wcscpy(out, c); return 1; }
+        }
+    return 0;
+}
+
+static const wchar_t *MISSP[] = {
+    L"alot", L"a lot", L"definately", L"definitely", L"definatly", L"definitely", L"seperate", L"separate", L"recieve", L"receive",
+    L"occured", L"occurred", L"untill", L"until", L"wich", L"which", L"becuase", L"because", L"becasue", L"because", L"thier", L"their",
+    L"beleive", L"believe", L"goverment", L"government", L"tommorow", L"tomorrow", L"tommorrow", L"tomorrow", L"accomodate", L"accommodate",
+    L"wierd", L"weird", L"truely", L"truly", L"arguement", L"argument", L"neccessary", L"necessary", L"necesary", L"necessary",
+    L"publically", L"publicly", L"noticable", L"noticeable", L"existance", L"existence", L"calender", L"calendar", L"begining", L"beginning",
+    L"enviroment", L"environment", L"occurence", L"occurrence", L"refered", L"referred", L"sucess", L"success", L"succesful", L"successful",
+    L"teh", L"the", L"adn", L"and", L"irregardless", L"regardless", L"alright", L"all right", L"wanst", L"wasn't", L"dont", L"don't",
+    L"doesnt", L"doesn't", L"didnt", L"didn't", L"cant", L"can't", L"wont", L"won't", L"isnt", L"isn't", L"wasnt", L"wasn't",
+    L"shouldnt", L"shouldn't", L"couldnt", L"couldn't", L"wouldnt", L"wouldn't", L"im", L"I'm", L"ive", L"I've", L"youre", L"you're",
+    L"theyre", L"they're", L"thats", L"that's", L"whats", L"what's", L"lets", NULL, L"hes", L"he's", L"shes", L"she's",
+    L"recieved", L"received", L"acheive", L"achieve", L"acheived", L"achieved", L"belive", L"believe", L"basicly", L"basically",
+    L"buisness", L"business", L"concious", L"conscious", L"embarass", L"embarrass", L"finaly", L"finally", L"foriegn", L"foreign",
+    L"freind", L"friend", L"garantee", L"guarantee", L"gaurd", L"guard", L"harrass", L"harass", L"independant", L"independent",
+    L"knowlege", L"knowledge", L"libary", L"library", L"lisence", L"license", L"maintainance", L"maintenance", L"millenium", L"millennium",
+    L"mispell", L"misspell", L"occassion", L"occasion", L"persistant", L"persistent", L"posession", L"possession", L"prefered", L"preferred",
+    L"realy", L"really", L"reccomend", L"recommend", L"recomend", L"recommend", L"relevent", L"relevant", L"rythm", L"rhythm",
+    L"similiar", L"similar", L"speach", L"speech", L"stoped", L"stopped", L"supercede", L"supersede", L"suprise", L"surprise",
+    L"tounge", L"tongue", L"truley", L"truly", L"usefull", L"useful", L"wether", L"whether", L"writting", L"writing", L"youll", L"you'll",
+    L"probaly", L"probably", L"probly", L"probably", L"diffrent", L"different", L"intresting", L"interesting", L"beautifull", L"beautiful",
+    L"comming", L"coming", L"exersize", L"exercise", L"excercise", L"exercise", L"familar", L"familiar", L"fourty", L"forty",
+    L"grammer", L"grammar", L"heighth", L"height", L"hygene", L"hygiene", L"immediatly", L"immediately", L"judgement", NULL,
+    L"lenght", L"length", L"neice", L"niece", L"peice", L"piece", L"pronounciation", L"pronunciation", L"questionaire", L"questionnaire",
+    L"remeber", L"remember", L"rember", L"remember", L"sieze", L"seize", L"thru", L"through", L"tho", L"though", L"untill", L"until",
+    NULL, NULL };
+
+typedef struct { const wchar_t *a, *b; const wchar_t *fix; int kind; } Bigram;
+static const wchar_t *MODALS_OF[] = { L"could", L"should", L"would", L"must", L"might", L"may", NULL };
+static const wchar_t *ITS_NEXT[] = { L"a", L"an", L"the", L"not", L"been", L"going", L"ok", L"okay", L"time", L"so", L"very", L"really", L"just",
+                                     L"important", L"clear", L"true", L"hard", L"easy", L"about", L"fine", L"too", L"no", L"all", L"getting", NULL };
+static const wchar_t *YOUR_NEXT[] = { L"welcome", L"not", L"going", L"gonna", L"being", L"kidding", L"so", L"very", L"really", L"doing", L"getting", NULL };
+static const wchar_t *COMPAR[] = { L"better", L"more", L"less", L"rather", L"larger", L"smaller", L"faster", L"greater", L"higher", L"lower",
+                                   L"bigger", L"older", L"younger", L"worse", L"fewer", L"longer", L"shorter", L"easier", L"harder", L"other", NULL };
+static const wchar_t *DABBR[] = { L"mr", L"mrs", L"ms", L"dr", L"st", L"vs", L"etc", L"jr", L"sr", L"prof", L"inc", L"ltd", L"co", L"no", L"fig",
+                                 L"approx", L"e.g", L"i.e", L"u.s", L"a.m", L"p.m", L"mt", L"ave", L"dept", L"est", L"gen", L"gov", L"lt", L"sgt", L"vol", NULL };
+
+static const wchar_t *AIW[] = {
+    L"delve", L"delves", L"delving", L"tapestry", L"testament", L"intricate", L"intricacies", L"multifaceted", L"pivotal", L"crucial",
+    L"foster", L"fostering", L"fosters", L"leverage", L"leveraging", L"seamless", L"seamlessly", L"robust", L"realm", L"landscape",
+    L"navigate", L"navigating", L"underscore", L"underscores", L"underscoring", L"showcase", L"showcases", L"showcasing", L"vibrant",
+    L"nuanced", L"nuances", L"comprehensive", L"furthermore", L"moreover", L"additionally", L"embark", L"embarking", L"unlock", L"unlocking",
+    L"elevate", L"elevating", L"harness", L"harnessing", L"resonate", L"resonates", L"profound", L"meticulous", L"meticulously", L"paramount",
+    L"holistic", L"synergy", L"thrive", L"thriving", L"enhance", L"enhancing", L"insights", L"invaluable", L"commendable", L"endeavor",
+    L"endeavors", L"captivating", L"bustling", L"whimsical", L"beacon", L"symphony", L"interplay", L"transformative", L"unwavering",
+    L"noteworthy", L"notably", L"intriguing", L"empower", L"empowering", L"streamline", L"streamlined", L"utilize", L"utilizing",
+    L"facilitate", L"facilitates", L"optimize", L"cornerstone", L"ever-evolving", L"ever-changing", L"game-changer", L"groundbreaking",
+    L"innovative", L"dynamic", L"captivate", L"enigmatic", L"labyrinth", L"labyrinthine", L"journey", L"navigate", L"illuminate",
+    L"illuminating", L"evocative", L"poignant", L"indelible", L"myriad", L"plethora", L"bolster", L"bolstering", L"encompass",
+    L"encompasses", L"encompassing", L"overarching", L"in-depth", L"crucially", L"ultimately", L"essentially", L"arguably", NULL };
+static const wchar_t *AIP[] = {
+    L"it's important to note", L"it is important to note", L"it's worth noting", L"it is worth noting", L"plays a crucial role",
+    L"plays a vital role", L"plays a pivotal role", L"a testament to", L"in today's", L"in conclusion", L"in summary", L"to sum up",
+    L"not only", L"rich tapestry", L"stands as", L"serves as a", L"a wide range of", L"a wide array of", L"in the realm of",
+    L"when it comes to", L"at the end of the day", L"navigate the", L"the world of", L"dive into", L"dive deeper", L"let's dive",
+    L"whether you're", L"in this article", L"in this essay", L"overall,", L"on the other hand", L"it's essential", L"it is essential",
+    L"it's crucial", L"it is crucial", L"fast-paced", L"due to the fact", L"each and every", L"first and foremost",
+    L"the importance of", L"a deeper understanding", L"valuable insights", L"key takeaways", L"embark on", L"strike a balance",
+    L"shed light on", L"sheds light on", L"paving the way", L"pave the way", L"evolving landscape", L"digital age", L"in essence",
+    L"i hope this", L"feel free to", L"let me know if", L"as an ai", L"i'd be happy to", L"great question", NULL };
+static const wchar_t *DTRANS[] = { L"furthermore", L"moreover", L"additionally", L"however", L"overall", L"ultimately", L"in conclusion",
+                                  L"in summary", L"in addition", L"consequently", L"therefore", L"thus", L"firstly", L"secondly", L"lastly",
+                                  L"finally", L"importantly", L"notably", L"similarly", L"conversely", L"nevertheless", L"indeed", NULL };
+static const wchar_t *CASUAL[] = { L"lol", L"lmao", L"gonna", L"wanna", L"kinda", L"sorta", L"gotta", L"yeah", L"yep", L"nah", L"ok", L"okay",
+                                   L"dunno", L"stuff", L"tbh", L"idk", L"btw", L"omg", L"ugh", L"huh", L"cuz", L"u", L"ur", L"bro", L"dude",
+                                   L"literally", L"pretty", L"super", L"honestly", L"basically", L"like", L"guess", L"anyway", L"whatever", NULL };
+
+static int lowerStr(const wchar_t *s, int n, wchar_t *o, int cap) {
+    int k = 0; for (int i = 0; i < n && k < cap - 1; i++) o[k++] = isApos(s[i]) ? L'\'' : (wchar_t)towlower(s[i]);
+    o[k] = 0; return k;
+}
+
+static int onlySpaces(const wchar_t *t, int a, int b) { for (int i = a; i < b; i++) if (t[i] != L' ' && t[i] != L'\t') return 0; return a < b; }
+
+static void dtAnalyze(const wchar_t *t, Detect *d) {
+    nanoInit();
+    memset(d, 0, sizeof *d);
+    int n = (int)wcslen(t);
+    unsigned char *url = calloc(n + 1, 1);
+    for (int i = 0; i < n; i++) {
+        if (!wcsncmp(t + i, L"http", 4) || !wcsncmp(t + i, L"www.", 4) || (t[i] == L'@' && i > 0 && iswalnum(t[i - 1]))) {
+            int a = i; while (a > 0 && !iswspace(t[a - 1])) a--;
+            int b = i; while (b < n && !iswspace(t[b])) b++;
+            memset(url + a, 1, b - a); i = b;
+        }
+    }
+    DW *w = NULL; int nw = 0, cw = 0;
+    int *sStart = NULL, *sLen = NULL, ns = 0, cs = 0;
+    int sent = 0, sentWordsN = 0, paraWords = 0, nPara = 0; double paraSum = 0, paraSq = 0;
+    int curSentStartChar = -1;
+    #define ENDSENT() do { if (sentWordsN) { if (ns == cs) { cs = cs ? cs * 2 : 64; sStart = realloc(sStart, cs * sizeof(int)); sLen = realloc(sLen, cs * sizeof(int)); } \
+        sStart[ns] = nw - sentWordsN; sLen[ns] = sentWordsN; ns++; sent++; sentWordsN = 0; curSentStartChar = -1; } } while (0)
+    #define ENDPARA() do { ENDSENT(); if (paraWords) { nPara++; paraSum += paraWords; paraSq += (double)paraWords * paraWords; paraWords = 0; } } while (0)
+    for (int i = 0; i < n;) {
+        wchar_t c = t[i];
+        if (dwIsLetter(c) || (iswdigit(c))) {
+            int j = i;
+            while (j < n && (iswalnum(t[j]) || ((isApos(t[j]) || t[j] == L'-') && j + 1 < n && iswalnum(t[j + 1]) && j > i))) j++;
+            if (nw == cw) { cw = cw ? cw * 2 : 256; w = realloc(w, cw * sizeof(DW)); }
+            DW *k = &w[nw++]; k->s = i; k->len = j - i; k->sent = sent; lowerStr(t + i, j - i, k->l, 40);
+            if (curSentStartChar < 0) curSentStartChar = i;
+            sentWordsN++; paraWords++;
+            i = j; continue;
+        }
+        if (c == L'\n') {
+            int j = i; while (j < n && (t[j] == L'\n' || t[j] == L' ' || t[j] == L'\t')) j++;
+            int nlc = 0; for (int k = i; k < j; k++) if (t[k] == L'\n') nlc++;
+            if (nlc >= 2) ENDPARA(); else ENDSENT();
+            i = j; continue;
+        }
+        if ((c == L'.' || c == L'!' || c == L'?') && !url[i]) {
+            int j = i; while (j < n && (t[j] == L'.' || t[j] == L'!' || t[j] == L'?')) j++;
+            int k = j; while (k < n && (t[k] == L'"' || t[k] == L'\'' || t[k] == 0x201D || t[k] == 0x2019 || t[k] == L')')) k++;
+            int isEnd = k >= n || iswspace(t[k]);
+            if (isEnd && c == L'.' && j - i == 1 && nw && w[nw - 1].s + w[nw - 1].len == i) {
+                if (wIn(w[nw - 1].l, DABBR) || (w[nw - 1].len == 1 && iswupper(t[w[nw - 1].s]))) isEnd = 0;
+                if (i > 2 && t[i - 2] == L'.') isEnd = 0;
+            }
+            if (isEnd) ENDSENT();
+            i = j; continue;
+        }
+        i++;
+    }
+    ENDPARA();
+    #undef ENDSENT
+    #undef ENDPARA
+    d->words = nw; d->sents = ns; d->paras = nPara;
+
+    /* ---- grammar / spelling / punctuation ---- */
+    for (int i = 0; i < nw; i++) {
+        DW *a = &w[i];
+        if (url[a->s]) continue;
+        const wchar_t *src = t + a->s;
+        int adjPrev = i > 0 && w[i - 1].sent == a->sent && onlySpaces(t, w[i - 1].s + w[i - 1].len, a->s);
+        if (adjPrev && !wcscmp(a->l, w[i - 1].l) && !iswdigit(a->l[0]) && !(iswupper(src[0]) && iswupper(t[w[i - 1].s]) && i > 1 && w[i - 2].sent == a->sent)) {
+            static const wchar_t *OKREP[] = { L"had", L"that", L"ha", L"bye", L"no", L"so", L"very", L"really", L"ho", L"la", L"yeah", L"knock", L"boo", L"is", L"bla", L"blah", L"tsk", L"choo", L"go", L"well", NULL };
+            if (!wIn(a->l, OKREP)) dtAdd(d, w[i - 1].s, a->s + a->len - w[i - 1].s, IS_GRAM, L"Repeated word: \"%ls %ls\"", a->l, a->l);
+        }
+        if ((!wcscmp(a->l, L"a") || !wcscmp(a->l, L"an")) && i + 1 < nw && w[i + 1].sent == a->sent && onlySpaces(t, a->s + a->len, w[i + 1].s)) {
+            DW *b = &w[i + 1]; const wchar_t *x = b->l;
+            int allCaps = 1; for (int k = 0; k < b->len; k++) if (iswlower(t[b->s + k])) allCaps = 0;
+            if (iswalpha(x[0]) && !(allCaps && b->len > 1) && b->len > 1) {
+                int wantAn = -1;
+                if (!wcsncmp(x, L"one", 3) || !wcsncmp(x, L"once", 4) || !wcsncmp(x, L"uni", 3) || !wcsncmp(x, L"use", 3) || !wcsncmp(x, L"usu", 3) ||
+                    !wcsncmp(x, L"uti", 3) || !wcsncmp(x, L"ure", 3) || !wcsncmp(x, L"eu", 2) || !wcsncmp(x, L"ewe", 3)) wantAn = 0;
+                else if (!wcsncmp(x, L"hour", 4) || !wcsncmp(x, L"honest", 6) || !wcsncmp(x, L"honor", 5) || !wcsncmp(x, L"honour", 6) || !wcsncmp(x, L"heir", 4)) wantAn = 1;
+                else if (wcschr(L"aeiou", x[0])) wantAn = 1;
+                else if (x[0] != L'h') wantAn = 0;
+                int isAn = a->len == 2;
+                if (wantAn >= 0 && wantAn != isAn)
+                    dtAdd(d, a->s, b->s + b->len - a->s, IS_GRAM, L"\"%ls %ls\" should be \"%ls %ls\"", a->l, x, wantAn ? L"an" : L"a", x);
+            }
+        }
+        if (a->len == 1 && src[0] == L'i' && (a->s + 1 >= n || !iswalpha(t[a->s + 1])) && (a->s == 0 || t[a->s - 1] != L'.'))
+            dtAdd(d, a->s, 1, IS_GRAM, L"Lowercase \"i\" should be \"I\"");
+        if (!wcsncmp(src, L"i'", 2) || !wcsncmp(src, L"i\x2019", 2)) dtAdd(d, a->s, a->len, IS_GRAM, L"\"%ls\" should start with a capital I", a->l);
+        if (i > 0 && w[i - 1].sent != a->sent && iswlower(src[0])) {
+            int hasUpper = 0; for (int k = 1; k < a->len; k++) if (iswupper(src[k])) hasUpper = 1;
+            int p = a->s - 1; while (p >= 0 && (iswspace(t[p]) || t[p] == L'"' || t[p] == 0x201C || t[p] == L'(')) p--;
+            if (!hasUpper && p >= 0 && (t[p] == L'.' || t[p] == L'!' || t[p] == L'?') && !(p >= 2 && t[p - 1] == L'.' && t[p - 2] == L'.'))
+                dtAdd(d, a->s, a->len, IS_GRAM, L"Sentence should start with a capital letter (\"%lc%ls\")", towupper(src[0]), a->l + 1);
+        }
+        if (i == 0 && iswlower(src[0]) && a->len > 1) {
+            int hasUpper = 0; for (int k = 1; k < a->len; k++) if (iswupper(src[k])) hasUpper = 1;
+            if (!hasUpper && nw > 3) dtAdd(d, a->s, a->len, IS_GRAM, L"First word should start with a capital letter");
+        }
+        for (int m = 0; MISSP[m] || MISSP[m + 1]; m += 2) {
+            if (!MISSP[m] || !MISSP[m + 1] || wcscmp(a->l, MISSP[m])) continue;
+            if (!wcscmp(a->l, L"im") || !wcscmp(a->l, L"ive")) { if (src[0] != L'i' && src[0] != L'I') continue; }
+            if (!wcscmp(a->l, L"cant") || !wcscmp(a->l, L"wont") || !wcscmp(a->l, L"hes") || !wcscmp(a->l, L"shes")) { if (i == 0) continue; }
+            dtAdd(d, a->s, a->len, IS_SPELL, L"\"%ls\" → \"%ls\"", a->l, MISSP[m + 1]);
+            break;
+        }
+        if (adjPrev) {
+            const wchar_t *p = w[i - 1].l, *x = a->l;
+            int s0 = w[i - 1].s, e1 = a->s + a->len;
+            if (!wcscmp(x, L"of") && wIn(p, MODALS_OF)) dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"%ls of\" should be \"%ls have\"", p, p);
+            else if (!wcscmp(p, L"its") && wIn(x, ITS_NEXT)) dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"its %ls\" should probably be \"it's %ls\"", x, x);
+            else if ((!wcscmp(p, L"it's") || !wcscmp(p, L"it’s")) && !wcscmp(x, L"own")) dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"it's own\" should be \"its own\"");
+            else if (!wcscmp(p, L"your") && wIn(x, YOUR_NEXT)) dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"your %ls\" should be \"you're %ls\"", x, x);
+            else if (!wcscmp(x, L"then") && wIn(p, COMPAR)) dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"%ls then\" should be \"%ls than\"", p, p);
+            else if (!wcscmp(x, L"affect") && (!wcscmp(p, L"the") || !wcscmp(p, L"an") || !wcscmp(p, L"positive") || !wcscmp(p, L"negative")))
+                dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"%ls affect\" should be \"%ls effect\" (noun)", p, p);
+            else if (!wcscmp(x, L"was") && (!wcscmp(p, L"they") || !wcscmp(p, L"we") || !wcscmp(p, L"you")))
+                dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"%ls was\" should be \"%ls were\"", p, p);
+            else if ((!wcscmp(x, L"don't") || !wcscmp(x, L"dont")) && (!wcscmp(p, L"he") || !wcscmp(p, L"she") || !wcscmp(p, L"it")))
+                dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"%ls don't\" should be \"%ls doesn't\"", p, p);
+            else if ((!wcscmp(x, L"are") && (!wcscmp(p, L"he") || !wcscmp(p, L"she") || !wcscmp(p, L"it"))) ||
+                     (!wcscmp(x, L"is") && (!wcscmp(p, L"they") || !wcscmp(p, L"we") || !wcscmp(p, L"i"))))
+                dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"%ls %ls\": the verb doesn't match the subject", p, x);
+            else if (!wcscmp(p, L"their") && (!wcscmp(x, L"is") || !wcscmp(x, L"are") || !wcscmp(x, L"was") || !wcscmp(x, L"were")))
+                dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"their %ls\" should be \"there %ls\"", x, x);
+            else if (!wcscmp(p, L"there") && (!wcscmp(x, L"own") || !wcscmp(x, L"house") || !wcscmp(x, L"car") || !wcscmp(x, L"friends")))
+                dtAdd(d, s0, e1 - s0, IS_GRAM, L"\"there %ls\" should be \"their %ls\"", x, x);
+            else if (!wcscmp(p, L"could") && !wcscmp(x, L"care") && i + 1 < nw && !wcscmp(w[i + 1].l, L"less"))
+                dtAdd(d, s0, w[i + 1].s + w[i + 1].len - s0, IS_GRAM, L"\"could care less\" means the opposite; use \"couldn't care less\"");
+        }
+        int isCap = iswupper(src[0]);
+        if (!isCap && a->len >= 5 && a->len < 30) {
+            int alpha = 1; for (int k = 0; k < a->len; k++) if (!iswalpha(src[k]) || src[k] > 127) alpha = 0;
+            int listed = 0; for (int m = 0; MISSP[m] || MISSP[m + 1]; m += 2) if (MISSP[m] && !wcscmp(a->l, MISSP[m])) listed = 1;
+            wchar_t sug[48];
+            if (alpha && !listed && !knownW(a->l) && typoSuggest(a->l, sug) && !(wcslen(sug) == wcslen(a->l) + 1 && !wcsncmp(sug, a->l, wcslen(a->l)))) dtAdd(d, a->s, a->len, IS_SPELL, L"Possible typo: \"%ls\" → \"%ls\"?", a->l, sug);
+        }
+    }
+    /* punctuation scan */
+    int par = 0, lastOpen = -1, dq = 0, lastDq = -1, cOpen = 0, cClose = 0, lastC = -1;
+    for (int i = 0; i < n; i++) {
+        wchar_t c = t[i];
+        if (url[i]) continue;
+        if (c == L'(') { par++; lastOpen = i; }
+        else if (c == L')') {
+            if (par > 0) par--;
+            else {
+                int smile = i > 0 && (t[i - 1] == L':' || t[i - 1] == L';' || t[i - 1] == L'-');
+                int marker = i > 0 && iswalnum(t[i - 1]) && (i == 1 || iswspace(t[i - 2]));
+                if (!smile && !marker) dtAdd(d, i, 1, IS_PUNCT, L"Closing \")\" without an opening \"(\"");
+            }
+        }
+        else if (c == L'"') { dq++; lastDq = i; }
+        else if (c == 0x201C) { cOpen++; lastC = i; } else if (c == 0x201D) cClose++;
+        if ((c == L',' || c == L'.' || c == L';' || c == L'!' || c == L'?') && i > 0 && t[i - 1] == L' ' && i > 1 && t[i - 2] != L' ' && t[i - 2] != L'\n') {
+            int ell = c == L'.' && i + 1 < n && t[i + 1] == L'.';
+            if (!ell && !(c == L'.' && i + 1 < n && iswdigit(t[i + 1]))) dtAdd(d, i - 1, 2, IS_PUNCT, L"Extra space before \"%lc\"", c);
+        }
+        if ((c == L',' || c == L';') && i > 0 && i + 1 < n && iswalpha(t[i - 1]) && iswalpha(t[i + 1])) dtAdd(d, i, 2, IS_PUNCT, L"Missing space after \"%lc\"", c);
+        if ((c == L'.' || c == L'!' || c == L'?') && i > 2 && i + 2 < n && iswlower(t[i - 1]) && iswlower(t[i - 2]) && iswlower(t[i - 3]) && iswupper(t[i + 1]) && iswlower(t[i + 2]))
+            dtAdd(d, i, 2, IS_PUNCT, L"Missing space after \"%lc\"", c);
+        if (i + 1 < n && ((c == L',' && t[i + 1] == L',') || (c == L';' && t[i + 1] == L';') || (c == L'.' && t[i + 1] == L',') || (c == L',' && t[i + 1] == L'.')))
+            dtAdd(d, i, 2, IS_PUNCT, L"Doubled punctuation \"%lc%lc\"", c, t[i + 1]);
+        if (c == L'.' && i + 1 < n && t[i + 1] == L'.' && (i + 2 >= n || t[i + 2] != L'.') && (i == 0 || t[i - 1] != L'.'))
+            dtAdd(d, i, 2, IS_PUNCT, L"Two periods; use one (or \"...\" for a pause)");
+        if (c == L' ' && i + 1 < n && t[i + 1] == L' ' && i > 0 && iswalnum(t[i - 1])) {
+            int j = i; while (j < n && t[j] == L' ') j++;
+            if (j < n && iswalnum(t[j])) dtAdd(d, i, j - i, IS_PUNCT, L"Double space between words");
+            i = j - 1;
+        }
+    }
+    if (par > 0 && lastOpen >= 0) dtAdd(d, lastOpen, 1, IS_PUNCT, L"\"(\" is never closed");
+    if (dq % 2 && lastDq >= 0) dtAdd(d, lastDq, 1, IS_PUNCT, L"Unmatched quotation mark");
+    if (cOpen != cClose && lastC >= 0) dtAdd(d, lastC, 1, IS_PUNCT, L"Unmatched curly quotes");
+    /* sentence-level style */
+    for (int s = 0; s < ns; s++) {
+        if (sLen[s] > 45) {
+            DW *a = &w[sStart[s]], *b = &w[sStart[s] + sLen[s] - 1];
+            dtAdd(d, a->s, b->s + b->len - a->s > 0 ? w[sStart[s] + 3].s + w[sStart[s] + 3].len - a->s : a->len, IS_STYLE, L"Very long sentence (%d words); consider splitting it", sLen[s]);
+        }
+        if (s >= 2 && sLen[s] > 2 && sLen[s - 1] > 2 && sLen[s - 2] > 2) {
+            const wchar_t *x = w[sStart[s]].l;
+            if (!wcscmp(x, w[sStart[s - 1]].l) && !wcscmp(x, w[sStart[s - 2]].l) && wcscmp(x, L"the"))
+                dtAdd(d, w[sStart[s]].s, w[sStart[s]].len, IS_STYLE, L"Three sentences in a row start with \"%ls\"", x);
+        }
+        int caps = 0, run = 0;
+        for (int k = sStart[s]; k < sStart[s] + sLen[s]; k++) {
+            DW *a = &w[k]; int up = a->len > 1; for (int q = 0; q < a->len; q++) if (iswlower(t[a->s + q])) up = 0;
+            if (up && iswalpha(t[a->s])) { if (++run >= 4 && !caps) { caps = 1; dtAdd(d, w[k - 3].s, a->s + a->len - w[k - 3].s, IS_STYLE, L"Long run of ALL CAPS reads like shouting"); } }
+            else run = 0;
+        }
+    }
+    {   /* paragraphs missing an ending */
+        int ls = 0;
+        for (int i = 0; i <= n; i++) {
+            if (i == n || t[i] == L'\n') {
+                int e = i - 1; while (e >= ls && iswspace(t[e])) e--;
+                int wc = 0; for (int k = 0; k < nw; k++) if (w[k].s >= ls && w[k].s < i) wc++;
+                if (e >= ls && wc >= 8 && !wcschr(L".!?:;\"')]\x201D\x2019…*", t[e]) && !url[e] && !iswdigit(t[e]))
+                    dtAdd(d, e, 1, IS_PUNCT, L"Paragraph is missing its final punctuation");
+                ls = i + 1;
+            }
+        }
+    }
+
+    /* ---- AI signals ---- */
+    wchar_t *low = malloc((n + 1) * sizeof(wchar_t));
+    for (int i = 0; i < n; i++) low[i] = isApos(t[i]) ? L'\'' : (wchar_t)towlower(t[i]);
+    low[n] = 0;
+    int aiHits = 0;
+    for (int i = 0; i < nw; i++) if (wIn(w[i].l, AIW)) { aiHits++; dtAdd(d, w[i].s, w[i].len, IS_AI, L""); }
+    for (int p = 0; AIP[p]; p++) {
+        int pl = (int)wcslen(AIP[p]);
+        for (wchar_t *q = low; (q = wcsstr(q, AIP[p])); q += pl) {
+            int at = (int)(q - low);
+            if ((at > 0 && iswalpha(low[at - 1])) || (at + pl < n && iswalpha(low[at + pl]) && iswalpha(AIP[p][pl - 1]))) continue;
+            aiHits += 2; dtAdd(d, at, pl, IS_AI, L"");
+        }
+    }
+    d->nAiHits = aiHits;
+    int contr = 0, casual = 0, emd = 0, quest = 0, excl = 0, firstP = 0, triads = 0, trans = 0, letters = 0;
+    for (int i = 0; i < nw; i++) {
+        if (wcschr(w[i].l, L'\'')) contr++;
+        if (wIn(w[i].l, CASUAL)) casual++;
+        if (!wcscmp(w[i].l, L"i") || !wcscmp(w[i].l, L"me") || !wcscmp(w[i].l, L"my") || !wcscmp(w[i].l, L"i'm")) firstP++;
+        letters += w[i].len;
+    }
+    for (int i = 0; i < n; i++) {
+        if (t[i] == 0x2014 || (t[i] == L'-' && i + 1 < n && t[i + 1] == L'-')) emd++;
+        if (t[i] == L'?') quest++;
+        if (t[i] == L'!') excl++;
+    }
+    for (int i = 0; i + 3 < nw; i++) {
+        /* "X, Y, and Z" */
+        if (!wcscmp(w[i + 2].l, L"and") || !wcscmp(w[i + 2].l, L"or")) {
+            int c1 = 0; for (int k = w[i].s + w[i].len; k < w[i + 1].s; k++) if (t[k] == L',') c1 = 1;
+            int c2 = 0; for (int k = w[i + 1].s + w[i + 1].len; k < w[i + 2].s; k++) if (t[k] == L',') c2 = 1;
+            if (c1 && c2 && w[i].sent == w[i + 3].sent) triads++;
+        }
+    }
+    for (int s = 0; s < ns; s++) {
+        int a = sStart[s];
+        wchar_t two[80]; swprintf(two, 80, L"%ls %ls", w[a].l, sLen[s] > 1 ? w[a + 1].l : L"");
+        if (wIn(w[a].l, DTRANS) || wIn(two, DTRANS)) trans++;
+    }
+    double mean = 0, var = 0;
+    int sc = 0;
+    for (int s = 0; s < ns; s++) if (sLen[s] >= 2) { mean += sLen[s]; sc++; }
+    if (sc) mean /= sc;
+    for (int s = 0; s < ns; s++) if (sLen[s] >= 2) var += (sLen[s] - mean) * (sLen[s] - mean);
+    if (sc > 1) var /= sc - 1;
+    double cv = mean > 0 ? sqrt(var) / mean : 0;
+    double per = nw ? 100.0 / nw : 0;
+    d->burst = cv; d->aiPer100 = aiHits * per; d->transFrac = ns ? (double)trans / ns : 0; d->contr100 = contr * per;
+    d->triad = ns ? (double)triads / ns : 0; d->awl = nw ? (double)letters / nw : 0;
+    d->casual100 = (casual + quest * 0.5 + excl * 0.5 + firstP * 0.3) * per;
+    d->err100 = d->nGram * per;
+
+    double z = -1.2, cb[8]; memset(cb, 0, sizeof cb);
+    if (sc >= 4) { cb[0] = (0.50 - cv) / 0.18; if (cb[0] > 1.6) cb[0] = 1.6; if (cb[0] < -1.6) cb[0] = -1.6; cb[0] *= 1.1; }
+    cb[1] = d->aiPer100 / 1.2; if (cb[1] > 3.2) cb[1] = 3.2;
+    cb[2] = (d->transFrac - 0.08) * 6; if (cb[2] > 1.6) cb[2] = 1.6; if (cb[2] < -0.4) cb[2] = -0.4;
+    cb[3] = d->contr100 < 0.4 ? 0.25 : -fmin(d->contr100 / 2.0, 1.2);
+    cb[4] = (d->triad - 0.08) * 5; if (cb[4] > 1.2) cb[4] = 1.2; if (cb[4] < -0.3) cb[4] = -0.3;
+    cb[5] = -fmin(d->casual100 / 2.5, 2.0);
+    cb[6] = -fmin(d->err100 / 1.5, 2.2);
+    cb[7] = (d->awl - 4.7) * 1.1; if (cb[7] > 1.0) cb[7] = 1.0; if (cb[7] < -1.0) cb[7] = -1.0;
+    for (int k = 0; k < 8; k++) z += cb[k];
+    if (emd && nw && emd * per > 0.4) z += 0.35;
+    if (nPara >= 3) { double pm = paraSum / nPara, pv = paraSq / nPara - pm * pm; double pcv = pm > 0 ? sqrt(pv > 0 ? pv : 0) / pm : 1; if (pcv < 0.25) z += 0.4; }
+    d->score = (int)(100.0 / (1.0 + exp(-z)) + 0.5);
+    if (d->score > 99) d->score = 99; if (d->score < 1) d->score = 1;
+    d->ok = nw >= 1;
+    wcscpy(d->verdict, d->score < 25 ? L"Likely human" : d->score < 50 ? L"Leans human" : d->score < 75 ? L"Possibly AI" : L"Likely AI");
+    wcscpy(d->conf, nw < 60 ? L"low confidence: short text" : nw < 200 ? L"medium confidence" : L"higher confidence");
+    /* explain the strongest signals */
+    struct { double v; wchar_t s[96]; } sg[10]; int nsg = 0;
+    #define SIG(val, ...) do { sg[nsg].v = (val); swprintf(sg[nsg].s, 96, __VA_ARGS__); nsg++; } while (0)
+    if (sc >= 4) SIG(cb[0], cb[0] > 0 ? L"▲ Sentences are very even in length" : L"▼ Sentence lengths vary like a person's");
+    if (aiHits) SIG(cb[1], L"▲ %d AI-favorite word%ls/phrase%ls (purple)", aiHits, aiHits == 1 ? L"" : L"s", aiHits == 1 ? L"" : L"s");
+    else SIG(-0.3, L"▼ No AI-favorite words or phrases");
+    if (trans) SIG(cb[2], L"%lc %d sentence%ls open with a transition word", cb[2] > 0 ? 0x25B2 : 0x25BC, trans, trans == 1 ? L"" : L"s");
+    SIG(cb[3], cb[3] > 0 ? L"▲ No contractions (stiff, formal tone)" : L"▼ Uses contractions like people do");
+    if (triads) SIG(cb[4], L"%lc %d \"X, Y, and Z\" list%ls", cb[4] > 0 ? 0x25B2 : 0x25BC, triads, triads == 1 ? L"" : L"s");
+    if (cb[5] < -0.2) SIG(cb[5], L"▼ Casual, personal voice");
+    if (cb[6] < -0.2) SIG(cb[6], L"▼ Has mistakes (AI rarely makes them)");
+    if (fabs(cb[7]) > 0.3) SIG(cb[7], cb[7] > 0 ? L"▲ Long, fancy words on average" : L"▼ Short, plain words");
+    #undef SIG
+    for (int a = 0; a < nsg; a++) for (int b = a + 1; b < nsg; b++) if (fabs(sg[b].v) > fabs(sg[a].v)) { sg[9] = sg[a]; sg[a] = sg[b]; sg[b] = sg[9]; }
+    d->nSig = nsg < 5 ? nsg : 5;
+    for (int k = 0; k < d->nSig; k++) wcscpy(d->sig[k], sg[k].s);
+    /* sort issues by position */
+    for (int a = 1; a < d->nIss; a++) { Issue k = d->iss[a]; int b = a - 1; while (b >= 0 && d->iss[b].s > k.s) { d->iss[b + 1] = d->iss[b]; b--; } d->iss[b + 1] = k; }
+    free(low); free(url); free(w); free(sStart); free(sLen);
+}
+
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.4.0"
-#define APP_VERSION_W L"1.4.0"
+#define APP_VERSION   "1.5.0"
+#define APP_VERSION_W L"1.5.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
@@ -38609,9 +39042,11 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
 
 enum { ID_IN = 101, ID_OUT, ID_GO, ID_COPY, ID_USE, ID_CLR, ID_PASSES,
        ID_UCHECK = 301, ID_UINSTALL, ID_UPAGE, ID_UNOTES,
-       ID_ACTKEY = 401, ID_ACT };
+       ID_ACTKEY = 401, ID_ACT,
+       ID_DIN = 501, ID_DLIST, ID_DCHECK, ID_DPASTE, ID_DFROM, ID_DCLR, ID_DPANG };
 #define HK_CLIP 1
 #define TIMER_HL 7
+#define TIMER_DET 8
 
 static HWND hMain, hFrame;
 static wchar_t iniPath[MAX_PATH], exePath[MAX_PATH];
@@ -39194,9 +39629,11 @@ static int keyValid(const wchar_t *in, wchar_t *norm) {
 
 /* ---------- pages, layout, painting ---------- */
 
-enum { PG_REWRITE, PG_UPDATE, PG_LOCK, PG_N };
-#define NTABS 2
-static const wchar_t *TABNAME[NTABS] = { L"Rewrite", L"Update" };
+enum { PG_REWRITE, PG_DETECT, PG_UPDATE, PG_LOCK, PG_N };
+#define NTABS 3
+static const wchar_t *TABNAME[NTABS] = { L"Rewrite", L"AI detector", L"Update" };
+static const int TABICON[NTABS] = { 0, 5, 2 };
+static Detect det; static int detHave;
 static int curPage = PG_REWRITE, tabHover = -1;
 
 static Canvas pageC[PG_N], backC;
@@ -39236,7 +39673,7 @@ static void textAt(HDC dc, HFONT f, const wchar_t *t, int lx, int ly, int lw, in
     RECT r = RS(lx, ly, lw, lh);
     SelectObject(dc, f);
     SetTextColor(dc, col);
-    DrawTextW(dc, t, -1, &r, fmt);
+    DrawTextW(dc, t, -1, &r, fmt | DT_NOPREFIX);
 }
 
 enum { TG_LIGHT, TG_MED, TG_HEAVY, TG_MAX, TG_STRICT, TG_HILITE, TG_UCHECK, TG_UAUTO, TG_N };
@@ -39340,7 +39777,21 @@ static void renderPages(void) {
             textAt(dc, hTitle, L"Rewritten", 462, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
             textAt(dc, hSmall, L"same meaning, new words", 590, 64, 150, 16, HINT, DT_RIGHT | DT_SINGLELINE);
             textAt(dc, hSmall, L"Ctrl+Enter", 392, 256, 62, 14, RGB(220, 250, 255), DT_CENTER | DT_SINGLELINE);
+            textAt(dc, hTiny, L"Quotes, (parens), names and numbers stay locked.", 108, 354, 278, 24, HINT, DT_LEFT | DT_WORDBREAK);
+            textAt(dc, hTiny, L"Note: running the rewriter again on the same text (outside of Passes) may give unwanted results.", 462, 354, 280, 26, RGB(176, 92, 20), DT_LEFT | DT_WORDBREAK);
             glassPanel(c, 96, 390, 654, 36);
+        }
+        if (p == PG_DETECT) {
+            glassPanel(c, 96, 10, 654, 40);
+            textAt(dc, hTitle, L"AI Detector", 108, 19, 200, 22, NAVY, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
+            textAt(dc, hSmall, L"algorithms only · nothing leaves your PC", 400, 22, 338, 16, HINT, DT_RIGHT | DT_SINGLELINE);
+            glassPanel(c, 96, 58, 330, 324);
+            textAt(dc, hTitle, L"Text to check", 108, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
+            textAt(dc, hSmall, L"checks as you type", 260, 64, 156, 16, HINT, DT_RIGHT | DT_SINGLELINE);
+            glassPanel(c, 434, 58, 316, 324);
+            textAt(dc, hTitle, L"AI likelihood", 446, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
+            glassPanel(c, 96, 390, 654, 36);
+            textAt(dc, hSmall, L"Stronger check:", 456, 400, 102, 16, HINT, DT_RIGHT | DT_SINGLELINE);
         }
         if (p == PG_UPDATE) {
             glassPanel(c, 96, 10, 654, 414);
@@ -39394,6 +39845,10 @@ static void drawIcon(Canvas *c, int kind, double cx, double cy, double s, int co
         segment(c, px, py, px + tx * s * 0.2 - cos(an) * s * 0.14, py + ty * s * 0.2 - sin(an) * s * 0.14, th, col, a);
     } else if (kind == 3) {
         arrowLine(c, cx - s * 0.32, cy, cx + s * 0.3, cy, th * 1.5, col, a, s * 0.32);
+    } else if (kind == 5) {
+        double r = s * 0.27, mx = cx - s * 0.08, my = cy - s * 0.08;
+        ring(c, mx, my, r, col, a, th);
+        segment(c, mx + r * 0.72, my + r * 0.72, cx + s * 0.42, cy + s * 0.42, th * 1.5, col, a);
     } else {
         for (int k = -1; k <= 1; k++) disc(c, cx + k * s * 0.3, cy, s * 0.09, col, a, 1);
     }
@@ -39447,8 +39902,8 @@ static void drawTabs(Canvas *c) {
         COLORREF col = !activated ? RGB(90, 150, 165) : active ? RGB(255, 255, 255) : RGB(200, 245, 252);
         int icol = (GetRValue(col) << 16) | (GetGValue(col) << 8) | GetBValue(col);
         RECT l = { r.left, r.top + S(38), r.right, r.bottom - S(4) };
-        if (active) drawIcon(c, i ? 2 : 0, x + w / 2, y + S(21) + 1, S(24), 0x0b5a66, 0.6);
-        drawIcon(c, i ? 2 : 0, x + w / 2, y + S(21), S(24), icol, 1);
+        if (active) drawIcon(c, TABICON[i], x + w / 2, y + S(21) + 1, S(24), 0x0b5a66, 0.6);
+        drawIcon(c, TABICON[i], x + w / 2, y + S(21), S(24), icol, 1);
         SetBkMode(c->dc, TRANSPARENT);
         SetTextColor(c->dc, col);
         SelectObject(c->dc, hBtnSmall);
@@ -39517,6 +39972,29 @@ static void paintMain(HDC hdc) {
         if (updLatest[0]) swprintf(hd, 96, L"What's new in %ls", updLatest); else wcscpy(hd, L"What's new");
         textAt(dc, hBold, hd, 116, 164, 400, 18, NAVY, DT_LEFT | DT_SINGLELINE);
     }
+    if (curPage == PG_DETECT) {
+        if (detHave) {
+            int sc = det.score;
+            COLORREF col = sc < 25 ? RGB(30, 140, 60) : sc < 50 ? RGB(110, 150, 30) : sc < 75 ? RGB(210, 120, 20) : RGB(200, 50, 40);
+            wchar_t b[16]; swprintf(b, 16, L"%d%%", sc);
+            textAt(dc, hHuge, b, 444, 80, 104, 46, col, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
+            textAt(dc, hBold, det.verdict, 552, 86, 190, 18, col, DT_LEFT | DT_SINGLELINE);
+            wchar_t cf[96]; swprintf(cf, 96, L"%d words · %ls", det.words, det.conf);
+            textAt(dc, hTiny, cf, 552, 106, 190, 14, HINT, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+            double x = S(446), y = S(130), w = S(292), h = S(10), r = S(5), f = w * sc / 100.0;
+            int bc = sc < 25 ? 0x3cbf5a : sc < 50 ? 0x9ccc2a : sc < 75 ? 0xf0a030 : 0xe0483a;
+            rrFill(&backC, x, y, w, h, r, 0xe8f6fa, 0xcfeef5, 0.95, 0.95);
+            if (f > r * 2) { rrFill(&backC, x, y, f, h, r, bc, bc, 1, 1); rrGloss(&backC, x, y, f, h, r, 0.5, 0.7, 0.15); }
+            rrStroke(&backC, x, y, w, h, r, 0x1a8fa3, 0.6, 1, 0);
+            for (int k = 0; k < det.nSig && k < 4; k++)
+                textAt(dc, hSmall, det.sig[k], 446, 146 + k * 15, 296, 15, det.sig[k][0] == 0x25B2 ? RGB(170, 70, 30) : RGB(30, 120, 70), DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+            wchar_t gh[64]; swprintf(gh, 64, L"Grammar & issues (%d)", det.nGram);
+            textAt(dc, hBold, gh, 446, 210, 296, 18, NAVY, DT_LEFT | DT_SINGLELINE);
+        } else {
+            textAt(dc, hFont, L"Paste or type text on the left. Nano scores how AI-like it reads and lists grammar, spelling and punctuation problems.\n\nIt's an estimate from writing patterns, not proof.", 446, 88, 292, 120, HINT, DT_LEFT | DT_WORDBREAK);
+            textAt(dc, hBold, L"Grammar & issues", 446, 210, 296, 18, NAVY, DT_LEFT | DT_SINGLELINE);
+        }
+    }
     if (runPct >= 0) {
         double x = S(98), y = S(434), w = S(650), h = S(26), r = S(12), f = w * (runPct > 100 ? 100 : runPct) / 100.0;
         if (f > r * 2) { rrFill(&backC, x, y, f, h, r, 0xc6f5c0, 0x7fd88a, 0.85, 0.85); rrGloss(&backC, x, y, f, h, r, 0.5, 0.6, 0.1); }
@@ -39540,7 +40018,7 @@ static void drawButton(DRAWITEMSTRUCT *d) {
         }
     }
     UINT id = d->CtlID;
-    const BtnPal *p = id == ID_CLR ? &PAL_RED : (id == ID_GO || id == ID_UINSTALL || id == ID_ACT) ? &PAL_GREEN : &PAL_TEAL;
+    const BtnPal *p = (id == ID_CLR || id == ID_DCLR) ? &PAL_RED : (id == ID_GO || id == ID_UINSTALL || id == ID_ACT || id == ID_DCHECK) ? &PAL_GREEN : &PAL_TEAL;
     int pressed = (d->itemState & ODS_SELECTED) != 0;
     if (id == ID_GO) {
         double r = (w - 4) / 2.0;
@@ -39601,8 +40079,8 @@ static LRESULT CALLBACK RichSub(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR i
         }
         return 0;
     }
-    if (m == WM_KEYDOWN && wp == VK_RETURN && GetKeyState(VK_CONTROL) < 0 && GetDlgCtrlID(h) == ID_IN) {
-        PostMessageW(hMain, WM_COMMAND, ID_GO, 0);
+    if (m == WM_KEYDOWN && wp == VK_RETURN && GetKeyState(VK_CONTROL) < 0 && (GetDlgCtrlID(h) == ID_IN || GetDlgCtrlID(h) == ID_DIN)) {
+        PostMessageW(hMain, WM_COMMAND, GetDlgCtrlID(h) == ID_IN ? ID_GO : ID_DCHECK, 0);
         return 0;
     }
     return DefSubclassProc(h, m, wp, lp);
@@ -39934,7 +40412,7 @@ static LRESULT CALLBACK FrameProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             else { capHover = -1; ShowWindow(h, SW_MINIMIZE); }
         }
     } return 0;
-    case WM_SETFOCUS: SetFocus(GetDlgItem(hMain, curPage == PG_LOCK ? ID_ACTKEY : curPage == PG_UPDATE ? ID_UCHECK : ID_IN)); return 0;
+    case WM_SETFOCUS: SetFocus(GetDlgItem(hMain, curPage == PG_LOCK ? ID_ACTKEY : curPage == PG_UPDATE ? ID_UCHECK : curPage == PG_DETECT ? ID_DIN : ID_IN)); return 0;
     case WM_ERASEBKGND: return 1;
     case WM_PAINT: {
         PAINTSTRUCT ps; HDC dc = BeginPaint(h, &ps);
@@ -39971,7 +40449,7 @@ static void showPage(int p) {
     hoverBtn = NULL;
     for (int i = 0; i < nctl; i++) ShowWindow(ctls[i].h, ctls[i].page == p ? SW_SHOWNA : SW_HIDE);
     InvalidateRect(hMain, NULL, FALSE);
-    SetFocus(GetDlgItem(hMain, p == PG_LOCK ? ID_ACTKEY : p == PG_UPDATE ? ID_UCHECK : ID_IN));
+    SetFocus(GetDlgItem(hMain, p == PG_LOCK ? ID_ACTKEY : p == PG_UPDATE ? ID_UCHECK : p == PG_DETECT ? ID_DIN : ID_IN));
 }
 
 static HWND mkRich(int x, int y, int w, int h, int id) {
@@ -39989,14 +40467,26 @@ static HWND mkRich(int x, int y, int w, int h, int id) {
 
 static void buildUI(void) {
     buildPage = PG_REWRITE;
-    mkRich(106, 86, 280, 286, ID_IN);
-    mkRich(460, 86, 280, 286, ID_OUT);
+    mkRich(106, 86, 280, 264, ID_IN);
+    mkRich(460, 86, 280, 264, ID_OUT);
     BTN(L"Rewrite", 399, 196, 48, 48, ID_GO);
     HWND pe = mk(WS_EX_CLIENTEDGE, L"EDIT", L"1", WS_TABSTOP | ES_NUMBER | ES_CENTER, 624, 18, 50, 24, ID_PASSES);
     SendMessageW(pe, EM_SETLIMITTEXT, 4, 0);
     BTN(L"Copy", 480, 393, 76, 30, ID_COPY);
     BTN(L"Use as input", 560, 393, 106, 30, ID_USE);
     BTN(L"Clear", 670, 393, 70, 30, ID_CLR);
+
+    buildPage = PG_DETECT;
+    mkRich(106, 86, 310, 286, ID_DIN);
+    HWND dl = mkRich(446, 230, 294, 142, ID_DLIST);
+    SendMessageW(dl, EM_SETREADONLY, TRUE, 0);
+    SendMessageW(dl, EM_SETBKGNDCOLOR, 0, RGB(250, 254, 255));
+    SendMessageW(dl, WM_SETFONT, (WPARAM)hSmall, TRUE);
+    BTN(L"Check", 106, 393, 84, 30, ID_DCHECK);
+    BTN(L"Paste", 194, 393, 70, 30, ID_DPASTE);
+    BTN(L"From Rewrite", 268, 393, 112, 30, ID_DFROM);
+    BTN(L"Clear", 384, 393, 64, 30, ID_DCLR);
+    BTN(L"Open Pangram", 562, 393, 178, 30, ID_DPANG);
 
     buildPage = PG_UPDATE;
     mk(0, L"EDIT", L"", WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL, 114, 184, 618, 160, ID_UNOTES);
@@ -40039,7 +40529,8 @@ static void makeCanvases(void) {
     renderFrame();
 }
 
-static HFONT ctlFont(int id) { return id == ID_IN || id == ID_OUT ? hEdit : id == ID_ACTKEY ? hBrand : hFont; }
+static HFONT ctlFont(int id) { return id == ID_IN || id == ID_OUT || id == ID_DIN ? hEdit : id == ID_ACTKEY ? hBrand : id == ID_DLIST ? hSmall : hFont; }
+static void runDetect(int quiet);
 
 static void rescaleAll(void) {
     makeFonts();
@@ -40054,6 +40545,7 @@ static void rescaleAll(void) {
         SendMessageW(ctls[i].h, WM_SETFONT, (WPARAM)ctlFont(GetDlgCtrlID(ctls[i].h)), TRUE);
     }
     hiliteAll();
+    if (detHave) runDetect(1);
     ShowWindow(hMain, SW_SHOW);
     showPage(curPage);
     RedrawWindow(hFrame, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
@@ -40135,6 +40627,54 @@ static void syncPassesBox(void) {
     } else if (!IsWindowEnabled(pe)) { EnableWindow(pe, TRUE); SetDlgItemInt(hMain, ID_PASSES, savedPasses, FALSE); }
 }
 
+static void runDetect(int quiet) {
+    HWND in = GetDlgItem(hMain, ID_DIN), ls = GetDlgItem(hMain, ID_DLIST);
+    wchar_t *t = getRichText(in);
+    int any = 0; for (wchar_t *p = t; *p; p++) if (!iswspace(*p)) { any = 1; break; }
+    dtFree(&det); detHave = 0;
+    hiliting = 1;
+    SendMessageW(in, WM_SETREDRAW, FALSE, 0);
+    CHARRANGE keep; SendMessageW(in, EM_EXGETSEL, 0, (LPARAM)&keep);
+    POINT scroll; SendMessageW(in, EM_GETSCROLLPOS, 0, (LPARAM)&scroll);
+    resetTextFormat(in);
+    if (any) {
+        dtAnalyze(t, &det); detHave = 1;
+        CHARFORMAT2W cf; memset(&cf, 0, sizeof cf); cf.cbSize = sizeof cf; cf.dwMask = CFM_BACKCOLOR | CFM_COLOR;
+        for (int pass = 0; pass < 2; pass++)
+            for (int k = 0; k < det.nIss; k++) {
+                Issue *is = &det.iss[k];
+                if ((is->kind == IS_AI) != (pass == 0)) continue;
+                cf.crBackColor = is->kind == IS_AI ? RGB(236, 226, 255) : is->kind == IS_STYLE ? RGB(226, 240, 255) : RGB(255, 236, 168);
+                cf.crTextColor = is->kind == IS_AI ? RGB(96, 52, 160) : is->kind == IS_STYLE ? RGB(30, 80, 150) : RGB(150, 70, 0);
+                CHARRANGE cr = { is->s, is->s + is->len };
+                SendMessageW(in, EM_EXSETSEL, 0, (LPARAM)&cr);
+                SendMessageW(in, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
+            }
+    }
+    SendMessageW(in, EM_EXSETSEL, 0, (LPARAM)&keep);
+    SendMessageW(in, EM_SETSCROLLPOS, 0, (LPARAM)&scroll);
+    SendMessageW(in, WM_SETREDRAW, TRUE, 0);
+    InvalidateRect(in, NULL, TRUE);
+    hiliting = 0;
+    Str o = {0}; sAdd(&o, L"");
+    if (detHave) {
+        int num = 0;
+        for (int k = 0; k < det.nIss; k++) {
+            Issue *is = &det.iss[k];
+            if (is->kind == IS_AI) continue;
+            wchar_t line[180]; swprintf(line, 180, L"%d. %ls: %ls\n", ++num, ISNAME[is->kind], is->msg);
+            sAdd(&o, line);
+        }
+        if (!num) sAdd(&o, L"No grammar, spelling or punctuation problems found.");
+    }
+    setRichText(ls, o.s); free(o.s);
+    InvalidateRect(hMain, NULL, FALSE);
+    if (!detHave) { if (!quiet) status(L"Type or paste some text in the box first."); }
+    else status(L"%d words checked: %d%% AI-likely (%ls), %d issue%ls found. Yellow = mistakes, purple = AI-style phrases.",
+                det.words, det.score, det.verdict, det.nGram, det.nGram == 1 ? L"" : L"s");
+    free(t);
+}
+
 static int tabAt(int mx, int my) {
     POINT p = { mx, my };
     for (int i = 0; i < NTABS; i++) { RECT r = tabRect(i); if (PtInRect(&r, p)) return i; }
@@ -40174,7 +40714,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 setRichText(GetDlgItem(h, ID_IN), t);
                 setRichText(GetDlgItem(h, ID_OUT), L"");
                 hiliteAll();
-                status(L"Moved the rewrite over. Hit the arrow again for a second pass.");
+                status(L"Moved over. Heads up: re-running on the same text can give unwanted results; Passes is safer.");
             }
             free(t);
         } break;
@@ -40185,6 +40725,31 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             break;
         case ID_IN:
             if (HIWORD(wp) == EN_CHANGE && !hiliting) SetTimer(h, TIMER_HL, 350, NULL);
+            break;
+        case ID_DIN:
+            if (HIWORD(wp) == EN_CHANGE && !hiliting) SetTimer(h, TIMER_DET, 600, NULL);
+            break;
+        case ID_DCHECK: runDetect(0); break;
+        case ID_DPASTE: {
+            wchar_t *t = clipGet();
+            if (t && t[0]) { setRichText(GetDlgItem(h, ID_DIN), t); runDetect(0); }
+            else status(L"Clipboard has no text to paste.");
+            free(t);
+        } break;
+        case ID_DFROM: {
+            wchar_t *t = getRichText(GetDlgItem(h, ID_OUT));
+            if (t[0]) { setRichText(GetDlgItem(h, ID_DIN), t); runDetect(0); }
+            else status(L"The Rewritten box is empty. Rewrite something first.");
+            free(t);
+        } break;
+        case ID_DCLR:
+            setRichText(GetDlgItem(h, ID_DIN), L""); setRichText(GetDlgItem(h, ID_DLIST), L"");
+            dtFree(&det); detHave = 0; InvalidateRect(h, NULL, FALSE); idleStatus();
+            SetFocus(GetDlgItem(h, ID_DIN));
+            break;
+        case ID_DPANG:
+            ShellExecuteW(NULL, L"open", L"https://www.pangram.com/dashboard?pendingCheck=true&pendingType=text", NULL, NULL, SW_SHOWNORMAL);
+            status(L"Opened Pangram in your browser. Paste your text there for a second opinion.");
             break;
         case ID_UCHECK: startCheck(); break;
         case ID_UINSTALL: startInstall(); break;
@@ -40197,6 +40762,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         return 0;
     case WM_TIMER:
         if (wp == TIMER_HL) { KillTimer(h, TIMER_HL); hiliteBox(GetDlgItem(h, ID_IN)); }
+        if (wp == TIMER_DET) { KillTimer(h, TIMER_DET); runDetect(1); }
         return 0;
     case WM_LBUTTONDOWN: {
         int x = GET_X_LPARAM(lp), y = GET_Y_LPARAM(lp), t = tabAt(x, y);
@@ -40209,10 +40775,10 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             tabHover = t;
             TRACKMOUSEEVENT tm = { sizeof tm, TME_LEAVE, h, 0 };
             TrackMouseEvent(&tm);
-            RECT r = RS(10, 80, 76, 230); InvalidateRect(h, &r, FALSE);
+            RECT r = RS(10, 80, 76, 300); InvalidateRect(h, &r, FALSE);
         }
     } return 0;
-    case WM_MOUSELEAVE: if (tabHover >= 0) { tabHover = -1; RECT r = RS(10, 80, 76, 230); InvalidateRect(h, &r, FALSE); } return 0;
+    case WM_MOUSELEAVE: if (tabHover >= 0) { tabHover = -1; RECT r = RS(10, 80, 76, 300); InvalidateRect(h, &r, FALSE); } return 0;
     case WM_DRAWITEM: drawButton((DRAWITEMSTRUCT *)lp); return TRUE;
     case WM_CTLCOLOREDIT:
     case WM_CTLCOLORSTATIC:

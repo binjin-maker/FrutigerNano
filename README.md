@@ -23,6 +23,10 @@ A built-in grammar tagger (an HMM trained on the Brown corpus) labels every word
 
 **Passes** (1-1000): feeds each result back in for another round. Nano remembers every word it swapped out and every sentence shape it produced, so it never undoes or repeats a change, and it stops early once there's nothing new left. Click the arrow again to stop.
 
+**AI detector tab**: paste any text and Nano scores how AI-like it reads (0–100%), using writing-pattern statistics: how even the sentence lengths are, AI-favorite words and phrases (highlighted purple), transition-word openers, "X, Y, and Z" lists, contractions, casual voice, word length and mistakes. It's an estimate, not proof. The same tab checks grammar, spelling and punctuation (highlighted yellow): a/an, its/it's, your/you're, then/than, "should of", repeated words, subject–verb mismatches, capitalization, spacing, unmatched brackets/quotes, common misspellings and likely typos. For a stronger second opinion there's an **Open Pangram** button.
+
+Note: running the rewriter again on its own output (outside of Passes) may give unwanted results. Use Passes for multiple rounds.
+
 ## Shortcuts
 
 - **Ctrl+Enter** in the Original box: rewrite
