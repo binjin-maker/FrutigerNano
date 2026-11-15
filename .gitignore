@@ -1,2 +1,3 @@
 /FrutigerNano.exe
 *.ini
+src/secret.h

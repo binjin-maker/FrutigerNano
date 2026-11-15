@@ -29,6 +29,10 @@ Turn on **Highlight locked parts** to see exactly what's protected (blue = locke
 - **Ctrl+Alt+N** anywhere: rewrite whatever's on your clipboard and put the result back on the clipboard
 - **Use as input**: moves the result up for a second pass
 
+## Activation
+
+First launch asks for a key (`NANO-XXXX-XXXX-XXXX`). Keys are checked offline against a secret that isn't in this repo, so builds from this source use a dev secret.
+
 ## Download
 
 Grab [`update/FrutigerNano.exe`](https://github.com/binjin-maker/FrutigerNano/raw/main/update/FrutigerNano.exe). It isn't code-signed, so Smart App Control has to be off. Updates install from the **Update** tab (checks `update/latest.json`, verifies SHA-256).

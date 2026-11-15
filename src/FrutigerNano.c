@@ -1188,6 +1188,18 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
 #define APP_VERSION   "1.0.0"
 #define APP_VERSION_W L"1.0.0"
 
+#if defined(__has_include)
+#if __has_include("secret.h")
+#include "secret.h"
+#endif
+#endif
+#ifndef NANO_SECRET
+#define NANO_SECRET "DEV-BUILD"
+#endif
+
+#define BW 760
+#define BH 470
+
 #define WM_STATUS     (WM_APP + 1)
 #define WM_NANODONE   (WM_APP + 2)
 #define WM_UPDCHECKED (WM_APP + 5)
@@ -1196,7 +1208,8 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
 
 enum { ID_IN = 101, ID_OUT, ID_GO, ID_COPY, ID_USE, ID_CLR,
        ID_KEY = 201, ID_MODEL, ID_EXTRA,
-       ID_UCHECK = 301, ID_UINSTALL, ID_UPAGE, ID_UNOTES };
+       ID_UCHECK = 301, ID_UINSTALL, ID_UPAGE, ID_UNOTES,
+       ID_ACTKEY = 401, ID_ACT };
 #define HK_CLIP 1
 #define TIMER_HL 7
 
@@ -1204,6 +1217,7 @@ static HWND hMain, hFrame;
 static wchar_t iniPath[MAX_PATH], exePath[MAX_PATH];
 static float dpi = 1.0f, uiScale = 1.0f;
 static volatile LONG nanoBusy;
+static int activated;
 
 static int S(int v) { return (int)(v * dpi * uiScale + 0.5f); }
 
@@ -1361,7 +1375,7 @@ static void renderFrame(void) {
     int W = c->w, H = c->h, th = S(TT);
     double sx = W * 0.22, sy = -S(14);
     for (int y = 0; y < H; y++) {
-        int base = y < th ? lerpCol(0xa9cdea, 0x76a5cf, (double)y / th) : lerpCol(0x76a5cf, 0x5b8cbc, (double)(y - th) / (H - th));
+        int base = y < th ? lerpCol(0xa8f0f2, 0x52c0cc, (double)y / th) : lerpCol(0x52c0cc, 0x1f8a9e, (double)(y - th) / (H - th));
         for (int x = 0; x < W; x++) {
             double s1 = sin((x + y * 1.7) / (double)S(38)) * 0.5 + 0.5;
             double s2 = sin((x * 0.8 + y * 1.7) / (double)S(11) + 1.3) * 0.5 + 0.5;
@@ -1375,7 +1389,7 @@ static void renderFrame(void) {
         blend(c, x, y, 0xffffff, 0.22 * (1 - (double)y / (th / 2)));
     int cx = S(FR), cy = th, cw = W - 2 * S(FR), ch = H - th - S(FR);
     rrStroke(c, cx - 2, cy - 2, cw + 4, ch + 4, 2, 0xffffff, 0.45, 1, 0);
-    rrStroke(c, cx - 1, cy - 1, cw + 2, ch + 2, 1, 0x163a5e, 0.75, 1, 0);
+    rrStroke(c, cx - 1, cy - 1, cw + 2, ch + 2, 1, 0x0b3a44, 0.75, 1, 0);
 }
 
 static void capButton(Canvas *c, int i) {
@@ -1389,14 +1403,14 @@ static void capButton(Canvas *c, int i) {
         rrFill(c, x, y, w, hh, rad, top, bot, 1, 1);
         rrGlow(c, x, y, w, hh, rad, x + w / 2, y + hh * 1.08, w * 0.6, hov ? 0xffd27a : 0xff8a5a, hov ? 0.95 : 0.55);
     } else if (hov) {
-        int top = prs ? 0x5fb4ea : 0xa6e2ff, bot = prs ? 0x0d5fae : 0x1f86dc;
+        int top = prs ? 0x5fd4e0 : 0xa6f7ff, bot = prs ? 0x0d7f8e : 0x1fb0c4;
         rrFill(c, x, y, w, hh, rad, top, bot, 1, 1);
         rrGlow(c, x, y, w, hh, rad, x + w / 2, y + hh * 1.08, w * 0.75, 0x7ff6ff, prs ? 0.6 : 1.0);
     } else {
-        rrFill(c, x, y, w, hh, rad, 0xd3e6f5, 0x8db1d4, 0.6, 0.6);
+        rrFill(c, x, y, w, hh, rad, 0xd3f5f5, 0x8cd0d6, 0.6, 0.6);
     }
     rrGloss(c, x, r.top, w, h, rad, 0.5, prs ? 0.3 : 0.6, 0.12);
-    rrStroke(c, x, y, w, hh, rad, 0x0b2440, 0.8, 1, 0);
+    rrStroke(c, x, y, w, hh, rad, 0x0b3036, 0.8, 1, 0);
     rrStroke(c, x + 1, y + 1, w - 2, hh - 2, rad - 1, 0xffffff, 0.45, 1, 0);
     double gx = x + w / 2, gy = r.top + h / 2;
     if (close) {
@@ -1408,7 +1422,7 @@ static void capButton(Canvas *c, int i) {
         }
     } else {
         double s = S(4), yy = gy + S(3);
-        segment(c, gx - s, yy, gx + s, yy, S(2) + 2.2, 0x0b2440, 0.7);
+        segment(c, gx - s, yy, gx + s, yy, S(2) + 2.2, 0x0b3036, 0.7);
         segment(c, gx - s, yy, gx + s, yy, S(2), 0xffffff, 1);
     }
 }
@@ -1423,7 +1437,7 @@ static void paintFrame(HDC hdc) {
     Canvas *c = &frameBack;
     memcpy(c->px, frameC.px, (size_t)c->w * c->h * 4);
     capButton(c, 0); capButton(c, 1);
-    rrStroke(c, 0, 0, c->w, c->h, S(8), 0x0b2440, 0.85, 1, 0);
+    rrStroke(c, 0, 0, c->w, c->h, S(8), 0x0b3036, 0.85, 1, 0);
     rrStroke(c, 1, 1, c->w - 2, c->h - 2, S(7), 0xffffff, 0.45, 1, 0);
     for (int i = 0; i < c->w * S(2); i++) c->px[i] |= 0xFF000000;
     BitBlt(hdc, 0, 0, c->w, c->h, c->dc, 0, 0, SRCCOPY);
@@ -1778,34 +1792,76 @@ static int connColor(void) {
     return 0x9aa8b8;
 }
 
+/* ---------- activation ---------- */
+
+static const char KEYALPH[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+static int sha256Raw(const char *data, size_t len, unsigned char *out) {
+    BCRYPT_ALG_HANDLE alg; BCRYPT_HASH_HANDLE hh;
+    if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, NULL, 0)) return 0;
+    int ok = !BCryptCreateHash(alg, &hh, NULL, 0, NULL, 0, 0) &&
+             !BCryptHashData(hh, (PUCHAR)data, (ULONG)len, 0) && !BCryptFinishHash(hh, out, 32, 0);
+    BCryptDestroyHash(hh); BCryptCloseAlgorithmProvider(alg, 0);
+    return ok;
+}
+
+/* NANO-XXXX-XXXX-CCCC: CCCC = first 4 chars of sha256(secret + XXXXXXXX) in the key alphabet */
+static int keyValid(const wchar_t *in, wchar_t *norm) {
+    char k[32]; int n = 0;
+    for (const wchar_t *p = in; *p && n < 31; p++) if (iswalnum(*p)) k[n++] = (char)towupper(*p);
+    k[n] = 0;
+    if (n != 16 || strncmp(k, "NANO", 4)) return 0;
+    for (int i = 4; i < 16; i++) if (!strchr(KEYALPH, k[i])) return 0;
+    char buf[96]; int bl = snprintf(buf, sizeof buf, "%s%.8s", NANO_SECRET, k + 4);
+    unsigned char h[32];
+    if (!sha256Raw(buf, bl, h)) return 0;
+    for (int i = 0; i < 4; i++) if (k[12 + i] != KEYALPH[h[i] & 31]) return 0;
+    if (norm) {
+        int q = 0;
+        for (int i = 0; i < 16; i++) { if (i && !(i % 4)) norm[q++] = L'-'; norm[q++] = (wchar_t)k[i]; }
+        norm[q] = 0;
+    }
+    return 1;
+}
+
 /* ---------- pages, layout, painting ---------- */
 
-enum { PG_REWRITE, PG_CLAUDE, PG_UPDATE, PG_N };
-static const wchar_t *TABNAME[PG_N] = { L"Rewrite", L"Claude", L"Update" };
+enum { PG_REWRITE, PG_CLAUDE, PG_UPDATE, PG_LOCK, PG_N };
+#define NTABS 3
+static const wchar_t *TABNAME[NTABS] = { L"Rewrite", L"Claude", L"Update" };
 static int curPage = PG_REWRITE, tabHover = -1;
 
 static Canvas pageC[PG_N], backC;
-static HFONT hFont, hBold, hTitle, hSmall, hBtnSmall, hEdit, hBrand;
+static HFONT hFont, hBold, hTitle, hSmall, hBtnSmall, hEdit, hBrand, hBig, hHuge, hTiny;
 static HWND hoverBtn;
 static wchar_t statusText[512] = L"";
 
-#define NAVY RGB(14, 52, 92)
-#define HINT RGB(70, 110, 150)
+#define NAVY RGB(10, 52, 70)
+#define HINT RGB(40, 112, 130)
 
 static RECT RS(int x, int y, int w, int h) { RECT r = { S(x), S(y), S(x + w), S(y + h) }; return r; }
 
 static void glassPanel(Canvas *c, int lx, int ly, int lw, int lh) {
-    double x = S(lx), y = S(ly), w = S(lw), h = S(lh), r = S(12);
-    rrShadow(c, x, y + S(3), w, h, r, S(10), 0.22);
-    rrFill(c, x, y, w, h, r, 0xffffff, 0xe6f7ff, 0.66, 0.42);
-    rrGloss(c, x, y, w, h, r, 0.32, 0.55, 0.08);
-    rrStroke(c, x, y, w, h, r, 0x1f5f94, 0.38, 1, 1);
+    double x = S(lx), y = S(ly), w = S(lw), h = S(lh), r = S(14);
+    rrShadow(c, x, y + S(4), w, h, r, S(12), 0.30);
+    rrFill(c, x, y, w, h, r, 0xffffff, 0xdcfaff, 0.80, 0.60);
+    rrGloss(c, x, y, w, h, r, 0.28, 0.60, 0.06);
+    rrStroke(c, x, y, w, h, r, 0x0b4f5e, 0.45, 1, 1);
     rrStroke(c, x, y, w, h, r, 0xffffff, 0.95, 1.3, 0);
 }
 
+static void darkGlass(Canvas *c, int lx, int ly, int lw, int lh) {
+    double x = S(lx), y = S(ly), w = S(lw), h = S(lh), r = S(16);
+    rrShadow(c, x, y + S(4), w, h, r, S(12), 0.35);
+    rrFill(c, x, y, w, h, r, 0x0d5f78, 0x063a4f, 0.62, 0.72);
+    rrGloss(c, x, y, w, h, r, 0.22, 0.30, 0.04);
+    rrStroke(c, x, y, w, h, r, 0x041e28, 0.6, 1, 1);
+    rrStroke(c, x, y, w, h, r, 0x9ff3ff, 0.55, 1.2, 0);
+}
+
 static void inset(Canvas *c, int lx, int ly, int lw, int lh) {
-    rrFill(c, S(lx), S(ly), S(lw), S(lh), S(8), 0xffffff, 0xf2faff, 0.7, 0.5);
-    rrStroke(c, S(lx), S(ly), S(lw), S(lh), S(8), 0x2b7fc4, 0.35, 1, 0);
+    rrFill(c, S(lx), S(ly), S(lw), S(lh), S(9), 0xffffff, 0xeefdff, 0.75, 0.55);
+    rrStroke(c, S(lx), S(ly), S(lw), S(lh), S(9), 0x1a8fa3, 0.35, 1, 0);
 }
 
 static void textAt(HDC dc, HFONT f, const wchar_t *t, int lx, int ly, int lw, int lh, COLORREF col, UINT fmt) {
@@ -1815,113 +1871,193 @@ static void textAt(HDC dc, HFONT f, const wchar_t *t, int lx, int ly, int lw, in
     DrawTextW(dc, t, -1, &r, fmt);
 }
 
+static void orb(Canvas *c, double cx, double cy, double r) {
+    disc(c, cx, cy + r * 0.12, r * 1.05, 0x03202c, 0.35, r * 0.25);
+    rrFill(c, cx - r, cy - r, 2 * r, 2 * r, r, 0x8ff2ff, 0x149c7c, 1, 1);
+    rrGlow(c, cx - r, cy - r, 2 * r, 2 * r, r, cx, cy + r * 0.95, r * 1.1, 0xb0ffe0, 0.9);
+    disc(c, cx, cy - r * 0.42, r * 0.66, 0xffffff, 0.45, r * 0.25);
+    ring(c, cx, cy, r, 0x0a5a50, 0.8, fmax(1, r * 0.05));
+}
+
+static void orbLetter(HDC dc, double cx, double cy, double r) {
+    RECT rr = { (int)(cx - r), (int)(cy - r), (int)(cx + r), (int)(cy + r) };
+    SelectObject(dc, r > S(20) ? hHuge : hBig);
+    SetBkMode(dc, TRANSPARENT);
+    OffsetRect(&rr, 1, 2); SetTextColor(dc, RGB(8, 70, 60));
+    DrawTextW(dc, L"N", 1, &rr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    OffsetRect(&rr, -1, -2); SetTextColor(dc, RGB(255, 255, 255));
+    DrawTextW(dc, L"N", 1, &rr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+}
+
 enum { TG_OFF, TG_CLAUDE, TG_LIGHT, TG_MED, TG_HEAVY, TG_STRICT, TG_HILITE, TG_UCHECK, TG_UAUTO, TG_N };
 typedef struct { const wchar_t *t; int page, x, y, w, radio, on; } Tog;
 static Tog tog[TG_N] = {
-    { L"Offline",                PG_REWRITE,  20, 228,  74, 1, 1 },
-    { L"Claude",                 PG_REWRITE,  96, 228,  74, 1, 0 },
-    { L"Light",                  PG_REWRITE, 196, 228,  64, 2, 0 },
-    { L"Medium",                 PG_REWRITE, 262, 228,  78, 2, 1 },
-    { L"Heavy",                  PG_REWRITE, 342, 228,  70, 2, 0 },
-    { L"Lock fact sentences",    PG_REWRITE,  20, 252, 168, 0, 0 },
-    { L"Highlight locked parts", PG_REWRITE, 196, 252, 200, 0, 1 },
-    { L"Check on launch",        PG_UPDATE,   20, 420, 180, 0, 1 },
-    { L"Auto-install updates",   PG_UPDATE,  220, 420, 200, 0, 0 },
+    { L"Offline",                PG_REWRITE, 236,  19,  74, 1, 1 },
+    { L"Claude",                 PG_REWRITE, 312,  19,  74, 1, 0 },
+    { L"Light",                  PG_REWRITE, 410,  19,  62, 2, 0 },
+    { L"Medium",                 PG_REWRITE, 474,  19,  78, 2, 1 },
+    { L"Heavy",                  PG_REWRITE, 554,  19,  70, 2, 0 },
+    { L"Lock fact sentences",    PG_REWRITE, 108, 397, 168, 0, 0 },
+    { L"Highlight locked parts", PG_REWRITE, 282, 397, 186, 0, 1 },
+    { L"Check on launch",        PG_UPDATE,  108, 358, 180, 0, 1 },
+    { L"Auto-install updates",   PG_UPDATE,  300, 358, 200, 0, 0 },
 };
 
 static int strength(void) { return tog[TG_LIGHT].on ? 0 : tog[TG_HEAVY].on ? 2 : 1; }
 
-typedef struct { const wchar_t *t; int page, x, y, w; } Lbl;
-static const Lbl LBLS[] = {
-    { L"API key:", PG_CLAUDE, 20, 77, 68 }, { L"Model:", PG_CLAUDE, 20, 103, 68 },
-    { L"Extra instructions (optional), e.g. “keep it casual”:", PG_CLAUDE, 20, 128, 380 },
-};
-
-static void renderSky(Canvas *c) {
+static void renderOcean(Canvas *c) {
     int W = c->w, H = c->h;
-    double sx = W * 0.88, sy = -H * 0.04;
+    double sx = W * 0.32, sy = -H * 0.45;
     for (int y = 0; y < H; y++) {
         double t = (double)y / H;
-        int col = t < 0.45 ? lerpCol(0x1688d6, 0x8ad4f7, t / 0.45) : lerpCol(0x8ad4f7, 0xeefbff, (t - 0.45) / 0.55);
+        int col = t < 0.5 ? lerpCol(0x46dbe8, 0x0f8db4, t / 0.5) : lerpCol(0x0f8db4, 0x053f66, (t - 0.5) / 0.5);
+        double fade = (1 - t) * (1 - t);
         for (int x = 0; x < W; x++) {
-            double dx = x - sx, dy = y - sy, d = hypot(dx, dy) / (W * 0.9);
-            double glow = clamp01(1 - d); glow *= glow;
-            double ray = sin(atan2(dy, dx) * 16) * 0.5 + 0.5;
-            ray = ray > 0.72 ? (ray - 0.72) / 0.28 : 0;
-            c->px[y * W + x] = (DWORD)lerpCol(col, 0xffffff, clamp01(glow * 0.6 + ray * 0.10 * clamp01(1.2 - d)));
+            double ang = atan2(x - sx, y - sy);
+            double sh = sin(ang * 23 + 1.3) * 0.5 + 0.5; sh = pow(sh, 7) * 0.22 * (1 - t * 0.9);
+            double cv = sin(x / (double)S(21) + sin(y / (double)S(29)) * 2.1) + sin((x * 0.73 - y) / (double)S(17) + 0.7);
+            double ca = fabs(cv) < 0.12 ? (0.12 - fabs(cv)) / 0.12 * 0.20 * fade : 0;
+            c->px[y * W + x] = (DWORD)lerpCol(col, 0xeaffff, clamp01(sh + ca));
+        }
+    }
+    static const float WEED[][3] = { { 0.03f, 0.30f, 1.0f }, { 0.07f, 0.22f, 2.2f }, { 0.94f, 0.28f, 0.6f }, { 0.975f, 0.20f, 3.1f }, { 0.55f, 0.12f, 1.7f } };
+    for (unsigned k = 0; k < sizeof WEED / sizeof WEED[0]; k++) {
+        double bx = WEED[k][0] * W, len = WEED[k][1] * H, ph = WEED[k][2];
+        double px0 = bx, py0 = H;
+        for (int s = 1; s <= 24; s++) {
+            double f = s / 24.0, yy = H - len * f, xx = bx + sin(f * 5 + ph) * S(9) * f;
+            segment(c, px0, py0, xx, yy, S(5) * (1.1 - f * 0.7), lerpCol(0x0c6b4a, 0x37c79a, f), 0.75);
+            px0 = xx; py0 = yy;
         }
     }
     for (int pass = 0; pass < 2; pass++) {
-        double base = pass ? H * 0.90 : H * 0.83, amp = pass ? S(14) : S(22);
-        int top = pass ? 0x7fdc46 : 0xa8e86a, bot = pass ? 0x2f8f23 : 0x4fae34;
+        double base = pass ? H * 0.95 : H * 0.90, amp = pass ? S(8) : S(14);
+        int top = pass ? 0x5fc2b0 : 0x9fe0cf, bot = pass ? 0x1f7a7c : 0x3f9f98;
         for (int x = 0; x < W; x++) {
-            double cy = base + amp * sin(x / (double)W * (pass ? 4.2 : 2.6) + (pass ? 1.9 : 0.4));
+            double cy = base + amp * sin(x / (double)W * (pass ? 5.1 : 3.0) + (pass ? 2.4 : 0.9));
             for (int y = (int)cy - 1; y < H; y++) {
                 if (y < 0) continue;
-                double cov = clamp01(y + .5 - cy + .5);
-                blend(c, x, y, lerpCol(top, bot, clamp01((y - cy) / (H - cy + 1))), cov);
-                double crest = (y - cy) / S(4);
-                if (crest >= 0 && crest < 1) blend(c, x, y, 0xffffff, 0.45 * (1 - crest));
+                blend(c, x, y, lerpCol(top, bot, clamp01((y - cy) / (H - cy + 1))), clamp01(y + 1 - cy) * 0.92);
+                double crest = (y - cy) / S(3);
+                if (crest >= 0 && crest < 1) blend(c, x, y, 0xffffff, 0.35 * (1 - crest));
             }
         }
     }
     static const float BUB[][3] = {
-        { 0.06f, 0.10f, 26 }, { 0.93f, 0.17f, 18 }, { 0.80f, 0.06f, 10 }, { 0.04f, 0.42f, 14 }, { 0.97f, 0.45f, 32 },
-        { 0.12f, 0.70f, 22 }, { 0.88f, 0.72f, 12 }, { 0.50f, 0.03f, 8 },  { 0.30f, 0.20f, 6 },  { 0.70f, 0.38f, 9 },
-        { 0.02f, 0.92f, 30 }, { 0.62f, 0.95f, 16 }, { 0.38f, 0.60f, 7 },  { 0.97f, 0.97f, 20 }, { 0.22f, 0.98f, 10 },
+        { 0.125f, 0.80f, 9 }, { 0.13f, 0.66f, 6 }, { 0.12f, 0.55f, 4 }, { 0.585f, 0.70f, 7 }, { 0.59f, 0.58f, 5 },
+        { 0.595f, 0.47f, 3 }, { 0.99f, 0.62f, 14 }, { 0.985f, 0.44f, 8 }, { 0.99f, 0.33f, 5 }, { 0.03f, 0.12f, 12 },
+        { 0.995f, 0.05f, 18 }, { 0.53f, 0.985f, 10 }, { 0.82f, 0.99f, 7 },
     };
     for (unsigned i = 0; i < sizeof BUB / sizeof BUB[0]; i++) bubble(c, BUB[i][0] * W, BUB[i][1] * H, S((int)BUB[i][2]));
+    for (int i = 0; i < 40; i++) {
+        double px = fmod(i * 197.31, 1.0 * W), py = fmod(i * 83.77 + i * i * 3.1, 1.0 * H * 0.85);
+        disc(c, px, py, S(1) + (i % 3) * 0.5, 0xffffff, 0.25 + (i % 4) * 0.08, 1);
+    }
 }
 
 static const wchar_t *CLAUDE_INFO =
     L"How the Claude engine works\n"
-    L"• Your text goes to Anthropic's API using your own key, and every rewrite is billed to your API credits, "
-    L"even if you pay for a Claude subscription.\n"
-    L"• Quotes, (parentheses), [brackets], links and code are swapped for placeholders before sending and put back exactly, "
-    L"so Claude can't change them.\n"
+    L"• Your text goes to Anthropic's API with your own key. Every rewrite is billed to your API credits, even if you pay for a Claude subscription.\n"
+    L"• Quotes, (parentheses), [brackets], links and code are swapped for placeholders before sending and put back exactly, so Claude can't touch them.\n"
     L"• Names, numbers and dates are kept by instruction, and Nano tells you if any went missing.\n"
-    L"• Strength and “Lock fact sentences” on the Rewrite tab apply here too.\n\n"
-    L"Get a key at console.anthropic.com → API Keys. It's saved in FrutigerNano.ini next to the EXE.";
+    L"• Strength and “Lock fact sentences” on the Rewrite page apply here too.  Keys: console.anthropic.com → API Keys.";
 
 static void renderPages(void) {
-    renderSky(&pageC[0]);
+    renderOcean(&pageC[0]);
     for (int p = 1; p < PG_N; p++) memcpy(pageC[p].px, pageC[0].px, (size_t)pageC[0].w * pageC[0].h * 4);
     for (int p = 0; p < PG_N; p++) {
         Canvas *c = &pageC[p];
         HDC dc = c->dc;
-        glassPanel(c, 10, 8, 420, 32);
-        glassPanel(c, 10, 48, 420, 442);
-        glassPanel(c, 10, 498, 420, 40);
         SetBkMode(dc, TRANSPARENT);
-        textAt(dc, hBrand, L"Frutiger Nano", 290, 13, 132, 22, NAVY, DT_RIGHT | DT_SINGLELINE | DT_VCENTER);
+        darkGlass(c, 10, 10, 76, 452);
+        orb(c, S(48), S(40), S(21));
+        orbLetter(dc, S(48), S(40), S(21));
+        textAt(dc, hTiny, L"NANO", 10, 64, 76, 14, RGB(200, 250, 255), DT_CENTER | DT_SINGLELINE);
+        textAt(dc, hTiny, L"v" APP_VERSION_W, 10, 440, 76, 14, RGB(150, 220, 235), DT_CENTER | DT_SINGLELINE);
+        glassPanel(c, 96, 432, 654, 30);
         if (p == PG_REWRITE) {
-            textAt(dc, hTitle, L"Original", 20, 50, 200, 18, NAVY, DT_LEFT | DT_SINGLELINE);
-            textAt(dc, hSmall, L"quotes · (parens) · names · numbers stay locked", 130, 53, 290, 16, HINT, DT_RIGHT | DT_SINGLELINE);
-            textAt(dc, hTitle, L"Rewritten", 20, 316, 200, 18, NAVY, DT_LEFT | DT_SINGLELINE);
-            textAt(dc, hSmall, L"Ctrl+Alt+N rewrites whatever you copied", 170, 319, 250, 16, HINT, DT_RIGHT | DT_SINGLELINE);
-            rrFill(c, S(184), S(230), 1.2, S(18), 0, 0x2b7fc4, 0x2b7fc4, 0.45, 0.45);
+            glassPanel(c, 96, 10, 654, 40);
+            textAt(dc, hTitle, L"Rewrite", 108, 19, 110, 22, NAVY, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
+            rrFill(c, S(397), S(22), 1.2, S(18), 0, 0x1a8fa3, 0x1a8fa3, 0.5, 0.5);
+            glassPanel(c, 96, 58, 300, 324);
+            glassPanel(c, 450, 58, 300, 324);
+            textAt(dc, hTitle, L"Original", 108, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
+            textAt(dc, hSmall, L"paste here", 250, 64, 136, 16, HINT, DT_RIGHT | DT_SINGLELINE);
+            textAt(dc, hTitle, L"Rewritten", 462, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
+            textAt(dc, hSmall, L"same meaning, new words", 590, 64, 150, 16, HINT, DT_RIGHT | DT_SINGLELINE);
+            textAt(dc, hSmall, L"Ctrl+Enter", 392, 256, 62, 14, RGB(220, 250, 255), DT_CENTER | DT_SINGLELINE);
+            glassPanel(c, 96, 390, 654, 36);
         }
         if (p == PG_CLAUDE) {
-            textAt(dc, hTitle, L"Claude engine", 20, 50, 300, 18, NAVY, DT_LEFT | DT_SINGLELINE);
-            textAt(dc, hSmall, L"Every rewrite is paid, even with a subscription", 150, 53, 270, 16, RGB(198, 112, 20), DT_RIGHT | DT_SINGLELINE);
-            inset(c, 20, 244, 400, 236);
-            textAt(dc, hFont, CLAUDE_INFO, 32, 254, 378, 220, NAVY, DT_LEFT | DT_WORDBREAK);
+            glassPanel(c, 96, 10, 654, 414);
+            textAt(dc, hTitle, L"Claude engine", 108, 20, 300, 20, NAVY, DT_LEFT | DT_SINGLELINE);
+            textAt(dc, hSmall, L"every rewrite is paid, even with a subscription", 420, 22, 318, 16, RGB(198, 112, 20), DT_RIGHT | DT_SINGLELINE);
+            textAt(dc, hFont, L"API key:", 108, 56, 64, 18, NAVY, DT_LEFT | DT_SINGLELINE);
+            textAt(dc, hFont, L"Model:", 108, 82, 64, 18, NAVY, DT_LEFT | DT_SINGLELINE);
+            textAt(dc, hFont, L"Extra instructions (optional), e.g. “keep it casual” or “sound like a 10th grader”:", 108, 110, 630, 18, NAVY, DT_LEFT | DT_SINGLELINE);
+            inset(c, 106, 256, 634, 158);
+            textAt(dc, hFont, CLAUDE_INFO, 118, 264, 612, 146, NAVY, DT_LEFT | DT_WORDBREAK);
         }
         if (p == PG_UPDATE) {
-            textAt(dc, hTitle, L"Updates", 20, 50, 300, 18, NAVY, DT_LEFT | DT_SINGLELINE);
-            textAt(dc, hSmall, L"from GitHub · works offline", 200, 53, 220, 16, HINT, DT_RIGHT | DT_SINGLELINE);
-            inset(c, 20, 72, 400, 84);
-            inset(c, 20, 164, 400, 248);
+            glassPanel(c, 96, 10, 654, 414);
+            textAt(dc, hTitle, L"Updates", 108, 20, 300, 20, NAVY, DT_LEFT | DT_SINGLELINE);
+            textAt(dc, hSmall, L"from GitHub · works offline", 420, 22, 318, 16, HINT, DT_RIGHT | DT_SINGLELINE);
+            inset(c, 106, 46, 634, 70);
+            inset(c, 106, 124, 634, 226);
         }
-        for (unsigned i = 0; i < sizeof LBLS / sizeof LBLS[0]; i++)
-            if (LBLS[i].page == p) textAt(dc, hFont, LBLS[i].t, LBLS[i].x, LBLS[i].y, LBLS[i].w, 18, NAVY, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+        if (p == PG_LOCK) {
+            glassPanel(c, 190, 54, 470, 340);
+            orb(c, S(425), S(112), S(34));
+            orbLetter(dc, S(425), S(112), S(34));
+            textAt(dc, hBrand, L"Activate Frutiger Nano", 190, 158, 470, 26, NAVY, DT_CENTER | DT_SINGLELINE);
+            textAt(dc, hFont, L"Enter the key you got from DOOG unincorporated.\nYou only have to do this once on this PC.", 210, 188, 430, 40, HINT, DT_CENTER | DT_WORDBREAK);
+            textAt(dc, hSmall, L"keys look like NANO-XXXX-XXXX-XXXX", 190, 362, 470, 16, HINT, DT_CENTER | DT_SINGLELINE);
+        }
         for (int i = 0; i < TG_N; i++)
             if (tog[i].page == p) textAt(dc, hFont, tog[i].t, tog[i].x + 22, tog[i].y + 3, tog[i].w - 22, 18, NAVY, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
     }
 }
 
+static void arrowLine(Canvas *c, double ax, double ay, double bx, double by, double th, int col, double a, double head) {
+    segment(c, ax, ay, bx, by, th, col, a);
+    double ang = atan2(by - ay, bx - ax);
+    segment(c, bx, by, bx - head * cos(ang - 0.6), by - head * sin(ang - 0.6), th, col, a);
+    segment(c, bx, by, bx - head * cos(ang + 0.6), by - head * sin(ang + 0.6), th, col, a);
+}
+
+/* 0 swap arrows, 1 sparkle, 2 refresh, 3 big arrow, 4 dots */
+static void drawIcon(Canvas *c, int kind, double cx, double cy, double s, int col, double a) {
+    double th = fmax(1.6, s * 0.13);
+    if (kind == 0) {
+        arrowLine(c, cx - s * 0.45, cy - s * 0.2, cx + s * 0.45, cy - s * 0.2, th, col, a, s * 0.28);
+        arrowLine(c, cx + s * 0.45, cy + s * 0.25, cx - s * 0.45, cy + s * 0.25, th, col, a, s * 0.28);
+    } else if (kind == 1) {
+        for (int k = 0; k < 4; k++) {
+            double an = k * 1.5707963;
+            for (int q = 0; q < 6; q++) {
+                double f = q / 6.0;
+                segment(c, cx + cos(an) * s * 0.5 * f, cy + sin(an) * s * 0.5 * f, cx + cos(an) * s * 0.5 * (f + 0.17), cy + sin(an) * s * 0.5 * (f + 0.17), th * 1.6 * (1 - f) + 1, col, a);
+            }
+        }
+        disc(c, cx + s * 0.38, cy - s * 0.38, s * 0.08, col, a, 1);
+    } else if (kind == 2) {
+        double r = s * 0.38, px = cx + r * cos(-0.6), py = cy + r * sin(-0.6);
+        for (int q = 1; q <= 20; q++) {
+            double an = -0.6 - q * (4.9 / 20), nx = cx + r * cos(an), ny = cy + r * sin(an);
+            segment(c, px, py, nx, ny, th, col, a); px = nx; py = ny;
+        }
+        double an = -0.6 - 4.9, tx = -sin(an), ty = cos(an);
+        segment(c, px, py, px + tx * s * 0.2 + cos(an) * s * 0.14, py + ty * s * 0.2 + sin(an) * s * 0.14, th, col, a);
+        segment(c, px, py, px + tx * s * 0.2 - cos(an) * s * 0.14, py + ty * s * 0.2 - sin(an) * s * 0.14, th, col, a);
+    } else if (kind == 3) {
+        arrowLine(c, cx - s * 0.32, cy, cx + s * 0.3, cy, th * 1.5, col, a, s * 0.32);
+    } else {
+        for (int k = -1; k <= 1; k++) disc(c, cx + k * s * 0.3, cy, s * 0.09, col, a, 1);
+    }
+}
+
 typedef struct { int top, bot, glow, border; } BtnPal;
-static const BtnPal PAL_BLUE  = { 0x9ad8fb, 0x2b96e2, 0x86e8ff, 0x16578f };
+static const BtnPal PAL_TEAL  = { 0x9ff0f0, 0x16a2b6, 0x9ffcff, 0x0b5a66 };
 static const BtnPal PAL_GREEN = { 0xa6ec7c, 0x2f9f26, 0xb4ff7a, 0x1a6514 };
 static const BtnPal PAL_RED   = { 0xffa48e, 0xcf2d22, 0xffb08a, 0x821812 };
 
@@ -1937,12 +2073,12 @@ static void gel(Canvas *c, double x, double y, double bw, double bh, double r, c
     rrStroke(c, x, y, bw, bh, r, p->border, 0.9, 1.1, 0);
 }
 
-static void gelText(HDC dc, const wchar_t *t, RECT tr, const BtnPal *p, int pressed) {
+static void gelText(HDC dc, const wchar_t *t, RECT tr, const BtnPal *p, int pressed, HFONT f) {
     SetBkMode(dc, TRANSPARENT);
     SIZE sz; int room = tr.right - tr.left - S(10);
-    SelectObject(dc, hBold);
+    SelectObject(dc, f ? f : hBold);
     GetTextExtentPoint32W(dc, t, (int)wcslen(t), &sz);
-    if (sz.cx > room) SelectObject(dc, hBtnSmall);
+    if (!f && sz.cx > room) SelectObject(dc, hBtnSmall);
     OffsetRect(&tr, 0, pressed ? 2 : 1);
     SetTextColor(dc, RGB((p->border >> 16) & 255, (p->border >> 8) & 255, p->border & 255));
     InflateRect(&tr, -S(4), 0);
@@ -1952,28 +2088,31 @@ static void gelText(HDC dc, const wchar_t *t, RECT tr, const BtnPal *p, int pres
     DrawTextW(dc, t, -1, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 }
 
-static RECT tabRect(int i) { return RS(13 + i * 88, 12, 86, 24); }
+static RECT tabRect(int i) { return RS(17, 88 + i * 70, 62, 62); }
 
 static void drawTabs(Canvas *c) {
-    for (int i = 0; i < PG_N; i++) {
+    for (int i = 0; i < NTABS; i++) {
         RECT r = tabRect(i);
-        double x = r.left, y = r.top, w = r.right - r.left, h = r.bottom - r.top, rad = S(8);
-        if (i == curPage) {
-            gel(c, x, y, w, h, rad, &PAL_BLUE, 0, 0);
-            gelText(c->dc, TABNAME[i], r, &PAL_BLUE, 0);
-        } else {
-            rrFill(c, x, y, w, h, rad, 0xffffff, 0xd6eefc, i == tabHover ? 0.85 : 0.5, i == tabHover ? 0.7 : 0.35);
-            if (i == tabHover) rrGlow(c, x, y, w, h, rad, x + w / 2, y + h * 1.1, w * 0.5, 0x86e8ff, 0.6);
-            rrGloss(c, x, y, w, h, rad, 0.5, 0.5, 0.1);
-            rrStroke(c, x, y, w, h, rad, 0x2b7fc4, 0.45, 1, 0);
-            SetBkMode(c->dc, TRANSPARENT);
-            SelectObject(c->dc, hBold);
-            SetTextColor(c->dc, NAVY);
-            DrawTextW(c->dc, TABNAME[i], -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        double x = r.left, y = r.top, w = r.right - r.left, h = r.bottom - r.top, rad = S(12);
+        int active = i == curPage && activated;
+        if (active) gel(c, x, y, w, h, rad, &PAL_TEAL, 0, 0);
+        else if (i == tabHover && activated) {
+            rrFill(c, x, y, w, h, rad, 0x5fd8e8, 0x137a92, 0.45, 0.35);
+            rrGloss(c, x, y, w, h, rad, 0.5, 0.35, 0.05);
+            rrStroke(c, x, y, w, h, rad, 0x9ff3ff, 0.5, 1, 0);
         }
+        COLORREF col = !activated ? RGB(90, 150, 165) : active ? RGB(255, 255, 255) : RGB(200, 245, 252);
+        int icol = (GetRValue(col) << 16) | (GetGValue(col) << 8) | GetBValue(col);
+        RECT l = { r.left, r.top + S(38), r.right, r.bottom - S(4) };
+        if (active) drawIcon(c, i, x + w / 2, y + S(21) + 1, S(24), 0x0b5a66, 0.6);
+        drawIcon(c, i, x + w / 2, y + S(21), S(24), icol, 1);
+        SetBkMode(c->dc, TRANSPARENT);
+        SetTextColor(c->dc, col);
+        SelectObject(c->dc, hBtnSmall);
+        DrawTextW(c->dc, TABNAME[i], -1, &l, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
         if (i == PG_UPDATE && updAvail) {
-            disc(c, r.right - S(7), r.top + S(6), S(4), 0xff8a1e, 1, 1);
-            disc(c, r.right - S(8), r.top + S(5), S(3) / 2.0, 0xffffff, 0.8, 1);
+            disc(c, r.right - S(9), r.top + S(9), S(5), 0xff8a1e, 1, 1);
+            disc(c, r.right - S(10), r.top + S(8), S(2), 0xffffff, 0.8, 1);
         }
     }
 }
@@ -1985,24 +2124,24 @@ static void drawToggles(Canvas *c) {
         if (tog[i].radio) {
             double cx = x + s / 2, cy = y + s / 2, r = s / 2;
             disc(c, cx, cy, r, 0xffffff, 0.95, 1);
-            disc(c, cx, cy + r * 0.3, r * 0.8, 0xcfeaff, 0.6, r * 0.5);
-            ring(c, cx, cy, r, 0x2b7fc4, 0.95, 1.2);
+            disc(c, cx, cy + r * 0.3, r * 0.8, 0xcff7ff, 0.6, r * 0.5);
+            ring(c, cx, cy, r, 0x1a8fa3, 0.95, 1.2);
             if (tog[i].on) {
-                disc(c, cx, cy, r * 0.55, 0x1f8fe6, 1, 1);
-                disc(c, cx, cy + r * 0.15, r * 0.4, 0x6fe0ff, 0.8, r * 0.3);
+                disc(c, cx, cy, r * 0.55, 0x14a2b6, 1, 1);
+                disc(c, cx, cy + r * 0.15, r * 0.4, 0x7ff6e8, 0.8, r * 0.3);
                 disc(c, cx - r * 0.15, cy - r * 0.22, r * 0.2, 0xffffff, 0.85, r * 0.12);
             }
         } else {
             double r = S(4);
             if (tog[i].on) {
-                rrFill(c, x, y, s, s, r, 0x7fd0fb, 0x1f8fe6, 1, 1);
+                rrFill(c, x, y, s, s, r, 0x8ff2f0, 0x14a2b6, 1, 1);
                 rrGloss(c, x, y, s, s, r, 0.5, 0.7, 0.2);
-                rrStroke(c, x, y, s, s, r, 0x1b5f9e, 0.95, 1.1, 0);
+                rrStroke(c, x, y, s, s, r, 0x0b5a66, 0.95, 1.1, 0);
                 segment(c, x + s * 0.24, y + s * 0.52, x + s * 0.43, y + s * 0.72, S(2), 0xffffff, 1);
                 segment(c, x + s * 0.43, y + s * 0.72, x + s * 0.78, y + s * 0.28, S(2), 0xffffff, 1);
             } else {
-                rrFill(c, x, y, s, s, r, 0xffffff, 0xdcefff, 0.95, 0.95);
-                rrStroke(c, x, y, s, s, r, 0x2b7fc4, 0.95, 1.1, 0);
+                rrFill(c, x, y, s, s, r, 0xffffff, 0xdcfbff, 0.95, 0.95);
+                rrStroke(c, x, y, s, s, r, 0x1a8fa3, 0.95, 1.1, 0);
             }
         }
     }
@@ -2017,14 +2156,14 @@ static void paintMain(HDC hdc) {
     SetBkMode(dc, TRANSPARENT);
     if (curPage == PG_UPDATE) {
         wchar_t info[600]; updInfo(info, 600);
-        disc(&backC, S(33), S(85), S(5), connColor(), 1, 1);
-        disc(&backC, S(32), S(83), S(2), 0xffffff, 0.7, 1);
-        textAt(dc, hFont, info, 46, 78, 368, 74, NAVY, DT_LEFT | DT_WORDBREAK);
+        disc(&backC, S(120), S(58), S(5), connColor(), 1, 1);
+        disc(&backC, S(119), S(56), S(2), 0xffffff, 0.7, 1);
+        textAt(dc, hFont, info, 132, 52, 600, 60, NAVY, DT_LEFT | DT_WORDBREAK);
         wchar_t hd[96];
         if (updLatest[0]) swprintf(hd, 96, L"What's new in %ls", updLatest); else wcscpy(hd, L"What's new");
-        textAt(dc, hBold, hd, 30, 170, 380, 18, NAVY, DT_LEFT | DT_SINGLELINE);
+        textAt(dc, hBold, hd, 116, 128, 400, 18, NAVY, DT_LEFT | DT_SINGLELINE);
     }
-    textAt(dc, hFont, statusText, 22, 502, 396, 34, NAVY, DT_LEFT | DT_WORDBREAK | DT_VCENTER | DT_END_ELLIPSIS);
+    textAt(dc, hFont, statusText, 108, 432, 632, 30, NAVY, DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
     BitBlt(hdc, 0, 0, src->w, src->h, dc, 0, 0, SRCCOPY);
 }
 
@@ -2043,12 +2182,20 @@ static void drawButton(DRAWITEMSTRUCT *d) {
         }
     }
     UINT id = d->CtlID;
-    const BtnPal *p = id == ID_CLR ? &PAL_RED : (id == ID_GO || id == ID_UINSTALL) ? &PAL_GREEN : &PAL_BLUE;
+    const BtnPal *p = id == ID_CLR ? &PAL_RED : (id == ID_GO || id == ID_UINSTALL || id == ID_ACT) ? &PAL_GREEN : &PAL_TEAL;
     int pressed = (d->itemState & ODS_SELECTED) != 0;
-    gel(c, 1, 1, w - 2, h - 3, fmin((h - 3) / 2.0, S(9)), p, d->hwndItem == hoverBtn, pressed);
-    wchar_t t[96]; GetWindowTextW(d->hwndItem, t, 96);
-    RECT tr = { 0, 0, w, h - 2 };
-    gelText(c->dc, t, tr, p, pressed);
+    if (id == ID_GO) {
+        double r = (w - 4) / 2.0;
+        gel(c, 2, 2, w - 4, w - 4, r, p, d->hwndItem == hoverBtn, pressed);
+        double off = pressed ? 2 : 1;
+        drawIcon(c, nanoBusy ? 4 : 3, w / 2.0 + 1, w / 2.0 + off + 1, w * 0.62, 0x1a6514, 0.8);
+        drawIcon(c, nanoBusy ? 4 : 3, w / 2.0, w / 2.0 + off - 0.5, w * 0.62, 0xffffff, 1);
+    } else {
+        gel(c, 1, 1, w - 2, h - 3, fmin((h - 3) / 2.0, S(10)), p, d->hwndItem == hoverBtn, pressed);
+        wchar_t t[96]; GetWindowTextW(d->hwndItem, t, 96);
+        RECT tr = { 0, 0, w, h - 2 };
+        gelText(c->dc, t, tr, p, pressed, NULL);
+    }
     BitBlt(d->hDC, 0, 0, w, h, c->dc, 0, 0, SRCCOPY);
     freeCanvas(c);
 }
@@ -2103,6 +2250,14 @@ static LRESULT CALLBACK RichSub(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR i
     return DefSubclassProc(h, m, wp, lp);
 }
 
+static LRESULT CALLBACK KeyEditSub(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR id, DWORD_PTR rd) {
+    (void)id; (void)rd;
+    if (m == WM_KEYDOWN && wp == VK_RETURN) { PostMessageW(hMain, WM_COMMAND, ID_ACT, 0); return 0; }
+    if (m == WM_CHAR && wp == L'\r') return 0;
+    if (m == WM_GETDLGCODE && lp && ((MSG *)lp)->message == WM_KEYDOWN && ((MSG *)lp)->wParam == VK_RETURN) return DLGC_WANTALLKEYS;
+    return DefSubclassProc(h, m, wp, lp);
+}
+
 static wchar_t *getRichText(HWND te) {
     GETTEXTLENGTHEX gl = { GTL_DEFAULT | GTL_NUMCHARS, 1200 };
     int n = (int)SendMessageW(te, EM_GETTEXTLENGTHEX, (WPARAM)&gl, 0);
@@ -2114,7 +2269,6 @@ static wchar_t *getRichText(HWND te) {
     return t;
 }
 
-/* set text using bare \r line breaks so character positions match the \n string */
 static void setRichText(HWND re, const wchar_t *s) {
     wchar_t *c = wdup(s);
     for (wchar_t *q = c; *q; q++) if (*q == L'\n') *q = L'\r';
@@ -2139,8 +2293,8 @@ static void hiliteBox(HWND re) {
         for (int i = 0; i < n;) {
             if (!L[i]) { i++; continue; }
             int j = i; while (j < n && L[j]) j++;
-            cf.crBackColor = L[i] == 4 ? RGB(222, 244, 214) : RGB(206, 234, 255);
-            cf.crTextColor = L[i] == 4 ? RGB(30, 96, 30) : RGB(16, 78, 150);
+            cf.crBackColor = L[i] == 4 ? RGB(222, 246, 214) : RGB(200, 242, 246);
+            cf.crTextColor = L[i] == 4 ? RGB(30, 96, 30) : RGB(8, 104, 120);
             CHARRANGE cr = { i, j };
             SendMessageW(re, EM_EXSETSEL, 0, (LPARAM)&cr);
             SendMessageW(re, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
@@ -2189,9 +2343,6 @@ static int clipSet(const wchar_t *s) {
     return 1;
 }
 
-/* ---------- lock checks shared by both engines ---------- */
-
-/* words/numbers that were locked in the input but don't appear in the output */
 static int missingLocks(const wchar_t *in, const wchar_t *out, int strict, wchar_t *list, int cap) {
     int n = (int)wcslen(in), miss = 0, used = 0;
     unsigned char *L = computeLocks(in, n, strict);
@@ -2309,7 +2460,7 @@ static DWORD WINAPI ClaudeThread(LPVOID arg) {
             int missing;
             res->out = unmaskText(a, pieces, np, &missing);
             if (missing) {
-                wchar_t m[200]; swprintf(m, 200, L"Claude dropped %d locked part%ls, so the result was thrown out. Press Rewrite to try again.", missing, missing == 1 ? L"" : L"s");
+                wchar_t m[200]; swprintf(m, 200, L"Claude dropped %d locked part%ls, so the result was thrown out. Hit rewrite to try again.", missing, missing == 1 ? L"" : L"s");
                 free(res->out); res->out = NULL; res->err = wdup(m);
             }
             free(w);
@@ -2319,7 +2470,7 @@ static DWORD WINAPI ClaudeThread(LPVOID arg) {
         char *msg = jsonStr(resp, "message", NULL, NULL);
         wchar_t *wm = u8dup(msg ? msg : "");
         wchar_t m[400];
-        if (st == 401) swprintf(m, 400, L"Claude rejected the API key (HTTP 401). Check it on the Claude tab.");
+        if (st == 401) swprintf(m, 400, L"Claude rejected the API key (HTTP 401). Check it on the Claude page.");
         else swprintf(m, 400, L"Claude API error (HTTP %lu): %ls", (unsigned long)st, wm);
         res->err = wdup(m);
         free(msg); free(wm);
@@ -2340,9 +2491,7 @@ static wchar_t *getEditText(int id) {
     return t;
 }
 
-static void setGoLabel(void) {
-    SetDlgItemTextW(hMain, ID_GO, nanoBusy ? L"Rewriting…" : L"Rewrite");
-}
+static void setGoLabel(void) { InvalidateRect(GetDlgItem(hMain, ID_GO), NULL, FALSE); }
 
 static void finishRewrite(NRes *r) {
     if (r->err) {
@@ -2352,14 +2501,14 @@ static void finishRewrite(NRes *r) {
         hiliteBox(GetDlgItem(hMain, ID_OUT));
         wchar_t miss[200];
         int m = missingLocks(r->in, r->out, tog[TG_STRICT].on, miss, 200);
-        wchar_t tail[260] = L"";
-        if (r->toClip && clipSet(r->out)) wcscpy(tail, L"  Copied — paste it anywhere.");
-        if (m) status(L"Heads up: %d locked bit%ls changed or moved — check: %ls", m, m == 1 ? L"" : L"s", miss);
+        wchar_t tail[100] = L"";
+        if (r->toClip && clipSet(r->out)) wcscpy(tail, L"  Copied, paste it anywhere.");
+        if (m) status(L"Heads up: %d locked bit%ls changed or moved: %ls", m, m == 1 ? L"" : L"s", miss);
         else if (r->engine == 0)
-            status(L"Done — %d of %d words reworded, %d sentence%ls restructured, %d part%ls locked.%ls",
+            status(L"Done. %d of %d words reworded, %d sentence%ls restructured, %d part%ls locked.%ls",
                    r->st.changed, r->st.words, r->st.restructured, r->st.restructured == 1 ? L"" : L"s",
                    r->st.locks, r->st.locks == 1 ? L"" : L"s", tail);
-        else status(L"Done — rewritten by Claude, every locked part checked and intact.%ls", tail);
+        else status(L"Done. Rewritten by Claude, every locked part checked and intact.%ls", tail);
     }
     free(r->in); free(r->out); free(r->err); free(r);
     InterlockedExchange(&nanoBusy, 0);
@@ -2367,11 +2516,12 @@ static void finishRewrite(NRes *r) {
 }
 
 static void doRewrite(int fromClip) {
+    if (!activated) return;
     if (nanoBusy) { status(L"Still working on the last one…"); return; }
     wchar_t *text;
     if (fromClip) {
         text = clipGet();
-        if (!text || !text[0]) { free(text); status(L"Clipboard has no text — copy something first, then press Ctrl+Alt+N."); return; }
+        if (!text || !text[0]) { free(text); status(L"Clipboard has no text. Copy something first, then press Ctrl+Alt+N."); return; }
         setRichText(GetDlgItem(hMain, ID_IN), text);
         hiliteBox(GetDlgItem(hMain, ID_IN));
     } else text = getRichText(GetDlgItem(hMain, ID_IN));
@@ -2389,7 +2539,7 @@ static void doRewrite(int fromClip) {
         if (!*k) {
             free(r->extra); free(r); free(text);
             InterlockedExchange(&nanoBusy, 0); setGoLabel();
-            status(L"Claude engine needs an API key — paste it on the Claude tab, or switch to Offline.");
+            status(L"The Claude engine needs an API key. Paste it on the Claude page, or switch to Offline.");
             return;
         }
         if (k != r->key) memmove(r->key, k, (wcslen(k) + 1) * sizeof(wchar_t));
@@ -2407,7 +2557,7 @@ static void doRewrite(int fromClip) {
     finishRewrite(res);
 }
 
-/* ---------- Vista glass frame ---------- */
+/* ---------- frame ---------- */
 
 static LRESULT CALLBACK FrameProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
@@ -2438,7 +2588,7 @@ static LRESULT CALLBACK FrameProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             PrintWindow(h, snapC.dc, 2);
             ShowWindow(hMain, SW_HIDE);
         }
-        double bw = (440 + 2 * FR) * dpi, bh = (546 + TT + FR) * dpi;
+        double bw = (BW + 2 * FR) * dpi, bh = (BH + TT + FR) * dpi;
         int w = r->right - r->left, hg = r->bottom - r->top;
         double sc = (wp == WMSZ_TOP || wp == WMSZ_BOTTOM) ? hg / bh : w / bw;
         if (sc < 0.7) sc = 0.7;
@@ -2451,7 +2601,7 @@ static LRESULT CALLBACK FrameProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     case WM_EXITSIZEMOVE:
         if (sizing) {
             RECT wr; GetWindowRect(h, &wr);
-            uiScale = (float)((wr.right - wr.left) / ((440 + 2 * FR) * dpi));
+            uiScale = (float)((wr.right - wr.left) / ((BW + 2 * FR) * dpi));
             sizing = 0;
             freeCanvas(&snapC); memset(&snapC, 0, sizeof snapC);
             rescaleAll();
@@ -2485,7 +2635,7 @@ static LRESULT CALLBACK FrameProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             else { capHover = -1; ShowWindow(h, SW_MINIMIZE); }
         }
     } return 0;
-    case WM_SETFOCUS: SetFocus(GetDlgItem(hMain, curPage == PG_CLAUDE ? ID_KEY : curPage == PG_UPDATE ? ID_UCHECK : ID_IN)); return 0;
+    case WM_SETFOCUS: SetFocus(GetDlgItem(hMain, curPage == PG_LOCK ? ID_ACTKEY : curPage == PG_CLAUDE ? ID_KEY : curPage == PG_UPDATE ? ID_UCHECK : ID_IN)); return 0;
     case WM_ERASEBKGND: return 1;
     case WM_PAINT: {
         PAINTSTRUCT ps; HDC dc = BeginPaint(h, &ps);
@@ -2517,15 +2667,16 @@ static HWND BTN(const wchar_t *t, int x, int y, int w, int h, int id) {
 }
 
 static void showPage(int p) {
+    if (!activated) p = PG_LOCK;
     curPage = p;
     hoverBtn = NULL;
     for (int i = 0; i < nctl; i++) ShowWindow(ctls[i].h, ctls[i].page == p ? SW_SHOWNA : SW_HIDE);
     InvalidateRect(hMain, NULL, FALSE);
-    SetFocus(GetDlgItem(hMain, p == PG_CLAUDE ? ID_KEY : p == PG_UPDATE ? ID_UCHECK : ID_IN));
+    SetFocus(GetDlgItem(hMain, p == PG_LOCK ? ID_ACTKEY : p == PG_CLAUDE ? ID_KEY : p == PG_UPDATE ? ID_UCHECK : ID_IN));
 }
 
 static HWND mkRich(int x, int y, int w, int h, int id) {
-    HWND te = mk(WS_EX_CLIENTEDGE, MSFTEDIT_CLASS, L"", WS_TABSTOP | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL,
+    HWND te = mk(0, MSFTEDIT_CLASS, L"", WS_TABSTOP | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | ES_NOHIDESEL,
                  x, y, w, h, id);
     SendMessageW(te, EM_EXLIMITTEXT, 0, 0x7FFFFFFF);
     SendMessageW(te, EM_SETBKGNDCOLOR, 0, RGB(255, 255, 255));
@@ -2539,39 +2690,48 @@ static HWND mkRich(int x, int y, int w, int h, int id) {
 
 static void buildUI(void) {
     buildPage = PG_REWRITE;
-    mkRich(20, 72, 400, 150, ID_IN);
-    BTN(L"Rewrite", 20, 280, 126, 30, ID_GO);
-    BTN(L"Copy", 152, 280, 80, 30, ID_COPY);
-    BTN(L"Use as input", 238, 280, 104, 30, ID_USE);
-    BTN(L"Clear", 348, 280, 72, 30, ID_CLR);
-    mkRich(20, 338, 400, 142, ID_OUT);
+    mkRich(106, 86, 280, 286, ID_IN);
+    mkRich(460, 86, 280, 286, ID_OUT);
+    BTN(L"Rewrite", 399, 196, 48, 48, ID_GO);
+    BTN(L"Copy", 480, 393, 76, 30, ID_COPY);
+    BTN(L"Use as input", 560, 393, 106, 30, ID_USE);
+    BTN(L"Clear", 670, 393, 70, 30, ID_CLR);
 
     buildPage = PG_CLAUDE;
-    mk(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_TABSTOP | ES_AUTOHSCROLL | ES_PASSWORD, 92, 74, 328, 22, ID_KEY);
-    mk(WS_EX_CLIENTEDGE, L"EDIT", L"claude-sonnet-5-5", WS_TABSTOP | ES_AUTOHSCROLL, 92, 100, 200, 22, ID_MODEL);
-    mk(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_TABSTOP | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL, 20, 148, 400, 86, ID_EXTRA);
+    mk(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_TABSTOP | ES_AUTOHSCROLL | ES_PASSWORD, 176, 53, 360, 22, ID_KEY);
+    mk(WS_EX_CLIENTEDGE, L"EDIT", L"claude-sonnet-5-5", WS_TABSTOP | ES_AUTOHSCROLL, 176, 79, 200, 22, ID_MODEL);
+    mk(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_TABSTOP | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL, 108, 132, 632, 112, ID_EXTRA);
 
     buildPage = PG_UPDATE;
-    mk(0, L"EDIT", L"", WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL, 26, 190, 388, 216, ID_UNOTES);
-    BTN(L"Check now", 20, 448, 110, 30, ID_UCHECK);
-    BTN(L"Install update", 134, 448, 140, 30, ID_UINSTALL);
-    BTN(L"Open GitHub page", 278, 448, 142, 30, ID_UPAGE);
+    mk(0, L"EDIT", L"", WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL, 114, 150, 618, 192, ID_UNOTES);
+    BTN(L"Check now", 106, 386, 120, 30, ID_UCHECK);
+    BTN(L"Install update", 232, 386, 150, 30, ID_UINSTALL);
+    BTN(L"Open GitHub page", 388, 386, 160, 30, ID_UPAGE);
+
+    buildPage = PG_LOCK;
+    HWND ke = mk(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_TABSTOP | ES_CENTER | ES_UPPERCASE | ES_AUTOHSCROLL, 250, 246, 350, 30, ID_ACTKEY);
+    SendMessageW(ke, EM_SETLIMITTEXT, 40, 0);
+    SetWindowSubclass(ke, KeyEditSub, 5, 0);
+    BTN(L"Activate", 330, 292, 190, 36, ID_ACT);
 }
 
 static void makeFonts(void) {
-    HFONT old[7] = { hFont, hBold, hTitle, hSmall, hBtnSmall, hEdit, hBrand };
+    HFONT old[10] = { hFont, hBold, hTitle, hSmall, hBtnSmall, hEdit, hBrand, hBig, hHuge, hTiny };
     hFont   = CreateFontW(-S(13), 0, 0, 0, FW_NORMAL,   0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
     hBold   = CreateFontW(-S(13), 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
-    hTitle  = CreateFontW(-S(14), 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
+    hTitle  = CreateFontW(-S(15), 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
     hSmall  = CreateFontW(-S(11), 0, 0, 0, FW_NORMAL,   1, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
     hBtnSmall = CreateFontW(-S(11), 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
     hEdit   = CreateFontW(-S(14), 0, 0, 0, FW_NORMAL,   0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
-    hBrand  = CreateFontW(-S(16), 0, 0, 0, FW_SEMIBOLD, 1, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
-    for (int i = 0; i < 7; i++) if (old[i]) DeleteObject(old[i]);
+    hBrand  = CreateFontW(-S(20), 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
+    hBig    = CreateFontW(-S(22), 0, 0, 0, FW_BOLD,     0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
+    hHuge   = CreateFontW(-S(38), 0, 0, 0, FW_BOLD,     0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
+    hTiny   = CreateFontW(-S(10), 0, 0, 0, FW_SEMIBOLD, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0, L"Segoe UI");
+    for (int i = 0; i < 10; i++) if (old[i]) DeleteObject(old[i]);
 }
 
 static void makeCanvases(void) {
-    int cw = S(440), ch = S(546), fw = cw + 2 * S(FR), fh = ch + S(TT) + S(FR);
+    int cw = S(BW), ch = S(BH), fw = cw + 2 * S(FR), fh = ch + S(TT) + S(FR);
     for (int p = 0; p < PG_N; p++) { if (pageC[p].dc) freeCanvas(&pageC[p]); pageC[p] = mkCanvas(cw, ch); }
     if (backC.dc) freeCanvas(&backC);
     if (frameC.dc) freeCanvas(&frameC);
@@ -2583,6 +2743,8 @@ static void makeCanvases(void) {
     renderFrame();
 }
 
+static HFONT ctlFont(int id) { return id == ID_IN || id == ID_OUT ? hEdit : id == ID_ACTKEY ? hBrand : hFont; }
+
 static void rescaleAll(void) {
     makeFonts();
     makeCanvases();
@@ -2593,8 +2755,7 @@ static void rescaleAll(void) {
     SetWindowPos(hMain, NULL, S(FR), S(TT), backC.w, backC.h, SWP_NOZORDER | SWP_NOACTIVATE);
     for (int i = 0; i < nctl; i++) {
         SetWindowPos(ctls[i].h, NULL, S(ctls[i].x), S(ctls[i].y), S(ctls[i].w), S(ctls[i].hh), SWP_NOZORDER | SWP_NOACTIVATE);
-        int id = GetDlgCtrlID(ctls[i].h);
-        SendMessageW(ctls[i].h, WM_SETFONT, (WPARAM)(id == ID_IN || id == ID_OUT ? hEdit : hFont), TRUE);
+        SendMessageW(ctls[i].h, WM_SETFONT, (WPARAM)ctlFont(GetDlgCtrlID(ctls[i].h)), TRUE);
     }
     hiliteAll();
     ShowWindow(hMain, SW_SHOW);
@@ -2614,6 +2775,8 @@ static void loadSettings(void) {
     if (GetPrivateProfileStringW(L"Claude", L"ApiKey", L"", b, 400, iniPath) && b[0]) SetDlgItemTextW(hMain, ID_KEY, b);
     if (GetPrivateProfileStringW(L"Claude", L"Model", L"", b, 400, iniPath) && b[0]) SetDlgItemTextW(hMain, ID_MODEL, b);
     if (GetPrivateProfileStringW(L"Claude", L"Extra", L"", b, 400, iniPath) && b[0]) SetDlgItemTextW(hMain, ID_EXTRA, b);
+    GetPrivateProfileStringW(L"Activation", L"Key", L"", b, 400, iniPath);
+    activated = keyValid(b, NULL);
 }
 
 static void saveSettings(void) {
@@ -2626,9 +2789,34 @@ static void saveSettings(void) {
     WritePrivateProfileStringW(L"Claude", L"Extra", b, iniPath);
 }
 
+static void idleStatus(void) {
+    status(L"Paste text on the left and hit the arrow. Quotes, (parens), names and numbers stay locked. Ctrl+Alt+N rewrites your clipboard.");
+}
+
+static void enableHotkey(void) {
+    if (!RegisterHotKey(hMain, HK_CLIP, MOD_CONTROL | MOD_ALT | 0x4000, 'N'))
+        status(L"Ctrl+Alt+N is taken by another app, so clipboard rewriting is off. Everything else works.");
+    else idleStatus();
+}
+
+static void tryActivate(void) {
+    wchar_t in[64], norm[24];
+    GetDlgItemTextW(hMain, ID_ACTKEY, in, 64);
+    if (!keyValid(in, norm)) {
+        status(in[0] ? L"That key isn't valid. Check for typos (dashes and spaces don't matter)." : L"Type your activation key first.");
+        return;
+    }
+    WritePrivateProfileStringW(L"Activation", L"Key", norm, iniPath);
+    activated = 1;
+    showPage(PG_REWRITE);
+    InvalidateRect(hMain, NULL, FALSE);
+    enableHotkey();
+    status(L"Activated, welcome to Frutiger Nano. Paste text on the left and hit the arrow.");
+}
+
 static int tabAt(int mx, int my) {
     POINT p = { mx, my };
-    for (int i = 0; i < PG_N; i++) { RECT r = tabRect(i); if (PtInRect(&r, p)) return i; }
+    for (int i = 0; i < NTABS; i++) { RECT r = tabRect(i); if (PtInRect(&r, p)) return i; }
     return -1;
 }
 
@@ -2643,26 +2831,23 @@ static void clickToggle(int mx, int my) {
         if (i == TG_HILITE || i == TG_STRICT) hiliteAll();
         if (i == TG_CLAUDE) {
             wchar_t k[8]; GetDlgItemTextW(hMain, ID_KEY, k, 8);
-            status(k[0] ? L"Claude engine on — rewrites use your API credits." : L"Claude engine on — paste your API key on the Claude tab first.");
+            status(k[0] ? L"Claude engine on. Rewrites use your API credits." : L"Claude engine on. Paste your API key on the Claude page first.");
         }
-        if (i == TG_OFF) status(L"Offline engine on — free, instant, works without internet.");
+        if (i == TG_OFF) status(L"Offline engine on. Free, instant, works without internet.");
         return;
     }
-}
-
-static void idleStatus(void) {
-    status(L"Paste text above and press Rewrite (or Ctrl+Enter). Ctrl+Alt+N rewrites your clipboard from anywhere.");
 }
 
 static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
     case WM_COMMAND:
         switch (LOWORD(wp)) {
+        case ID_ACT: tryActivate(); break;
         case ID_GO: doRewrite(0); break;
         case ID_COPY: {
             wchar_t *t = getRichText(GetDlgItem(h, ID_OUT));
             if (t[0] && clipSet(t)) status(L"Rewritten text copied to the clipboard.");
-            else status(L"Nothing to copy yet — press Rewrite first.");
+            else status(L"Nothing to copy yet. Hit the arrow first.");
             free(t);
         } break;
         case ID_USE: {
@@ -2671,7 +2856,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 setRichText(GetDlgItem(h, ID_IN), t);
                 setRichText(GetDlgItem(h, ID_OUT), L"");
                 hiliteAll();
-                status(L"Moved the rewrite up — press Rewrite again for a second pass.");
+                status(L"Moved the rewrite over. Hit the arrow again for a second pass.");
             }
             free(t);
         } break;
@@ -2697,7 +2882,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         return 0;
     case WM_LBUTTONDOWN: {
         int x = GET_X_LPARAM(lp), y = GET_Y_LPARAM(lp), t = tabAt(x, y);
-        if (t >= 0) { if (t != curPage) showPage(t); }
+        if (t >= 0) { if (activated && t != curPage) showPage(t); }
         else clickToggle(x, y);
     } return 0;
     case WM_MOUSEMOVE: {
@@ -2706,10 +2891,10 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             tabHover = t;
             TRACKMOUSEEVENT tm = { sizeof tm, TME_LEAVE, h, 0 };
             TrackMouseEvent(&tm);
-            RECT r = RS(10, 8, 420, 32); InvalidateRect(h, &r, FALSE);
+            RECT r = RS(10, 80, 76, 230); InvalidateRect(h, &r, FALSE);
         }
     } return 0;
-    case WM_MOUSELEAVE: if (tabHover >= 0) { tabHover = -1; RECT r = RS(10, 8, 420, 32); InvalidateRect(h, &r, FALSE); } return 0;
+    case WM_MOUSELEAVE: if (tabHover >= 0) { tabHover = -1; RECT r = RS(10, 80, 76, 230); InvalidateRect(h, &r, FALSE); } return 0;
     case WM_DRAWITEM: drawButton((DRAWITEMSTRUCT *)lp); return TRUE;
     case WM_CTLCOLOREDIT:
     case WM_CTLCOLORSTATIC:
@@ -2726,7 +2911,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         return 0;
     case WM_STATUS:
         wcsncpy(statusText, (wchar_t *)lp, 511); free((void *)lp);
-        { RECT r = RS(10, 498, 420, 40); InvalidateRect(h, &r, FALSE); }
+        { RECT r = RS(96, 432, 654, 30); InvalidateRect(h, &r, FALSE); }
         return 0;
     case WM_NANODONE: finishRewrite((NRes *)lp); return 0;
     case WM_UPDCHECKED:
@@ -2734,7 +2919,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         InvalidateRect(h, NULL, FALSE);
         if (updAvail == 1) {
             if (tog[TG_UAUTO].on && !nanoBusy) startInstall();
-            else status(L"Update %ls is available — open the Update tab to install it.", updLatest);
+            else if (activated) status(L"Update %ls is available. Open the Update page to install it.", updLatest);
         }
         return 0;
     case WM_UPDFAIL: {
@@ -2804,13 +2989,13 @@ int WINAPI WinMain(HINSTANCE hi, HINSTANCE hp, LPSTR cmd, int show) {
     hMain = CreateWindowExW(WS_EX_CONTROLPARENT, L"FrutigerNano", L"", WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
                             S(FR), S(TT), cw, ch, hFrame, NULL, hi, NULL);
     buildUI();
+    SendMessageW(GetDlgItem(hMain, ID_ACTKEY), WM_SETFONT, (WPARAM)hBrand, TRUE);
     loadSettings();
     fillNotes();
     showPage(PG_REWRITE);
-    if (!RegisterHotKey(hMain, HK_CLIP, MOD_CONTROL | MOD_ALT | 0x4000, 'N'))
-        status(L"Ctrl+Alt+N is taken by another app, so clipboard rewriting is off. Everything else works.");
-    else idleStatus();
-    if (justUpdated) status(L"Updated to v%ls — enjoy!", APP_VERSION_W);
+    if (activated) enableHotkey();
+    else status(L"Enter your activation key to unlock Frutiger Nano.");
+    if (justUpdated && activated) status(L"Updated to v%ls, enjoy!", APP_VERSION_W);
     if (tog[TG_UCHECK].on) startCheck();
     ShowWindow(hFrame, show);
 
