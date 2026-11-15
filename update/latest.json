@@ -1,6 +1,8 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "url": "https://raw.githubusercontent.com/binjin-maker/FrutigerNano/main/update/FrutigerNano.exe",
-  "sha256": "b0af7ad6e521efe517a3059ecd36ad7b89abc9983866fb82b0edf8df055d442b",
-  "notes": "1.2.0\n- Passes box (1-1000): runs the rewriter over its own output, never undoing or repeating a change, and stops early when nothing new is left\n- About 600 more words and phrases\n- Occasional connector swaps (and -> as well as, but -> yet, many -> numerous, about 12 -> around 12)\n- Click the arrow again to stop a long run"
+  "sha256": "6b127e7d86a879381e78edea98260fee1f5d749025dcd58353eb4f933ad2a7cd",
+  "notes": "1.3.0\n- Built-in grammar tagger (trained on a million-word corpus): knows nouns from verbs before swapping, picks exact verb tenses\n- About 1,700 more vetted synonyms\n- Flips sentences between active and passive, moving facts and numbers around (\"The factory built 500 cars\" -> \"500 cars were built by the factory\")\n- Wanders: avoids the swaps and sentence shapes it used on recent presses, and each press gets its own style\n- Update tab: download progress bar, full version history, Copy ID, revoked-key list, forced updates for unsupported versions\n- New recycle icon",
+  "minRun": "1.0.0",
+  "history": "1.2.0\n- Passes box (1-1000) that never undoes or repeats a change\n- About 600 more words, rare connector swaps\n\n1.1.0\n- Much stronger offline rewriting and sentence rearranging\n- Removed the Claude engine\n\n1.0.1\n- Windows version info, removed brand text\n\n1.0.0\n- First release"
 }

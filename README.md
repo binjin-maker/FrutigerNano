@@ -15,7 +15,7 @@ Turn on **Highlight locked parts** to see exactly what's protected (blue = locke
 
 ## How it rewrites
 
-Everything runs offline, instantly. Nano rearranges sentences (moves "because/although" clauses, time phrases and adverbs to the other end, flips "X says Y" into "Y, X says", splits long sentences and merges short ones), then swaps words and phrases from a built-in thesaurus with verb tenses and plurals handled, flips contractions and swaps sentence openers. Each press gives a different version.
+A built-in grammar tagger (an HMM trained on the Brown corpus) labels every word as noun, verb, adjective and so on, so swaps only happen when the part of speech and tense match. Everything runs offline, instantly. Nano rearranges sentences (moves "because/although" clauses, time phrases and adverbs to the other end, flips "X says Y" into "Y, X says", splits long sentences and merges short ones), flips active and passive voice, then swaps words and phrases from a built-in thesaurus (hand-written entries plus WordNet synonyms filtered by GloVe similarity) with verb tenses and plurals handled, flips contractions and swaps sentence openers. Each press gives a different version.
 
 **Strength**: Light / Medium / Heavy controls how much changes.
 
@@ -29,7 +29,7 @@ Everything runs offline, instantly. Nano rearranges sentences (moves "because/al
 
 ## Activation
 
-First launch asks for a key (`NANO-XXXX-XXXX-XXXX`). Keys are checked offline against a secret that isn't in this repo, so builds from this source use a dev secret.
+First launch asks for a key (`NANO-XXXX-XXXX-XXXX`). Keys are checked offline against a secret that isn't in this repo, so builds from this source use a dev secret. The Update tab shows the copy's ID (the middle two groups); add an ID to `update/revoked.txt` to revoke that key on its next update check.
 
 ## Download
 

@@ -1,0 +1,1 @@
+# Frutiger Nano revoked keys - one Copy ID (the middle two groups of a key, e.g. XDVF-PRPW) per line
