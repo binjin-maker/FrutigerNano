@@ -17,7 +17,9 @@ Turn on **Highlight locked parts** to see exactly what's protected (blue = locke
 
 A built-in grammar tagger (an HMM trained on the Brown corpus) labels every word as noun, verb, adjective and so on, so swaps only happen when the part of speech and tense match. Everything runs offline, instantly. Nano rearranges sentences (moves "because/although" clauses, time phrases and adverbs to the other end, flips "X says Y" into "Y, X says", splits long sentences and merges short ones), flips active and passive voice, then swaps words and phrases from a built-in thesaurus (hand-written entries plus WordNet synonyms filtered by GloVe similarity) with verb tenses and plurals handled, flips contractions and swaps sentence openers. Each press gives a different version.
 
-**Strength**: Light / Medium / Heavy controls how much changes.
+**Strength**: Light / Medium / Heavy / MAX controls how much changes. Rough success rates: Light 20%, Medium 45%, Heavy 50–75%, MAX 85–100%.
+
+**MAX** rebuilds whole sentences: cause/effect flips, concession and cleft rewrites, list reordering, extra splits. It always does at least 10 passes (escalating to bigger rebuilds when it gets stuck), and once it hits 10 it keeps adding passes as long as the run is still under 5 seconds (up to 1000). A progress bar shows where it's at. Still 100% algorithmic, no AI.
 
 **Passes** (1-1000): feeds each result back in for another round. Nano remembers every word it swapped out and every sentence shape it produced, so it never undoes or repeats a change, and it stops early once there's nothing new left. Click the arrow again to stop.
 
@@ -44,4 +46,4 @@ pip install ziglang
 ./build.sh
 ```
 
-Settings (engine, strength, API key, window scale) live in `FrutigerNano.ini` next to the EXE.
+Settings (strength, passes, window scale) live in `FrutigerNano.ini` next to the EXE.
