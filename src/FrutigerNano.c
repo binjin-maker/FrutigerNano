@@ -95,7 +95,6 @@ static const wchar_t *THES2[] = {
     L"V shine:shines:shone:shone:shining > gleam|glow",
     L"V glow > shine:shines:shone:shone:shining|gleam",
     L"V sparkle > glitter|twinkle",
-    L"V teach:teaches:taught:taught:teaching > instruct",
     L"V point:points:pointed:pointed:pointing out > note|highlight",
     L"V end up > wind:winds:wound:wound:winding up",
     L"V take:takes:took:taken:taking care of > look:looks:looked:looked:looking after|care for",
@@ -36539,7 +36538,7 @@ static int inList(const wchar_t **l, const wchar_t *w) { for (; *l; l++) if (!wc
    verb spec base:3sg:past:pp:ing (blank = regular), noun spec sing:plural; extra words after the head stay as-is
    flags: ! skip before "to"   ? skip before to/that/with/about/...   ^ skip after a determiner */
 static const wchar_t *THES[] = {
-    L"B as it happens|as it turns out|truth be told|in truth|as soon as|common sense|in common|by the way|on the way|as usual|in case|kind of|sort of|a little|at least|take it easy|a great deal|no longer|for good|at all|in time|of all time|the same|as well|make sense|makes sense|made sense|so far|in charge|at large|in short supply|start over|starts over|started over|starting over|in a way|all the way",
+    L"B can't believe|cannot believe|can not believe|couldn't believe|could not believe|as it happens|as it turns out|truth be told|in truth|as soon as|common sense|in common|by the way|on the way|as usual|in case|kind of|sort of|a little|at least|take it easy|a great deal|no longer|for good|at all|in time|of all time|the same|as well|make sense|makes sense|made sense|so far|in charge|at large|in short supply|start over|starts over|started over|starting over|in a way|all the way",
 
     L"V show:shows:showed:shown:showing up|arrive",
     L"V show:shows:showed:shown:showing|demonstrate|illustrate",
@@ -36564,7 +36563,6 @@ static const wchar_t *THES[] = {
     L"V discuss|talk about",
     L"V seem > appear",
     L"V! happen|occur:occurs:occurred:occurred:occurring|take:takes:took:taken:taking place",
-    L"V receive > get:gets:got:gotten:getting",
     L"V obtain > get:gets:got:gotten:getting|gain|acquire",
     L"V claim that|argue that|assert that|contend that",
     L"V affect|influence",
@@ -36622,8 +36620,7 @@ static const wchar_t *THES[] = {
     L"V keep:keeps:kept:kept:keeping in mind|bear:bears:bore:borne:bearing in mind",
     L"V pay:pays:paid:paid:paying attention to|focus on|concentrate on",
     L"V run:runs:ran:run:running into|encounter|come:comes:came:come:coming across",
-    L"V! say:says:said:said:saying|state",
-    L"V mention|note",
+    L"V mention > note",
     L"V choose:chooses:chose:chosen:choosing|select",
     L"V make:makes:made:made:making a decision|decide",
     L"V come:comes:came:come:coming to the conclusion|conclude",
@@ -36810,6 +36807,7 @@ static const wchar_t *THES[] = {
     L"P in order to > so as to|to",
     L"P as a result of > because of|due to",
     L"P in addition to > along with|on top of|besides",
+    L"P at first glance|at a glance|on the surface",
     L"P for example|for instance",
     L"P such as > like|including",
     L"P in my opinion|in my view|from my perspective",
@@ -36820,7 +36818,7 @@ static const wchar_t *THES[] = {
     L"P although > even though|though",
     L"P in spite of|despite",
     L"P in order that > so that",
-    L"P as long as|provided that|so long as",
+    L"P as long as|so long as",
     L"P of course > naturally|obviously",
     L"P in general|on the whole|by and large",
     L"P a little bit > slightly|a bit",
@@ -36856,7 +36854,7 @@ static const wchar_t *THES[] = {
     L"O however|that said|even so|still",
     L"O nevertheless|nonetheless|all the same",
     L"O therefore|thus|as a result|consequently|for this reason|because of this|hence",
-    L"O also|additionally|in addition|on top of that|furthermore|moreover|what's more|besides",
+    L"O also|additionally|in addition|on top of that|furthermore|moreover|what's more",
     L"O for example|for instance|as an example|to illustrate",
     L"O in conclusion|to conclude|in summary|to sum up|all in all|overall|in short",
     L"O first|first of all|to begin with|to start with|firstly",
@@ -37564,9 +37562,46 @@ static int pickTarget(Grp *g, int not, int f) {
     return m;
 }
 
+static int maxMode, escLevel;
+/* text-level budget for "decorations" (framing openers, clefts, rare connectors) so many passes can't pile them up */
+static int gSents, gOpeners, gClefts, gLconn, gWords, gFillUsed, gPrevOpener;
+static const wchar_t *OPENLIST[] = { L"in fact", L"indeed", L"as it turns out", L"in truth", L"as it happens", L"truth be told", L"in addition",
+    L"additionally", L"moreover", L"furthermore", L"as a matter of fact", L"in reality", L"actually", L"also", L"besides", L"what's more",
+    L"on top of that", L"in short", L"in other words", L"that said", L"still", L"even so", L"of course", L"naturally", NULL };
+static int startsWithList(const wchar_t *p, const wchar_t **L) {
+    for (int k = 0; L[k]; k++) {
+        int n = (int)wcslen(L[k]), i = 0;
+        for (; i < n; i++) if (towlower(p[i]) != L[k][i] && !(isApos(p[i]) && L[k][i] == L'\'')) break;
+        if (i == n && !iswalpha(p[n])) return 1;
+    }
+    return 0;
+}
+static void textBudget(const wchar_t *t) {
+    gSents = gOpeners = gClefts = gLconn = gWords = gFillUsed = 0;
+    int n = (int)wcslen(t), atStart = 1;
+    for (int i = 0; i < n; i++) {
+        if (atStart && iswalpha(t[i])) {
+            atStart = 0;
+            int e = i; while (e < n && t[e] != L'\n' && t[e] != L'.' && t[e] != L'!' && t[e] != L'?') e++;
+            if (e < n && t[e] != L'\n') gSents++;
+            if (startsWithList(t + i, OPENLIST)) gOpeners++;
+            { static const wchar_t *FL[] = { L"in fact", L"indeed", L"as it turns out", L"in truth", L"as it happens", L"truth be told", NULL };
+              for (int q = 0; FL[q]; q++) { const wchar_t *one[2] = { FL[q], NULL }; if (startsWithList(t + i, one)) gFillUsed |= 1 << q; } }
+            if ((!wcsncmp(t + i, L"It was ", 7) || !wcsncmp(t + i, L"It is ", 6))) {
+                int e = i; while (e < n && t[e] != L'.' && t[e] != L'\n') e++;
+                for (int k = i + 6; k + 5 < e; k++) if (!wcsncmp(t + k, L" that ", 6)) { gClefts++; break; }
+            }
+        }
+        if (iswalpha(t[i]) && (i == 0 || !iswalpha(t[i - 1]))) gWords++;
+        if (t[i] == L'.' || t[i] == L'!' || t[i] == L'?' || t[i] == L'\n') atStart = 1;
+        else if (!iswspace(t[i]) && t[i] != L'"' && t[i] != 0x201C && t[i] != L'(' && !iswalpha(t[i])) {}
+        if ((i == 0 || !iswalpha(t[i - 1])) && !wcsncmp(t + i, L"as well as", 10)) gLconn++;
+    }
+}
+
 static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
     static const double PW[4] = { 0.35, 0.7, 0.95, 1.0 }, PP[4] = { 0.55, 0.85, 1.0, 1.0 }, PO[4] = { 0.5, 0.8, 1.0, 1.0 },
-                        PC[4] = { 0.25, 0.7, 1.0, 1.0 }, PL[4] = { 0.08, 0.15, 0.25, 0.4 };
+                        PC[4] = { 0.25, 0.7, 1.0, 1.0 }, PL[4] = { 0.08, 0.15, 0.25, 0.15 };
     int s = o->strength;
     tagAll(v);
     for (int i = 0; i < v->n; i++) {
@@ -37627,9 +37662,18 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
             if (wcschr(g->flags, L'A') && !prevComma && wcscmp(prev, L"and")) { i = jump; continue; }
             if (wcschr(g->flags, L'N') && !(nk < v->n && lockHasDigit(&v->t[nk]))) { i = jump; continue; }
             if (wcschr(g->flags, L'd') && !(nk < v->n && (v->t[nk].type == TK_LOCK || inList(DETS, next)))) { i = jump; continue; }
+            if (wcschr(g->flags, L'd')) {
+                int c2 = nk, words = 0, clause = 0;
+                while (c2 < v->n && words < 4) {
+                    if (v->t[c2].type == TK_PUNCT) break;
+                    if (v->t[c2].type == TK_WORD) { words++; int tg = v->t[c2].tag; if (words > 1 && (isVerbTag(tg) || tg == T_BE || tg == T_HV || tg == T_MD)) { clause = 1; break; } }
+                    c2++;
+                }
+                if (clause) { i = jump; continue; }
+            }
             if (wcschr(g->flags, L'X') && inList(QUANTPREV, prev)) { i = jump; continue; }
             if (wcschr(g->flags, L'w') && !nextIsWord(v, endTok)) { i = jump; continue; }
-            p = PL[s];
+            p = gLconn * 150 >= gWords + 150 ? 0 : PL[s];
         } break;
         case L'V':
             if (inList(DETS, prev) || (e->f != 4 && inList(PREPS, prev))) { i = jump; continue; }
@@ -37912,6 +37956,7 @@ static int patPPBack(Tok *t, int n, Toks *o) {
     }
     hk[hp] = 0;
     if (tFind(otab, hk) && !inList(DISC, hk)) return 0;
+    if (startsWithList(hk, OPENLIST) || startsWithList(hk, (const wchar_t *[]){ L"in the end", L"at first", L"in the beginning", L"at last", L"by the way", NULL })) return 0;
     { wchar_t lw[40]; lastWordLower(head.t[head.n - 1].type == TK_WORD ? head.t[head.n - 1].s : L"", lw, 40);
       static const wchar_t *DEM[] = { L"this", L"that", L"these", L"those", L"it", NULL }; if (inList(DEM, lw)) return 0; }
     pushSpan(o, rest, 1);
@@ -38023,7 +38068,7 @@ static int patSplit(Tok *t, int n, Toks *o) {
         if (spanWords(x) < 3 || spanWords(y) < 3) continue;
         pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
         int r = nri(3);
-        if (r == 0) { pushW(o, nri(2) ? L"Also" : L"On top of that", 1); pushP(o, L','); pushSp(o); pushSpan(o, y, 0); }
+        if (r == 0 && gOpeners * 12 < gSents) { gOpeners++; pushW(o, L"Also", 1); pushP(o, L','); pushSp(o); pushSpan(o, y, 0); }
         else pushSpan(o, y, 1);
         tCopy(o, &t[n - 1]);
         return 1;
@@ -38107,7 +38152,7 @@ static int patPassive(Tok *t, int n, Toks *o) {
     int p1, q1, e1 = npEnd(t, n, 0, &p1, &q1);
     if (e1 < 0) return 0;
     int k = nextNS(t, n, e1), adv = -1;
-    if (k < n && t[k].tag == T_ADV && t[k].type == TK_WORD) { adv = k; k = nextNS(t, n, k + 1); }
+    if (k < n && t[k].tag == T_ADV && t[k].type == TK_WORD) { adv = k; k = nextNS(t, n, k + 1); if (maxMode) return 0; }
     if (k >= n || t[k].type != TK_WORD) return 0;
     int vt = t[k].tag;
     if (!(vt == T_VBD || vt == T_VBZ || (vt == T_VB && (p1 || q1)))) return 0;
@@ -38115,7 +38160,7 @@ static int patPassive(Tok *t, int n, Toks *o) {
     if (!vfm) return 0;
     wchar_t base[64]; mbstowcs(base, vfm->f[0], 63); base[63] = 0;
     if (inList(NOPASSIVE, base)) return 0;
-    if (q1) { wchar_t w[40]; wordL(&t[0], w); if (!wcscmp(w, L"it")) return 0; }
+    if (q1) { wchar_t w[40]; wordL(&t[0], w); if (!wcscmp(w, L"it") || !wcscmp(w, L"i") || !wcscmp(w, L"we") || !wcscmp(w, L"you")) return 0; }
     int s2 = nextNS(t, n, k + 1), p2, q2, e2 = npEnd(t, n, s2, &p2, &q2);
     if (e2 < 0) return 0;
     int r = nextNS(t, n, e2);
@@ -38174,7 +38219,6 @@ static int patActive(Tok *t, int n, Toks *o) {
 
 /* ---------- MAX-mode rebuilds ---------- */
 
-static int maxMode, escLevel;
 
 /* "Because X, Y." / "Y because X." -> "X, so y." */
 static int patCauseFlip(Tok *t, int n, Toks *o) {
@@ -38224,7 +38268,7 @@ static int patConcession(Tok *t, int n, Toks *o) {
 
 /* "The storm destroyed the bridge." -> "It was the storm that destroyed the bridge." */
 static int patCleft(Tok *t, int n, Toks *o) {
-    if (!maxMode || sentShape(t, n) != 0) return 0;
+    if (!maxMode || sentShape(t, n) != 0 || gClefts >= 1 + gSents / 25) return 0;
     int p1, q1, e1 = npEnd(t, n, 0, &p1, &q1);
     if (e1 < 0 || q1) return 0;
     int k = nextNS(t, n, e1);
@@ -38232,6 +38276,7 @@ static int patCleft(Tok *t, int n, Toks *o) {
     Span np = trimSpan(t, 0, e1), rest = trimSpan(t, k, n - 1);
     if (spanWords(np) > 6 || spanWords(rest) < 3 || !lowerable(&t[0])) return 0;
     pushW(o, t[k].tag == T_VBD ? L"It was" : L"It is", 1); pushSp(o);
+    gClefts++;
     pushSpan(o, np, -1); pushSp(o); pushW(o, L"that", 1); pushSp(o);
     pushSpan(o, rest, 0);
     tCopy(o, &t[n - 1]);
@@ -38287,8 +38332,10 @@ static int patSplitMore(Tok *t, int n, Toks *o) {
         if ((!wcscmp(w, L"and") || !wcscmp(w, L"but")) && k2 < n - 1 && (t[k2].tag == T_DET || t[k2].tag == T_PRON || t[k2].type == TK_LOCK)) {
             Span x = trimSpan(t, 0, i), y = trimSpan(t, k2, n - 1);
             if (spanWords(x) < 3 || spanWords(y) < 3) continue;
-            int hasVerb = 0; for (int q = 0; q < y.n; q++) if (isVerbTag(y.t[q].tag) || y.t[q].tag == T_BE || y.t[q].tag == T_HV || y.t[q].tag == T_MD) hasVerb = 1;
-            if (!hasVerb) continue;
+            int hasVerb = 0, hasVerbX = 0;
+            for (int q = 0; q < y.n; q++) { int tg = y.t[q].tag; if ((tg == T_VBD || tg == T_VBZ || tg == T_BE || tg == T_HV || tg == T_MD) && !isWordIn(&y.t[q], (const wchar_t *[]){ L"being", L"having", NULL })) hasVerb = 1; }
+            for (int q = 0; q < x.n; q++) { int tg = x.t[q].tag; if (tg == T_VBD || tg == T_VBZ || tg == T_VB || tg == T_BE || tg == T_HV || tg == T_MD) hasVerbX = 1; }
+            if (!hasVerb || !hasVerbX) continue;
             pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
             if (!wcscmp(w, L"but")) { pushW(o, L"However", 1); pushP(o, L','); pushSp(o); pushSpan(o, y, -1); }
             else pushSpan(o, y, 1);
@@ -38302,6 +38349,7 @@ static int patSplitMore(Tok *t, int n, Toks *o) {
 /* escalation 2: one neutral framing opener per sentence */
 static int patFiller(Tok *t, int n, Toks *o) {
     if (escLevel < 2 || sentShape(t, n) < 0 || !lowerable(&t[0])) return 0;
+    if (gOpeners * 12 >= gSents || t[0].tag == T_VB || gPrevOpener) return 0;
     static const wchar_t *FW[] = { L"indeed", L"truth", L"fact", L"happens", L"turns", L"occurs", NULL };
     for (int q = 0, seen = 0; q < n && seen < 6; q++) {
         if (t[q].type == TK_SPACE) continue;
@@ -38324,7 +38372,12 @@ static int patFiller(Tok *t, int n, Toks *o) {
         if (c == w && tFind(otab, key) && nq < n && t[nq].type == TK_PUNCT) return 0;
     }
     static const wchar_t *FILL[] = { L"In fact", L"Indeed", L"As it turns out", L"In truth", L"As it happens", L"Truth be told" };
-    pushW(o, FILL[nri(6)], 1); pushP(o, L','); pushSp(o);
+    int pick = -1, cnt = 0;
+    for (int q = 0; q < 6; q++) if (!(gFillUsed & (1 << q)) && nri(++cnt) == 0) pick = q;
+    if (pick < 0) return 0;
+    gFillUsed |= 1 << pick;
+    pushW(o, FILL[pick], 1); pushP(o, L','); pushSp(o);
+    gOpeners++;
     Span all = { t, n };
     pushSpan(o, all, -1);
     return 1;
@@ -38485,6 +38538,13 @@ static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
     for (int u = 0; u < nu; u++) {
         if (kind[u] != 1) continue;
         int used = 0;
+        gPrevOpener = 0;
+        for (int pu = u - 1; pu >= 0; pu--) if (kind[pu] == 1) {
+            Str h = {0}; sAdd(&h, L""); for (int q = 0; q < units[pu].n && q < 12; q++) sAdd(&h, units[pu].t[q].s);
+            gPrevOpener = startsWithList(h.s, OPENLIST); free(h.s); break;
+        }
+        { Str h = {0}; sAdd(&h, L""); for (int q = 0; q < units[u].n && q < 12; q++) sAdd(&h, units[u].t[q].s);
+          int self = startsWithList(h.s, OPENLIST); free(h.s); if (self) gPrevOpener = 1; }
         if (allowRe && nrnd() < P1[str] * moodR && restructureOnce(&units[u], &used)) {
             st->restructured++; done[u] = 1;
             if (nrnd() < P2[str]) restructureOnce(&units[u], &used);
@@ -38498,6 +38558,9 @@ static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
         if (a->t[a->n - 1].s[0] != L'.' || sentWords(a) > 14 || sentWords(b) > 16) continue;
         static const wchar_t *MERGE[] = { L"it", L"they", L"this", L"he", L"she", L"these", L"there", L"we", NULL };
         if (!isWordIn(&b->t[0], MERGE) || nrnd() >= PM[str]) continue;
+        { int neg = 0; static const wchar_t *NEG[] = { L"not", L"never", L"no", NULL };
+          for (int q = 0; q < a->n; q++) if (a->t[q].type == TK_WORD && (isWordIn(&a->t[q], NEG) || wcsstr(a->t[q].s, L"n't") || wcsstr(a->t[q].s, L"n\x2019t"))) neg = 1;
+          if (neg) continue; }
         Toks m = {0};
         Span sa = { a->t, a->n - 1 }, sb = { b->t, b->n };
         pushSpan(&m, sa, 0); pushP(&m, L','); pushSp(&m); pushW(&m, L"and", 1); pushSp(&m);
@@ -38517,6 +38580,28 @@ static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
     }
     free(units); free(kind); free(done);
     tFree(v); *v = out;
+}
+
+static void openerCasePass(Toks *v) {
+    int sentStart = 0;
+    for (int i = 0; i < v->n; i++) {
+        Tok *k = &v->t[i];
+        if (k->type == TK_NL || (k->type == TK_PUNCT && isEndP(k))) { sentStart = i + 1; continue; }
+        if (!(k->type == TK_PUNCT && k->s[0] == L',')) continue;
+        Str h = {0}; sAdd(&h, L"");
+        for (int q = sentStart; q < i; q++) sAdd(&h, v->t[q].s);
+        const wchar_t *hp = h.s; while (*hp == L' ') hp++;
+        int isOp = 0;
+        for (int q = 0; OPENLIST[q]; q++) { int L2 = (int)wcslen(OPENLIST[q]); if ((int)wcslen(hp) == L2 && startsWithList(hp, OPENLIST)) { isOp = 1; break; } }
+        free(h.s);
+        int nx = i + 1; while (nx < v->n && v->t[nx].type == TK_SPACE) nx++;
+        if (!isOp || nx >= v->n || v->t[nx].type != TK_WORD) continue;
+        Tok *w = &v->t[nx];
+        if (!iswupper(w->s[0]) || (w->s[1] && iswupper(w->s[1]))) continue;
+        wchar_t lw[40]; int L2 = 0; while (w->s[L2] && w->s[L2] != L' ' && L2 < 39) L2++; lowerInto(w->s, L2, lw);
+        if (!wcscmp(lw, L"i") || !wcsncmp(lw, L"i'", 2)) continue;
+        if (isKnownWord(lw) || verbOf(lw)) w->s[0] = towlower(w->s[0]);
+    }
 }
 
 static void articlePass(Toks *v) {
@@ -38575,9 +38660,11 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
     if (curCtx) curCtx->pass++;
     if (!curCtx || curCtx->pass == 1) { moodW = 0.8 + 0.4 * nrnd(); moodR = 0.75 + 0.5 * nrnd(); }
     if (curCtx) { if (!curCtx->contrMode) curCtx->contrMode = contrMode; contrMode = curCtx->contrMode; }
+    textBudget(text);
     restructurePass(&v, op, st);
     swapPass(&v, op, st, contrMode);
     articlePass(&v);
+    openerCasePass(&v);
     Str out = {0}; sAdd(&out, L"");
     for (int i = 0; i < v.n; i++) sAdd(&out, v.t[i].s);
     tFree(&v); free(L);
@@ -38591,7 +38678,7 @@ static const wchar_t *ISNAME[] = { L"Grammar", L"Spelling", L"Punctuation", L"St
 
 typedef struct { int s, len, kind; wchar_t msg[120]; } Issue;
 typedef struct {
-    int score, words, sents, paras, nGram, nAiHits, ok;
+    int score, words, sents, paras, nGram, nAiHits, ok, pModel, pAlgo;
     double burst, aiPer100, transFrac, contr100, triad, awl, casual100, err100;
     Issue *iss; int nIss, capIss;
     wchar_t verdict[64], conf[64];
@@ -38599,6 +38686,39 @@ typedef struct {
 } Detect;
 
 typedef struct { int s, len, sent; wchar_t l[40]; } DW;
+#define DT_NF 40
+static double *dtF;
+static int knownW(const wchar_t *w);
+static int lowerStr(const wchar_t *s, int n, wchar_t *o, int cap);
+
+/* tokens for the trained model: words (unknown words -> <unk>, numbers -> <num>) and punctuation */
+static int dtTokens(const wchar_t *t, wchar_t ***out) {
+    int n = (int)wcslen(t), cap = 256, k = 0;
+    wchar_t **v = malloc(cap * sizeof *v);
+    for (int i = 0; i < n;) {
+        wchar_t c = t[i], tk[48]; tk[0] = 0;
+        if (iswalnum(c)) {
+            int j = i, dig = 0;
+            while (j < n && (iswalnum(t[j]) || (isApos(t[j]) && j + 1 < n && iswalpha(t[j + 1])))) { if (iswdigit(t[j])) dig = 1; j++; }
+            if (dig) wcscpy(tk, L"<num>");
+            else { lowerStr(t + i, j - i, tk, 40); if (j - i >= 40 || !knownW(tk)) wcscpy(tk, L"<unk>"); }
+            i = j;
+        } else if (c == L'\n') {
+            int j = i, nl = 0; while (j < n && iswspace(t[j])) { if (t[j] == L'\n') nl++; j++; }
+            if (nl >= 2) wcscpy(tk, L"<p>");
+            i = j;
+        } else {
+            if (c == 0x2014 || c == 0x2013 || (c == L'-' && i + 1 < n && t[i + 1] == L'-')) { wcscpy(tk, L"—"); i += (c == L'-') ? 2 : 1; }
+            else if (c == 0x201C || c == 0x201D || c == L'"') { wcscpy(tk, L"\""); i++; }
+            else if (wcschr(L".,!?;:()-'", c) || c == 0x2019 || c == 0x2018) { tk[0] = isApos(c) ? L'\'' : c; tk[1] = 0; i++; }
+            else i++;
+        }
+        if (!tk[0]) continue;
+        if (k == cap) { cap *= 2; v = realloc(v, cap * sizeof *v); }
+        v[k++] = wdup(tk);
+    }
+    *out = v; return k;
+}
 
 static void dtAdd(Detect *d, int s, int len, int kind, const wchar_t *fmt, ...) {
     if (d->nIss >= 400 && kind != IS_AI) return;
@@ -38641,6 +38761,7 @@ static int knownW(const wchar_t *w) {
 static int typoSuggest(const wchar_t *w, wchar_t *out) {
     int n = (int)wcslen(w); wchar_t c[48];
     for (int i = 0; i + 1 < n; i++) { wcscpy(c, w); wchar_t t = c[i]; c[i] = c[i + 1]; c[i + 1] = t; if (knownNarrow(c)) { wcscpy(out, c); return 1; } }
+    if (n > 7) return 0;
     for (int i = 0; i < n; i++) { int k = 0; for (int j = 0; j < n; j++) if (j != i) c[k++] = w[j]; c[k] = 0; if (k >= 3 && knownNarrow(c)) { wcscpy(out, c); return 1; } }
     for (int i = 0; i <= n && n < 40; i++)
         for (wchar_t ch = L'a'; ch <= L'z'; ch++) {
@@ -38807,13 +38928,15 @@ static void dtAnalyze(const wchar_t *t, Detect *d) {
                     dtAdd(d, a->s, b->s + b->len - a->s, IS_GRAM, L"\"%ls %ls\" should be \"%ls %ls\"", a->l, x, wantAn ? L"an" : L"a", x);
             }
         }
-        if (a->len == 1 && src[0] == L'i' && (a->s + 1 >= n || !iswalpha(t[a->s + 1])) && (a->s == 0 || t[a->s - 1] != L'.'))
+        if (a->len == 1 && src[0] == L'i' && (a->s + 1 >= n || !iswalpha(t[a->s + 1])) && (a->s == 0 || t[a->s - 1] != L'.') &&
+            !(i > 0 && (!wcscmp(w[i - 1].l, L"the") || !wcscmp(w[i - 1].l, L"an") || !wcscmp(w[i - 1].l, L"letter"))) && !(a->s > 0 && (t[a->s - 1] == L'"' || t[a->s - 1] == L'(')))
             dtAdd(d, a->s, 1, IS_GRAM, L"Lowercase \"i\" should be \"I\"");
         if (!wcsncmp(src, L"i'", 2) || !wcsncmp(src, L"i\x2019", 2)) dtAdd(d, a->s, a->len, IS_GRAM, L"\"%ls\" should start with a capital I", a->l);
         if (i > 0 && w[i - 1].sent != a->sent && iswlower(src[0])) {
             int hasUpper = 0; for (int k = 1; k < a->len; k++) if (iswupper(src[k])) hasUpper = 1;
             int p = a->s - 1; while (p >= 0 && (iswspace(t[p]) || t[p] == L'"' || t[p] == 0x201C || t[p] == L'(')) p--;
-            if (!hasUpper && p >= 0 && (t[p] == L'.' || t[p] == L'!' || t[p] == L'?') && !(p >= 2 && t[p - 1] == L'.' && t[p - 2] == L'.'))
+            int quoted = p >= 0 && p + 1 < a->s && (t[p + 1] == L'"' || t[p + 1] == 0x201D || t[p + 1] == L'\'' || t[p + 1] == 0x2019);
+            if (!hasUpper && !quoted && p >= 0 && (t[p] == L'.' || t[p] == L'!' || t[p] == L'?') && !(p >= 2 && t[p - 1] == L'.' && t[p - 2] == L'.'))
                 dtAdd(d, a->s, a->len, IS_GRAM, L"Sentence should start with a capital letter (\"%lc%ls\")", towupper(src[0]), a->l + 1);
         }
         if (i == 0 && iswlower(src[0]) && a->len > 1) {
@@ -39014,13 +39137,231 @@ static void dtAnalyze(const wchar_t *t, Detect *d) {
     for (int k = 0; k < d->nSig; k++) wcscpy(d->sig[k], sg[k].s);
     /* sort issues by position */
     for (int a = 1; a < d->nIss; a++) { Issue k = d->iss[a]; int b = a - 1; while (b >= 0 && d->iss[b].s > k.s) { d->iss[b + 1] = d->iss[b]; b--; } d->iss[b + 1] = k; }
+    if (dtF) {
+        static const wchar_t *STOP[] = { L"the", L"a", L"an", L"and", L"or", L"but", L"of", L"to", L"in", L"on", L"at", L"for", L"with", L"by", L"from",
+            L"is", L"are", L"was", L"were", L"be", L"been", L"it", L"its", L"this", L"that", L"these", L"those", L"as", L"if", L"not", L"no", L"so",
+            L"he", L"she", L"they", L"we", L"you", L"i", L"his", L"her", L"their", L"our", L"your", L"my", L"me", L"him", L"them", L"us", L"do",
+            L"does", L"did", L"have", L"has", L"had", L"will", L"would", L"can", L"could", L"there", L"which", L"who", L"what", L"when", NULL };
+        double *F = dtF; memset(F, 0, DT_NF * sizeof(double));
+        double wl = 0, wl2 = 0; int stop = 0, you = 0, digits = 0, midCap = 0;
+        for (int i = 0; i < nw; i++) {
+            wl += w[i].len; wl2 += (double)w[i].len * w[i].len;
+            if (wIn(w[i].l, STOP)) stop++;
+            if (!wcscmp(w[i].l, L"you") || !wcscmp(w[i].l, L"your") || !wcscmp(w[i].l, L"yours")) you++;
+            if (iswdigit(w[i].l[0])) digits++;
+            if (i > 0 && w[i - 1].sent == w[i].sent && iswupper(t[w[i].s]) && wcscmp(w[i].l, L"i") && wcsncmp(w[i].l, L"i'", 2)) midCap++;
+        }
+        double mattr = 0; int nwin = 0;
+        for (int s0 = 0; s0 + 50 <= nw; s0 += 25) {
+            int uniq = 0;
+            for (int i = s0; i < s0 + 50; i++) { int dup = 0; for (int j = s0; j < i; j++) if (!wcscmp(w[i].l, w[j].l)) { dup = 1; break; } if (!dup) uniq++; }
+            mattr += uniq / 50.0; nwin++;
+        }
+        int comma = 0, semi = 0, colon = 0, dash = 0, paren = 0, quote = 0;
+        for (int i = 0; i < n; i++) {
+            wchar_t c = t[i];
+            if (c == L',') comma++; else if (c == L';') semi++; else if (c == L':') colon++;
+            else if (c == 0x2014 || c == 0x2013 || (c == L'-' && i + 1 < n && t[i + 1] == L'-') || (c == L'-' && i > 0 && i + 1 < n && t[i - 1] == L' ' && t[i + 1] == L' ')) dash++;
+            else if (c == L'(') paren++; else if (c == L'"' || c == 0x201C || c == 0x201D) quote++;
+        }
+        int mid = 0, lowStart = 0, andStart = 0, itStart = 0, mx = 0;
+        for (int s = 0; s < ns; s++) {
+            if (sLen[s] >= 12 && sLen[s] <= 28) mid++;
+            if (sLen[s] > mx) mx = sLen[s];
+            DW *a = &w[sStart[s]];
+            if (iswlower(t[a->s])) lowStart++;
+            if (!wcscmp(a->l, L"and") || !wcscmp(a->l, L"but") || !wcscmp(a->l, L"so") || !wcscmp(a->l, L"or")) andStart++;
+            if (!wcscmp(a->l, L"this") || !wcscmp(a->l, L"these") || !wcscmp(a->l, L"it") || !wcscmp(a->l, L"they")) itStart++;
+        }
+        double nsD = ns ? ns : 1, nwD = nw ? nw : 1;
+        F[0] = log(nw + 1.0); F[1] = mean; F[2] = sqrt(var); F[3] = cv; F[4] = wl / nwD; F[5] = sqrt(fmax(0, wl2 / nwD - (wl / nwD) * (wl / nwD)));
+        F[6] = nwin ? mattr / nwin : 0.7; F[7] = d->contr100; F[8] = comma * per; F[9] = semi * per; F[10] = colon * per; F[11] = dash * per;
+        F[12] = paren * per; F[13] = quote * per; F[14] = quest * per; F[15] = excl * per; F[16] = digits * per; F[17] = midCap * per;
+        F[18] = firstP * per; F[19] = you * per; F[20] = stop / nwD; F[21] = nPara * per; F[22] = d->aiPer100; F[23] = d->transFrac;
+        F[24] = d->triad; F[25] = d->casual100; F[26] = d->err100; F[27] = mid / nsD; F[28] = mean > 0 ? mx / mean : 1; F[29] = itStart / nsD;
+        F[30] = lowStart / nsD; F[31] = andStart / nsD;
+        int shortS = 0, ana = 0, isStart = 0, someStart = 0, comma3 = 0;
+        for (int s = 0; s < ns; s++) {
+            if (sLen[s] <= 5) shortS++;
+            DW *a = &w[sStart[s]];
+            if (s > 0 && sLen[s] > 1 && sLen[s - 1] > 1 && !wcscmp(a->l, w[sStart[s - 1]].l) && !wcscmp(w[sStart[s] + 1].l, w[sStart[s - 1] + 1].l)) ana++;
+            if (sLen[s] > 1 && (!wcscmp(a->l, L"it") || !wcscmp(a->l, L"this") || !wcscmp(a->l, L"that") || !wcscmp(a->l, L"there")) &&
+                (!wcscmp(w[sStart[s] + 1].l, L"is") || !wcscmp(w[sStart[s] + 1].l, L"was"))) isStart++;
+            if (!wcscmp(a->l, L"some") || !wcscmp(a->l, L"others") || !wcscmp(a->l, L"many") || !wcscmp(a->l, L"most")) someStart++;
+            int sa = a->s, se = w[sStart[s] + sLen[s] - 1].s, cc = 0;
+            for (int k = sa; k < se; k++) if (t[k] == L',') cc++;
+            if (cc >= 3) comma3++;
+        }
+        static const wchar_t *CONTR[] = { L"not just", L"not only", L"not merely", L"isn't just", L"it's not", L"this is not", L"is not about", L"isn't about",
+                                          L"rather than", L"less about", L"more about", L"not because", L"but because", L"in other words", L"put another way", NULL };
+        int contrast = 0;
+        for (int p = 0; CONTR[p]; p++) { int pl = (int)wcslen(CONTR[p]); for (wchar_t *q = low; (q = wcsstr(q, CONTR[p])); q += pl) contrast++; }
+        int heads = 0, pfShort = 0, paraN = 0;
+        for (int i = 0, ls = 0; i <= n; i++) {
+            if (i < n && t[i] != L'\n') continue;
+            int e = i - 1; while (e >= ls && iswspace(t[e])) e--;
+            int wc = 0, firstW = -1; for (int k = 0; k < nw; k++) if (w[k].s >= ls && w[k].s < i) { if (firstW < 0) firstW = k; wc++; }
+            if (wc >= 1 && wc <= 6 && e >= ls && !wcschr(L".!?,;:\"'", t[e]) && iswupper(t[w[firstW].s])) {
+                int nx = i + 1; while (nx < n && iswspace(t[nx])) nx++;
+                int wc2 = 0; for (int k = 0; k < nw; k++) if (w[k].s >= nx) { int le = nx; while (le < n && t[le] != L'\n') le++; if (w[k].s < le) wc2++; else break; }
+                if (wc2 >= 10) heads++;
+            }
+            if (wc >= 15) { paraN++; for (int s2 = ns - 1; s2 >= 0; s2--) { if (w[sStart[s2]].s < i && w[sStart[s2]].s >= ls) { if (sLen[s2] <= 6) pfShort++; break; } } }
+            ls = i + 1;
+        }
+        F[32] = shortS / nsD; F[33] = ana / nsD; F[34] = contrast * per; F[35] = heads * per; F[36] = paraN ? (double)pfShort / paraN : 0;
+        F[37] = comma3 / nsD; F[38] = isStart / nsD; F[39] = someStart / nsD;
+    }
     free(low); free(url); free(w); free(sStart); free(sLen);
+}
+/* trained AI-text detector weights (logistic regression, generated by train.py) */
+static const double DT_MU[DT_NF] = { 5.02697, 18.3955, 7.06887, 0.410181, 5.01263, 2.6686, 0.81207, 1.34944, 5.79666, 0.149211, 0.660344, 0.203464, 0.258849, 0.905606, 0.311561, 0.248231, 1.61091, 5.65905, 1.39561, 0.601511, 0.366643, 1.10625, 0.715038, 0.0511536, 0.0323254, 1.07962, 1.59337, 0.56085, 1.7216, 0.0828904, 0.0405836, 0.0297547, 0.110763, 0.00825143, 0.0899991, 0.0702891, 0.09473, 0.113708, 0.0195084, 0.00886743 };
+static const double DT_SD[DT_NF] = { 0.728512, 9.26297, 4.81706, 0.188071, 0.787546, 0.497377, 0.0644607, 1.65783, 3.21633, 0.566936, 1.90608, 1.56716, 1.10903, 2.04545, 1.0146, 1.23887, 4.54452, 6.75147, 2.99668, 1.56145, 0.0814589, 1.03862, 1.3163, 0.106721, 0.0880936, 2.00888, 2.95691, 0.284619, 0.513911, 0.119541, 0.126385, 0.0770354, 0.174508, 0.0411945, 0.287892, 0.320221, 0.252494, 0.170787, 0.0594911, 0.038691 };
+static const double DT_AW[DT_NF] = { 0.348117, 0.00151143, -1.0872, 0.907987, 1.39016, -0.216137, 0.438463, 0.105238, 0.613727, -0.635969, -0.121609, -0.550364, -0.664031, -0.108667, -0.364876, -0.445301, -0.153412, -0.315627, 0.109205, -0.0313565, -0.118049, 0.697099, 0.886637, -0.359128, 0.13703, -0.184512, -1.10543, 0.207143, -0.596303, 0.11758, -0.437237, -0.00197101, 0.219229, 0.0967687, 0.0240148, -0.0430271, -0.0897777, -0.365599, -0.165863, 0.00255957 };
+static const double DT_AB = -0.129746;
+static const double DT_DW[DT_NF] = { 0.622787, -0.0617049, -0.322788, 0.277919, 0.662614, -0.0760802, 0.264584, -0.0480716, 0.0238581, -0.287537, -0.363514, -0.0277595, 0.814044, 0.22103, -0.0316005, 0.168279, -0.24068, 0.00350986, -0.0301956, -0.112984, 0.317854, -0.370555, 0.459194, 0.106712, 0.0879983, -0.145106, -0.726995, 0.188194, -0.433627, 0.238798, -0.370427, 0.00126171, -0.0132171, -0.0203718, 0.237829, -0.0589096, 0.0170966, -0.220975, -0.0817964, 0.096293 };
+static const double DT_B = 3.02607;
+static const wchar_t *DT_NG[] = {
+    L"!\t-1.2785\n! !\t-3.9309\n! here's\t3.1355\n! the\t3.3066\n\"\t-0.34205\n\" \"\t-3.4855\n\" (\t0.7381\n\" ,\t-3.7709\n\" .\t-4.9964\n\" <p>\t7.2976\n\" and\t0.078529\n\" as\t1.8197\n\" i\t-0.52362\n\" it\t-1.6279\n\" it's\t-3.015\n\" the\t0.70117\n\" they\t-3.3299\n\" was\t-2.4952\n\" we\t3.437\n\" what\t-1.3876\n\" which\t3.0771\n\" with\t1.8019\n'\t-3.6171\n' ,\t-1.9319\n' .\t-2.3064\n' m\t-1.7575\n(\t-5.507\n( )\t1.5446\n( <num>\t4.0238\n)\t0.86629\n) (\t2.83\n) -\t3.2754\n) .\t-5.0973\n) :\t2.4495\n) <p>\t4.1192\n) <unk>\t0.8343\n) and\t0.48167\n) by\t1.9284\n) in\t2.4974\n) was\t-2.5468\n",
+    L",\t1.0311\n, \"\t0.47135\n, (\t-2.2526\n, <num>\t-0.88285\n, <unk>\t-0.26841\n, a\t1.7753\n, all\t1.0975\n, allowing\t1.1415\n, an\t0.066028\n, and\t0.60407\n, as\t2.2263\n, because\t-0.99794\n, but\t1.1764\n, by\t-1.6703\n, consider\t1.6425\n, considering\t-2.9693\n, don't\t1.8247\n, ensuring\t2.3172\n, even\t1.071\n, feeling\t3.1009\n, for\t-2.3303\n, from\t1.6302\n, has\t1.37\n, he\t-0.92701\n, his\t2.0802\n, hoping\t2.8001\n, how\t-1.4137\n, however\t-4.1002\n, i\t0.66097\n, if\t-0.87824\n, in\t-0.65512\n, including\t2.4832\n, it\t-0.53849\n, it's\t1.1467\n, its\t0.97358\n, known\t0.99576\n, leading\t2.4149\n, leaving\t2.9854\n, like\t0.39532\n, little\t1.9639\n",
+    L", many\t1.7215\n, me\t2.9381\n, most\t-1.6498\n, my\t0.48334\n, no\t2.607\n, not\t0.80731\n, of\t-2.8585\n, on\t-0.36331\n, one\t1.8275\n, or\t-0.49083\n, particularly\t1.5075\n, people\t-0.68481\n, please\t2.1416\n, said\t-1.2441\n, she\t1.2968\n, so\t0.40184\n, stating\t2.5789\n, such\t1.0309\n, that\t-1.59\n, the\t-0.41723\n, their\t0.35744\n, there\t0.41534\n, there's\t2.6254\n, this\t-1.9909\n, to\t-1.0341\n, until\t-1.9887\n, using\t2.179\n, very\t2.2178\n, what\t-2.0282\n, when\t0.97221\n, where\t1.8149\n, which\t4.1812\n, while\t1.3783\n, who\t1.4735\n, with\t1.3516\n, your\t2.8864\n-\t-0.15087\n- \"\t-1.5778\n- <num>\t0.35562\n- a\t-2.0445\n",
+    L"- day\t1.6062\n- ion\t1.8639\n- old\t1.8133\n- term\t1.3094\n- the\t-1.7595\n- up\t-1.3171\n.\t-0.68836\n. \"\t-0.14774\n. '\t2.0414\n. (\t-3.0501\n. )\t-1.9457\n. ,\t1.1214\n. -\t-1.0107\n. .\t-2.541\n. <num>\t-0.11879\n. <p>\t-1.636\n. <unk>\t-0.10586\n. a\t-0.46474\n. among\t-1.982\n. as\t2.2572\n. at\t1.1239\n. because\t1.0469\n. body\t2.779\n. but\t1.6602\n. by\t3.7227\n. conclusion\t4.4005\n. continued\t2.1134\n. despite\t1.032\n. even\t-2.8537\n. first\t-0.22631\n. having\t-2.2297\n. he\t1.5422\n. his\t1.7491\n. i\t0.49211\n. if\t-0.075592\n. in\t-0.65431\n. instead\t1.8235\n. it\t-0.74294\n. it's\t1.8135\n. my\t1.4574\n",
+    L". no\t0.46636\n. now\t-0.91972\n. of\t-3.3881\n. on\t-1.42\n. one\t1.1815\n. or\t-1.5646\n. overall\t2.6403\n. q\t2.0234\n. research\t2.1044\n. s\t-0.97573\n. she\t2.168\n. since\t-1.3755\n. some\t-0.20175\n. soon\t-2.2483\n. studies\t1.6777\n. that\t-1.3759\n. the\t0.80075\n. they\t0.096806\n. they're\t-2.1918\n. thus\t-3.0704\n. together\t1.8424\n. top\t-2.5253\n. unfortunately\t-2.2382\n. we\t0.45179\n. what\t1.488\n. when\t1.8219\n. while\t1.3348\n. with\t0.83647\n. you\t0.65214\n. you'll\t-2.8652\n. your\t0.20972\n:\t1.2289\n: \"\t0.65255\n: <num>\t0.45734\n: <p>\t4.7927\n: <unk>\t0.54804\n: i\t-1.7468\n: if\t2.2689\n: some\t1.7181\n: the\t1.3235\n",
+    L": to\t3.2075\n: yeah\t-1.6552\n;\t-1.6259\n; ;\t-4.15\n; <unk>\t1.5713\n; it\t2.8431\n<num>\t-0.32277\n<num> (\t1.6301\n<num> )\t-4.7584\n<num> ,\t0.22874\n<num> -\t-0.54739\n<num> .\t1.5644\n<num> <num>\t0.79605\n<num> <unk>\t-0.88027\n<num> ?\t1.9414\n<num> c\t2.3824\n<num> days\t-1.2292\n<num> from\t2.2755\n<num> hours\t-2.1608\n<num> in\t0.59748\n<num> pandemic\t2.3431\n<num> percent\t-1.8563\n<num> times\t2.3411\n<num> to\t1.1552\n<num> years\t-1.1836\n<p>\t4.5811\n<p> (\t2.8932\n<p> -\t-0.85761\n<p> <unk>\t1.1191\n<p> i\t1.7772\n<p> in\t1.2082\n<p> the\t2.3397\n<s> \"\t-0.28424\n<s> a\t1.4882\n<s> all\t-1.9737\n<s> an\t-1.6592\n<s> as\t1.7469\n<s> but\t0.69044\n<s> by\t1.794\n<s> dear\t-4.4564\n",
+    L"<s> for\t-0.74913\n<s> furthermore\t-1.6869\n<s> he\t1.1677\n<s> i\t1.3973\n<s> in\t-1.2246\n<s> introduction\t2.3093\n<s> it's\t1.7656\n<s> one\t2.8565\n<s> she\t2.5849\n<s> sure\t8.4501\n<s> the\t1.0274\n<s> there\t2.7139\n<s> this\t0.84316\n<s> when\t1.0554\n<unk>\t-0.26827\n<unk> \"\t0.044793\n<unk> '\t2.1879\n<unk> (\t-0.73549\n<unk> )\t0.81202\n<unk> ,\t-0.37073\n<unk> -\t-1.4283\n<unk> .\t-0.33411\n<unk> :\t1.6881\n<unk> ;\t1.2041\n<unk> <p>\t-2.4615\n<unk> ?\t2.3766\n<unk> a\t-1.4396\n<unk> and\t0.22547\n<unk> are\t0.75042\n<unk> can\t0.92938\n<unk> disease\t2.0217\n<unk> economy\t2.0326\n<unk> for\t0.39117\n<unk> had\t-0.7226\n<unk> has\t0.72088\n<unk> is\t-0.047569\n<unk> it\t-2.367\n<unk> may\t-2.4534\n<unk> said\t-2.6384\n<unk> systems\t1.6516\n",
+    L"<unk> the\t-0.74055\n<unk> was\t-0.76488\n<unk> who\t2.1163\n<unk> with\t-0.83326\n? \"\t-0.24025\n? <num>\t2.5542\n? <p>\t1.4917\n? ?\t-4.6863\n? the\t1.0847\na\t0.018736\na \"\t2.4193\na -\t-2.7871\na :\t0.66403\na <num>\t0.9758\na <unk>\t-0.23422\na big\t1.0552\na bit\t0.50396\na certain\t-2.121\na clear\t2.9278\na critical\t1.5321\na different\t1.3022\na feeling\t1.7797\na few\t-1.016\na great\t-1.7263\na group\t-2.0506\na human\t-1.9195\na lack\t-2.663\na lot\t-0.73265\na low\t-1.8184\na major\t1.7831\na man\t-2.3542\na more\t1.5699\na person\t-1.9384\na place\t-0.78039\na popular\t1.7164\na result\t-3.3275\na sense\t1.5309\na set\t-2.0928\na share\t-1.9393\na small\t2.8101\n",
+    L"a smart\t1.7972\na specific\t1.489\na state\t1.403\na statement\t0.39249\na strict\t2.1267\na strong\t1.6779\na tour\t-1.8165\na type\t3.7331\na unique\t1.5094\na way\t1.028\na white\t1.8782\na whole\t1.4805\na year\t-1.3314\nabandoned\t3.0959\nability\t1.9484\nabout\t-0.075748\nabout <num>\t0.86125\nabout a\t-1.0956\nabout it\t-1.2142\nabove\t-2.1602\nabsence\t1.1261\nabsence of\t1.5388\naccepted\t-2.1041\naccounting\t2.058\naccusing\t1.7129\nachievement\t-2.3403\nachievements\t1.9277\nacross\t0.67728\nact of\t2.056\naction\t0.9441\nactions\t2.1121\nactive\t-0.18885\nactively\t1.9277\nactivity\t1.6791\nacts\t1.7328\nactually\t2.1356\nactually ,\t-2.4956\nacute\t-3.1921\nadded\t-1.547\naddiction\t1.1907\n",
+    L"addition ,\t-2.4761\naddition to\t2.5331\nadequate\t-2.7999\nadult\t1.2484\nadults\t1.154\nadvance\t-3.3364\nadvantage\t-1.2059\naf\t-2.049\nafter\t-0.66042\nafter <unk>\t2.4744\nafter a\t-1.668\nafter that\t-2.8842\nafter the\t-2.169\nagain ,\t1.1379\nagain .\t1.3577\nagainst\t1.1873\nagainst the\t-1.4219\nago\t-1.7312\nahead\t2.4213\naimed\t2.1797\naiming to\t2.1681\naims\t1.9406\nair\t-0.02044\nair ,\t2.1239\nairline\t1.0402\nairlines\t0.89102\nal\t-2.5256\nalaska\t2.7407\nalien\t1.9954\nall\t-1.23\nall .\t0.5626\nall day\t2.0586\nallow\t-1.9016\nallowed to\t-1.6634\nalmost\t-2.6938\nalong the\t-2.4103\nalso\t0.063926\nalso a\t2.3305\nalternative\t1.325\nalthough\t-3.2787\n",
+    L"am i\t2.3161\namazing\t0.17738\namerica\t-2.2324\namerica's\t-3.3872\namerican\t-2.149\namericans\t-3.6876\namidst\t1.4948\namong\t-1.1807\namong the\t-1.1768\namounts\t-2.1752\namy\t3.4603\nan\t-1.0533\nan <unk>\t0.98372\nanalyst\t-2.0034\nanalysts\t1.4011\nanalysts said\t-2.5858\nancient\t1.7193\nand\t0.25655\nand \"\t1.2192\nand ,\t-5.0289\nand <unk>\t0.28298\nand a\t1.1347\nand as\t-2.3559\nand being\t2.2847\nand can\t1.3618\nand has\t2.3941\nand have\t1.3261\nand how\t1.2439\nand i\t-0.33147\nand in\t-1.6519\nand is\t2.3617\nand its\t-1.2308\nand love\t1.7169\nand many\t-1.1335\nand may\t3.4092\nand maybe\t1.7722\nand more\t-0.72429\nand on\t-1.3818\nand one\t-1.11\nand provide\t2.6255\n",
+    L"and said\t2.6649\nand set\t1.8533\nand support\t2.3217\nand the\t-0.74526\nand their\t0.75705\nand they\t1.3787\nand this\t-2.8775\nand warm\t2.3243\nand yet\t1.716\nand your\t2.0547\nanimals\t2.6542\nannouncement\t1.7075\nannually\t1.787\nanother\t-1.1504\nanswer\t2.1109\nany\t0.31044\nany of\t-2.154\napart\t1.9628\napartment\t1.6378\napparently\t-2.6888\napplication\t-1.4777\napplied\t-1.1805\napplying\t-2.7436\nappointment\t2.706\napproach\t0.20108\napproached\t1.4376\napproximately <num>\t3.8937\nare\t-1.7135\nare considered\t1.91\nare found\t2.7325\nare in\t-1.9992\nare made\t-1.8402\nare not\t1.6095\nare still\t2.1529\nare the\t-1.403\nareas\t0.8328\naren't\t1.3609\nargue\t5.6452\nargue that\t3.3514\narguing\t2.9664\n",
+    L"argument\t1.7953\narm\t-1.5863\narmed\t1.9233\narmy\t1.2755\narrive\t1.8333\narrived\t2.4104\nart and\t1.6746\nart of\t2.2141\narticle\t1.4148\nas\t-0.60547\nas <unk>\t0.35891\nas an\t-0.80262\nas he\t1.8837\nas her\t3.6519\nas i\t0.23114\nas if\t-1.8386\nas it\t-0.17875\nas of\t2.6582\nas such\t-1.8956\nas the\t0.41785\nas their\t-2.3293\nas they\t1.1859\nas though\t1.8692\nas to\t-2.3753\nashamed\t1.9869\naside\t-2.1519\nasked\t0.70979\nasset\t3.545\nassist\t-2.3656\nassociated\t-0.67903\nat <num>\t-1.7143\nat a\t0.72953\nat once\t-1.0415\nat the\t0.10826\nat this\t-3.1016\nat which\t3.0973\nathenian\t-2.3941\nathens\t-1.7981\nathletes\t1.8713\natp\t5.0311\n",
+    L"attack\t-0.97081\nattacks\t-1.5187\nattempt to\t-2.3356\nattempting\t1.6564\nattention .\t1.2656\naudience\t-0.86624\naustralia\t3.1728\nauthor\t-2.4014\navailable\t0.70727\navoiding\t1.529\naward\t-2.0978\nawarded\t2.9338\nawards\t2.0059\naway .\t-1.232\naway from\t0.61878\nb\t2.2767\nb .\t2.9295\nback of\t1.905\nbad\t-1.9592\nbaking\t5.1166\nbank\t-0.99316\nbaseball\t-3.3253\nbased on\t1.1626\nbasically\t1.5842\nbasis\t-4.3232\nbattery\t2.3016\nbe\t-1.6471\nbe <unk>\t2.1858\nbe a\t0.95801\nbe able\t-0.13381\nbe considered\t-2.0722\nbe in\t-1.7153\nbe made\t-0.96671\nbe told\t2.5246\nbeach\t-1.5565\nbeautiful\t-2.1611\nbeauty\t1.1051\nbecame\t0.30425\nbecame a\t2.4163\nbecause\t-1.236\n",
+    L"because i\t-1.696\nbecause they\t1.5156\nbecome\t0.89732\nbecome a\t1.8523\nbecome more\t-1.8678\nbecome the\t1.5803\nbecomes\t-1.0509\nbed\t-0.40463\nbeef\t-2.0122\nbeen made\t2.5313\nbefore\t-0.47343\nbefore you\t2.1577\nbegan\t0.99525\nbehaviors\t2.2051\nbehaviour\t-2.2368\nbehind\t0.72812\nbehold\t-3.6794\nbeing\t-1.1368\nbeing of\t2.313\nbelief\t0.46464\nbelieve it\t2.6219\nbelieved to\t1.6226\nbell\t-2.1435\nbelow\t-2.2397\nbenefit\t-1.5948\nbesides\t-5.0746\nbest\t0.094081\nbest .\t1.5317\nbetter\t0.85535\nbetter at\t2.2222\nbetween\t-0.6497\nbetween <num>\t-1.0864\nbetween <unk>\t1.0304\nbig ,\t-2.0825\nbike\t-1.9841\nbill\t0.66242\nbillion\t-0.60656\nbit\t1.0286\nblack\t-0.84191\nblank\t-2.0727\n",
+    L"block\t1.1885\nblood\t0.09178\nboard\t0.10806\nbody\t-1.5084\nbold\t1.0186\nbones\t-0.9955\nbookmark\t-1.8694\nbookmarks\t-1.5733\nbooks\t-1.6233\nbooks ,\t-2.3414\nboost\t1.5263\nborn\t0.52994\nboss\t-1.179\nboth\t0.24259\nbought\t-1.3744\nbounce\t5.2438\nbowl\t2.4762\nbox\t-1.4873\nbread\t2.2458\nbreakfast\t1.6531\nbreakfast ,\t2.0454\nbreath\t0.4344\nbring\t1.5741\nbroader\t2.2252\nbrother\t-1.212\nbrought\t-0.86603\nbrowser\t-1.4866\nbrush\t-1.6445\nbuildings\t-1.3296\nbuilt\t1.8956\nbunch\t1.8274\nbus\t1.1908\nbusiness\t-2.3896\nbusinesses\t1.306\nbut <unk>\t-2.9174\nbut as\t1.9109\nbut her\t3.3257\nbut his\t2.4255\nbut i\t1.1219\nbut i'm\t2.8295\n",
+    L"but in\t-1.906\nbut that\t-2.2782\nbut the\t-0.58499\nbut they\t2.4109\nbuying\t1.3318\nby\t-0.63035\nby her\t1.6068\nby which\t2.1236\ncake\t2.1849\ncame\t-1.2624\ncame to\t-1.7254\ncamera\t-1.1554\ncampaigns\t1.2509\ncan also\t0.93418\ncan have\t-1.7937\ncan lead\t2.0127\ncan still\t1.3833\ncan't wait\t2.0757\ncancer\t-2.0622\ncannot\t-0.61894\ncaptain\t-1.2924\ncar\t-0.86128\ncar usage\t-4.0154\ncarbon\t0.95047\ncarbon dioxide\t2.2198\ncare about\t2.6543\ncare of\t-2.4404\ncargo\t1.1007\ncarriers\t1.532\ncars\t-3.7221\ncart\t4.3195\ncase\t-0.68098\ncases\t-0.75296\ncash\t-2.1753\ncatch\t1.9885\ncaused\t-0.97245\nceiling\t1.1061\ncents\t-1.9604\ncenturies\t1.8592\nchair\t-1.7356\n",
+    L"chairman\t-1.6823\nchallenge\t0.98151\nchallenges\t3.7219\nchallenging\t0.49626\nchambers\t2.1049\nchance to\t1.6313\nchange\t-0.087251\nchaos\t3.2694\ncharacteristic\t-2.4786\ncharacters\t-0.96931\ncharacters ,\t-2.2057\nchasing\t2.4198\ncheck the\t1.6754\nchemicals\t-1.5375\nchick\t-1.2247\nchicken\t-1.6077\nchief\t-1.021\nchild\t-2.0123\nchild's\t-1.8908\nchildren\t-0.98906\nchildren ,\t1.5047\nchin\t-3.3656\nchina\t1.9729\nchina's\t2.2613\nchinese\t-0.12047\nchoice\t0.794\nchoices\t0.33803\nchris\t-2.6786\nchristian\t-2.1433\nchronic\t1.2308\ncircumstances\t2.1758\ncity\t0.74454\nclaim\t0.82307\nclaims\t1.6381\nclass\t-1.0105\nclear\t0.66214\nclear that\t2.6592\nclimate\t2.1422\nclimbed\t2.2778\nclose\t-1.133\n",
+    L"closely\t1.2211\ncloud\t-1.4266\nclouds\t-1.3721\nco\t-1.1636\ncoal\t-2.1599\ncode\t1.1317\ncognitive\t2.5194\ncoin\t2.1018\ncollaboration\t1.2992\ncollect\t1.8444\ncollection\t1.7949\ncolorado\t2.8391\ncolors\t-0.58\ncombine\t1.8027\ncome\t-0.41351\ncomedy\t-2.3826\ncomes from\t2.4497\ncommand\t-2.5013\ncommercial\t-1.1398\ncommission\t-0.93525\ncommitment to\t1.3302\ncommon\t-0.54732\ncommunity\t-0.38261\ncompanies\t0.79782\ncompany\t-0.70304\ncompared to\t0.37759\ncompared with\t-1.928\ncompassion\t1.8637\ncompete\t1.6034\ncompetition\t-1.4534\ncompletely\t-0.28939\ncomplex\t0.97726\ncomplicated\t1.5609\ncomprehensive\t2.7845\ncomputer\t-2.4171\ncomputers\t0.85019\nconcerned\t-1.9314\nconcerns\t1.8359\ncondition\t-2.1937\nconditions\t-0.39696\n",
+    L"conditions ,\t-1.8906\nconduct\t-3.3225\nconducted\t-1.5564\nconfident\t1.141\nconfusion\t1.7123\ncongress\t-2.0976\nconnection\t1.7537\nconnects\t-1.933\nconsequences\t0.72888\nconsider\t0.61436\nconsideration\t-1.075\nconsidered a\t-2.7672\nconsistently\t2.7047\nconstant\t2.4174\nconstruction\t-2.2827\nconsume\t2.0291\nconsumed\t2.0867\nconsumer\t1.5717\nconsumers\t0.57807\ncontext\t0.8674\ncontext .\t1.8162\ncontinue\t0.95755\ncontinue to\t0.37581\ncontinued\t0.63266\ncontinued on\t2.1243\ncontinues to\t2.177\ncontribute\t1.9601\ncontributing\t2.1539\ncontrol\t1.1934\nconversation\t1.3462\nconversely ,\t2.3288\nconvicted\t2.4749\ncooling\t2.4609\ncore\t1.2814\ncorners\t1.7011\ncost\t1.1848\ncosts\t1.7537\ncouch\t2.2682\ncould\t-0.22548\ncould be\t-0.83159\n",
+    L"could not\t-3.3463\ncouldn't\t1.5345\ncount\t2.5367\ncountries\t-1.0402\ncountry .\t-2.209\ncountry's\t0.90451\ncouple\t-3.4842\ncourse\t-0.89455\ncourt\t-0.72428\ncovered\t-1.3499\ncrashes\t-2.0982\ncreate a\t0.64514\ncreated\t0.35984\ncreatures\t-1.3422\ncredit\t1.1514\ncrew\t-1.4122\ncriminals\t-2.7795\ncrisis\t0.99097\ncriticized\t1.5267\ncrushed\t-2.3507\ncry\t-2.5329\ncultural\t0.72451\ncup\t-2.0351\ncuriosity\t4.3673\ncurrent\t-0.62177\ncurriculum\t-2.1533\ncustomers\t0.17767\ncycle\t0.92592\nd )\t2.3414\ndaily\t-0.40477\ndairy\t1.4544\ndamage\t4.1121\ndance\t0.83028\ndark\t-0.60221\ndarkest\t1.6478\ndarkness\t2.6233\ndata\t1.2877\nday\t0.018694\nday ,\t2.1451\ndays .\t0.63466\n",
+    L"days of\t-2.5077\nde\t-0.30287\nde <unk>\t-0.9445\ndead\t-2.3748\ndeadly\t-3.5458\ndeal\t1.7226\ndeal .\t1.5766\ndear\t2.1994\ndeath\t1.3489\ndebt\t1.8978\ndecided\t0.33956\ndecided that\t1.9769\ndecision to\t2.2925\ndeclared\t-3.1504\ndecline\t1.1051\ndeclined\t1.725\ndecrease\t-1.4024\ndedicated\t2.2008\ndeep breath\t1.5396\ndeeper\t2.0989\ndeepest\t2.6461\ndefeat\t1.854\ndefinition\t-1.036\ndegree\t-1.2525\ndelicious\t2.1433\ndelivering\t3.4074\ndemanding\t1.9074\ndepartment\t-2.3595\ndepending\t-1.5682\ndepends\t2.3789\ndepths\t2.9617\ndescribed\t-1.9724\ndesign .\t2.6651\ndesign and\t1.9521\ndesigned to\t-2.9889\ndesigning\t1.872\ndesire to\t1.2264\ndesperate\t1.6336\ndespite being\t-3.2899\ndespite his\t2.4849\n",
+    L"detailed\t-4.2334\ndetails\t-0.884\ndetermination\t3.3091\ndetermine\t2.4957\ndetermined\t2.3154\ndetermined to\t2.4933\ndeveloping\t-1.1684\ndevelopment\t-0.19697\ndevelopment ,\t-1.8346\ndid not\t-1.0556\ndidn't have\t1.7858\ndie\t-1.0904\ndied\t-0.79833\ndifference\t0.99346\ndifferent\t-0.33127\ndifferent types\t2.5673\ndifficult\t-0.80735\ndigital\t0.55001\ndimly lit\t1.8592\ndinner\t1.3243\ndirector\t-2.8992\ndisbelief\t3.7765\ndiscovery\t0.32347\ndiscrimination\t1.9689\ndiscussed\t-2.3069\ndisease\t-2.031\ndisruption\t2.7411\ndistances\t2.5544\ndisturbing\t1.8245\ndo\t-1.291\ndo ,\t1.7271\ndo -\t1.2149\ndoctor\t-1.1571\ndoes\t-0.45701\ndoes the\t-3.7298\ndoing\t-0.63976\ndollar\t-1.7492\ndomestic\t-1.2853\ndon't\t0.53546\ndon't be\t2.884\n",
+    L"don't have\t1.1734\ndon't know\t-0.60927\ndone\t-1.4752\ndoor\t-0.42075\ndoors\t1.893\ndot\t1.9803\ndouble\t-1.7735\ndough\t0.58023\ndown on\t0.40684\ndown to\t-0.84854\ndownload\t-1.5534\ndragons\t2.7173\ndrawings\t2.1568\ndrinking\t-1.7348\ndriven\t0.44982\ndriving\t-1.214\ndrone\t-2.368\ndrug\t-0.67726\ndrugs\t-1.9112\nduck\t2.1132\ndue to\t0.36834\nduring\t0.92157\nduring the\t-0.90708\ne\t1.0616\neach of\t-1.6352\neach other\t0.8555\nearly\t0.31772\nears\t-2.0938\nearth ,\t2.2013\nearth .\t1.1903\neasily\t1.375\neast\t-0.58586\neasy\t-1.8718\neat\t-2.1962\nechoed\t2.9162\neconomic\t1.3998\neconomy\t0.75113\nedge of\t-1.7143\nedit\t-2.3671\neffect\t-1.9329\n",
+    L"effort\t0.43674\nefforts\t0.6956\neither\t-2.4111\nelectoral\t-2.5201\nelectoral college\t-2.2731\nelement\t-2.9573\nelizabeth <unk>\t-1.9132\nemail\t1.2094\nembarked on\t2.038\nembraced\t2.0426\nemergency\t0.91343\nemphasizes\t3.1544\nemployee\t-0.43734\nempty\t2.7371\nend\t0.50321\nend ,\t2.5308\nendless\t1.8218\nenduring\t2.2158\nenemy\t-2.254\nenergy\t0.91613\nenergy ,\t-1.9384\nengineering\t-1.3681\nenglish\t-1.0938\nenglish .\t-1.9418\nenjoy\t-0.51519\nenough\t-1.3035\nensure\t2.5466\nensuring\t1.283\nentails\t-2.2564\nenthusiasm\t2.0795\nentirely\t1.1076\nenvironment\t-0.94646\nenvironmental\t0.92704\nepisode\t-2.4705\nepisodes\t1.0944\nequal\t-1.768\nequally\t-2.1567\nera\t3.0575\nerosion\t1.9935\nessential\t0.5747\n",
+    L"essential for\t1.0333\nestimated\t1.1057\netched\t2.4413\nethan\t1.5264\nethical\t0.84128\nethnic\t1.9001\neurope .\t1.8013\neuropean\t0.65026\neven as\t1.8126\neven when\t1.154\nevening\t1.3922\never\t0.065702\nevery\t0.41448\neveryday\t-0.58773\neverything\t-0.10146\neverything ,\t2.1522\neverything is\t-2.1196\nevidence\t1.0746\nexamination\t-2.5577\nexamine the\t1.9511\nexample\t0.73655\nexample of\t0.9789\nexcited\t0.56253\nexcitement\t1.6698\nexecutive\t-0.61807\nexistence\t1.7923\nexpand\t0.39131\nexpanding\t-2.2499\nexpectations\t1.9719\nexperience\t0.81413\nexperiences\t1.4272\nexpertise\t2.4004\nexperts\t1.8356\nexplanation\t1.7838\nexploration\t2.1741\nexploring\t1.0628\nexpressed\t1.0914\nextra\t0.97123\nextraordinary\t2.0754\nextremely\t-1.9418\n",
+    L"eyes\t0.94775\nfabric\t1.5855\nface ,\t-1.3237\nfaced\t2.8116\nfacial\t-2.4496\nfacilities\t-3.3745\nfacing\t0.86957\nfact\t-2.6369\nfact ,\t1.2965\nfailed to\t1.4925\nfair\t0.31441\nfairly\t-1.6895\nfaith\t-1.2449\nfall\t-1.6952\nfamiliar\t1.9912\nfamily\t-1.5146\nfamily's\t3.3571\nfar\t-1.5095\nfarming\t-2.2132\nfashion\t-0.95268\nfast\t2.2591\nfast ,\t1.2571\nfaster\t1.8082\nfate\t3.3594\nfather\t-1.0998\nfavorite\t1.387\nfears\t2.2126\nfebruary\t-1.0966\nfederal\t-0.38654\nfeel free\t-2.9521\nfeel like\t1.6765\nfeelings\t-2.8341\nfeels\t1.2651\nfeet\t-1.3261\nfell\t-1.9904\nfellow\t-2.4521\nfelt\t0.49637\nfelt a\t2.0744\nfield\t-0.96023\nfields\t-0.95969\n",
+    L"fierce\t1.8441\nfight\t-0.78995\nfigure\t1.2172\nfigures\t-1.2385\nfilled\t2.4887\nfilm\t-1.1575\nfilm was\t-2.4905\nfinal\t0.94237\nfinancial\t0.39142\nfind a\t2.7164\nfind out\t-3.523\nfinding\t1.7662\nfine\t-0.40411\nfinished\t-1.4026\nfirst\t-0.43734\nfive\t-1.5175\nfix\t3.2866\nfixed\t-2.2366\nflat\t1.2358\nflavor\t3.4745\nflight\t-2.5144\nflowers\t-1.2774\nflows\t-3.3807\nfocus\t1.2566\nfocus on\t2.5738\nfocuses on\t-1.2254\nfollowing\t-0.80751\nfood\t0.55276\nfoot\t-0.87405\nfor\t0.010026\nfor <unk>\t-0.47749\nfor a\t0.1975\nfor any\t2.4284\nfor being\t1.6622\nfor both\t1.9356\nfor everyone\t2.2094\nfor example\t-2.0117\nfor her\t1.0165\nfor him\t-2.5213\nfor its\t0.84553\n",
+    L"for people\t1.6175\nfor the\t-0.13319\nfor this\t-1.8489\nforced to\t-1.7499\nforeign\t-1.6487\nforever\t1.5639\nforgiveness\t2.3403\nforgotten\t3.211\nformer\t-0.54963\nformula\t2.4733\nforward\t0.74115\nfostering\t2.178\nfound\t1.2743\nfound that\t1.8538\nfour\t-1.367\nfraction\t2.2087\nfreedom\t1.4323\nfresh\t1.3458\nfriday\t-1.9353\nfriendly\t1.6635\nfriends\t-0.44518\nfrom\t-0.79137\nfrom <num>\t0.48909\nfrom <unk>\t-0.54281\nfrom a\t-1.1815\nfrom that\t1.2142\nfrom the\t-0.082691\nfruit\t-3.021\nfruit .\t-2.6986\nfruits\t-2.8166\nfucking\t-2.4675\nfuel\t-2.0026\nfull\t0.74375\nfully\t1.2832\nfun\t-1.4466\nfundamental\t-1.8244\nfunds\t-1.4057\nfurther\t0.72478\ngains\t1.7924\ngame\t0.38703\n",
+    L"game ,\t2.0086\ngame .\t1.3521\ngap\t2.8636\ngaps\t1.9935\ngarden\t2.565\ngasped\t2.5582\ngave\t-2.5116\ngay\t1.2062\ngazed\t2.2512\ngeneral\t-1.468\ngenerally\t-1.9861\ngenerates\t2.0382\ngenerations\t3.6284\ngenetic\t2.4985\ngently\t1.6864\ngeorgia\t4.0293\nget\t-0.57313\nget a\t-2.9275\ngets\t2.1469\ngetting\t-3.0048\ngift\t2.0061\ngirl\t-3.2475\ngirls\t-1.3386\ngive\t-1.0882\ngiven\t0.92821\ngiving\t-1.4588\nglobal\t1.3855\ngo\t-0.64623\ngo to\t-1.8468\ngoals\t-2.0751\ngod\t-1.3339\ngods\t-2.5008\ngoing .\t2.7467\ngoing to\t-1.3931\ngood\t-0.7257\ngood .\t1.8917\ngoose\t1.6423\ngot\t-2.6455\ngovernment\t-0.64966\ngovernment ,\t1.8534\n",
+    L"governments\t3.6587\ngrab\t-2.3272\ngrasp\t1.7551\ngrass\t-3.1598\ngrateful\t3.0785\ngratitude\t1.179\ngreat\t-1.6913\ngrocery\t1.7921\nground\t-1.0082\ngroup\t-0.32211\ngroups\t1.0178\ngrow\t-1.2947\ngrown\t1.7975\ngrowth\t0.66342\ngrowth and\t1.6556\nguidance\t3.2033\nguide\t-1.4643\nguiding\t2.2273\ngut\t1.8294\nguy\t-2.6143\nh\t0.73378\nhabits\t2.0732\nhad\t-0.46275\nhad a\t-0.63733\nhad the\t-1.196\nhair\t-1.5193\nhalf\t-1.6366\nhand\t0.6916\nhanded\t1.6442\nhandle\t1.0573\nhappens\t1.2495\nhard\t-1.1635\nharder\t2.1994\nhardly\t-2.5141\nhas\t-0.78971\nhas also\t1.1662\nhas been\t0.68375\nhas the\t-2.4039\nhas to\t-2.3944\nhave\t-0.80832\n",
+    L"have <unk>\t-2.0685\nhave a\t-1.4747\nhave also\t2.2744\nhave any\t2.5686\nhave been\t-0.67715\nhave it\t1.9367\nhave the\t-0.54149\nhave to\t0.45765\nhaving\t-3.2267\nhe\t-1.6799\nhe was\t-0.63872\nhead\t-0.23342\nheaded\t-1.6296\nhealth\t-1.5037\nhear\t-1.093\nhearing\t-1.4462\nheart\t2.6778\nhearts\t0.82866\nheating\t-2.7962\nheavy\t-0.7192\nheld\t0.74878\nhelp\t0.18264\nhelp but\t4.3487\nhelped\t1.6663\nhelpful\t1.5183\nhelps\t1.6626\nhence\t-3.1743\nher\t-0.39492\nher ,\t-0.77763\nher .\t-2.2837\nher eyes\t1.6642\nher face\t-2.7415\nher own\t-1.6627\nher the\t2.498\nhere\t-0.87441\nhere's\t4.4156\nherself\t-0.93351\nhesitate\t1.8363\nhesitate to\t1.7674\nhey\t0.96342\n",
+    L"hidden\t1.5919\nhighest\t2.4645\nhighlight\t1.8692\nhighlighting\t2.5025\nhighlights\t1.9342\nhighly\t-1.3866\nhim\t-1.1949\nhim .\t-1.1427\nhim to\t1.8623\nhis\t-0.62424\nhis <unk>\t0.7037\nhis voice\t2.0061\nhis wife\t-3.0217\nhistorical\t-1.727\nhistory\t0.3993\nhistory .\t0.95529\nhold the\t-1.6252\nhome\t-0.89234\nhome .\t1.4241\nhonestly\t3.0521\nhoney\t2.1082\nhong\t2.1022\nhonor\t2.0217\nhope\t1.8741\nhoping\t1.6846\nhospitality\t2.7874\nhospitals\t2.8908\nhost\t-2.3855\nhot\t-2.3076\nhour\t-0.62466\nhours\t1.2405\nhours ,\t1.5644\nhours .\t1.6049\nhouse\t-1.1083\nhow\t0.76755\nhow he\t-1.7242\nhow much\t1.7279\nhow this\t2.0446\nhow to\t-1.857\nhow you\t-2.9329\n",
+    L"however ,\t1.9874\nhuge\t-2.2466\nhuman\t0.89509\nhumanity\t1.4751\nhurt\t2.5103\nhusband ,\t2.9345\ni\t-1.1602\ni .\t1.0307\ni <unk>\t-3.8932\ni am\t-0.90309\ni continued\t2.6047\ni do\t-2.0375\ni don't\t-0.79459\ni feel\t-2.0049\ni guess\t-2.8763\ni had\t0.99855\ni have\t1.7903\ni just\t-2.0829\ni learned\t2.201\ni like\t-2.2276\ni look\t-1.8331\ni realized\t1.9632\ni see\t-1.9421\ni still\t1.6565\ni think\t-2.7715\ni thought\t-1.2363\ni tried\t3.5347\ni turned\t1.3607\ni was\t1.0003\ni would\t0.40072\ni'm\t1.3613\ni'm a\t-2.2285\ni'm not\t2.206\ni'm still\t4.2848\nidea of\t-1.4534\nideas\t-1.0657\nidentify\t-2.0129\nidentity\t0.70334\nif\t0.72954\nif i\t-0.89614\n",
+    L"if the\t0.15084\nif there\t2.8242\nif your\t1.6259\nimage\t-2.061\nimmediately\t-1.296\nimmense\t2.7147\nimpact\t2.9143\nimpact of\t0.91855\nimplications\t1.4888\nimportance\t-1.8695\nimpossible to\t-1.9948\nimprove\t-0.99101\nin\t-0.58849\nin <num>\t0.39711\nin a\t0.97845\nin english\t3.3392\nin general\t-1.6645\nin history\t1.9805\nin how\t1.9792\nin its\t1.2252\nin most\t-1.8585\nin my\t-0.97966\nin order\t-2.219\nin our\t-1.3554\nin place\t2.4479\nin real\t-2.2648\nin recent\t1.9326\nin some\t2.1758\nin summary\t3.0268\nin terms\t-1.484\nin the\t-0.42594\nin these\t1.9586\nin this\t-0.023468\nin time\t-2.5308\nin turn\t-1.6515\nin which\t1.327\ninch\t-2.3979\nincident\t2.7624\ninclude\t-1.9982\nincludes\t-2.0302\n",
+    L"including the\t-1.7287\nincome\t1.2563\nincrease\t-1.4615\nincreases\t-1.05\nincreasingly\t3.3076\nindeed\t-1.3943\nindicates\t-2.6412\nindividual\t-0.92749\nindividuals\t0.66445\nindoor\t2.3229\nindustry\t0.22264\nindustry .\t3.3764\ninfections\t2.6929\ninformation .\t1.1643\ninformed\t2.7645\ningredients\t-1.6452\ninner\t1.499\ninside the\t-1.9032\ninstability\t2.1239\ninstance\t-1.034\ninstead ,\t2.8477\ninstead of\t-0.69087\ninstruments\t-1.3827\nintake\t1.7453\nintegrated\t-2.6881\nintelligence\t1.7213\ninteractions\t-1.4227\ninterest\t-0.94512\ninterested\t-2.045\ninteresting\t-0.29258\ninternational\t-0.58796\ninterventions\t1.6227\ninto\t0.89735\ninto a\t0.53792\ninto my\t-2.0439\ninto the\t-2.5471\nintroducing\t-2.6348\ninvasion\t-1.8769\ninvention\t1.4751\ninvest\t1.2829\n",
+    L"investing\t2.5235\ninvestment\t0.27233\ninvestments\t1.0084\ninvestors\t1.4922\ninvolved\t-1.5188\ninvolves\t-0.87804\nis\t-1.9287\nis \"\t3.596\nis ,\t2.2154\nis <num>\t-0.95031\nis <unk>\t-0.59209\nis a\t1.2658\nis also\t0.49213\nis being\t1.949\nis essential\t1.1744\nis estimated\t1.8389\nis expected\t1.2853\nis going\t-2.3728\nis less\t3.1539\nis likely\t3.4689\nis not\t1.2945\nis similar\t3.2565\nis to\t-1.316\nis up\t2.4044\nis usually\t2.5523\nis very\t-1.711\nis where\t-2.1618\nis your\t-3.0719\nisland\t-1.4687\nisn't\t2.0896\nissue\t-0.87867\nissues\t-0.23645\nit\t-0.57219\nit ,\t-0.2857\nit <unk>\t-2.5189\nit be\t-2.432\nit has\t-0.66018\nit in\t-2.5361\nit is\t-0.58552\nit out\t2.6784\n",
+    L"it took\t-1.483\nit was\t0.81069\nit's\t0.39966\nit's a\t1.5505\nit's clear\t2.8597\nit's like\t3.1641\nitalian\t-1.9568\nits\t-0.54172\njack <unk>\t-2.5661\njake\t2.6433\njanuary\t-1.051\njapan\t-1.0519\njapanese\t-1.8639\njar\t2.0823\njazz\t1.479\njenny\t4.0427\njoe <unk>\t-2.0157\njohn\t0.40295\njones\t-1.4299\njoy\t1.8816\njudgment\t1.6961\njune\t-3.6898\njust\t1.9553\njust a\t1.208\njust in\t-2.2449\njust that\t-2.0538\nkeep\t1.2021\nkey\t0.35958\nkill\t1.8849\nkilometers\t2.3667\nking\t0.89805\nknees\t-2.2019\nknew\t1.5252\nknew that\t1.2287\nknife\t-0.87366\nknock\t2.4276\nknow\t-0.76705\nknow how\t-0.72308\nknow if\t3.2682\nknowing\t2.3973\n",
+    L"known\t0.24806\nknown for\t2.4061\nknows\t-1.3931\nlaid\t-2.3166\nland\t1.3911\nlandscape\t1.2112\nlanguage\t1.4394\nlarge\t-1.5788\nlargest\t0.84443\nlast\t-0.38319\nlast week\t-2.3484\nlate\t-0.54916\nlater .\t-1.8404\nlaw\t-0.7974\nlaw in\t-2.9176\nlayer of\t1.917\nlead\t1.3407\nleading to\t2.4345\nleaf\t-1.4962\nleaned\t2.0146\nlearn\t-0.9801\nlearned\t0.42219\nlearned that\t2.1059\nlearning\t-0.19753\nleave\t-1.5265\nled to\t0.65989\nlegacy\t0.74139\nlegal\t2.1128\nlength\t1.306\nless\t-1.1234\nlesson\t2.2872\nlet go\t2.7748\nlet me\t3.2886\nlet's\t2.0136\nletter\t-1.3254\nlevel\t-2.3364\nlevels\t0.78062\nlid\t1.6545\nlife ,\t-1.0402\nlife and\t-1.8733\n",
+    L"lift\t2.1212\nlike ,\t4.0095\nlike a\t1.0886\nlike that\t-1.4856\nlike the\t1.2075\nlike this\t-1.3263\nlike to\t-2.1689\nlikely to\t-1.0501\nlimited\t1.7036\nlimits\t1.0918\nline\t0.87837\nlinear\t-1.819\nlinked\t1.6872\nlinked to\t1.5368\nlinks\t-2.143\nliquid\t1.4388\nlit\t1.3556\nliterally\t-3.3304\nlittle\t-0.473\nlittle did\t2.4327\nlive\t-1.0386\nlive in\t-0.99344\nlived\t0.43488\nlives\t0.32002\nliving\t-0.3758\nlo\t-1.6532\nlocal\t-0.56251\nlocated\t1.733\nlonely\t1.8115\nlong\t0.34268\nlonger\t2.0321\nlook\t-0.81049\nlooked\t-2.7058\nlooks\t-0.36644\nlord\t-1.2354\nlose\t-1.9524\nlose their\t2.563\nlost\t-0.64239\nlove\t0.91797\nlove .\t-2.3924\n",
+    L"low\t-0.86288\nloyal\t2.713\nm\t-1.536\nmad\t-3.1222\nmade\t-0.36448\nmade .\t-2.171\nmade it\t1.6758\nmade the\t1.7224\nmadness\t1.704\nmagical\t2.0299\nmaintain a\t2.9869\nmajor\t-1.3062\nmajority of\t2.1271\nmake sure\t1.8848\nmaking\t-0.13004\nmaking it\t-0.87916\nmales\t-1.9243\nman\t-1.6206\nman in\t2.1311\nman named\t1.9304\nman's\t-3.25\nmanagement\t-1.1227\nmanager\t-2.4594\nmanner\t-1.0669\nmantle\t2.3158\nmany\t-1.9428\nmarine\t1.8777\nmark\t2.3514\nmarket\t-0.080988\nmarket .\t1.0948\nmarketing\t-2.0494\nmarkets .\t3.035\nmars\t-1.3577\nmass\t-1.2364\nmassachusetts\t1.5425\nmassive\t1.259\nmaster\t-2.7414\nmaterial\t-2.5137\nmay\t-0.19119\nmay have\t1.9716\n",
+    L"me\t-0.48653\nme ,\t-0.79258\nme .\t-0.83736\nme in\t-2.1888\nmeaningful\t3.5793\nmeans\t0.71677\nmeans of\t-2.4581\nmeant\t0.17418\nmeant to\t1.0904\nmeasured\t0.54444\nmeat\t1.2203\nmedia\t0.28589\nmembers\t-0.057355\nmemories\t2.8789\nmen\t-2.0031\nmental\t-0.93665\nmention\t-1.4169\nmetal\t-1.2023\nmeters\t3.6507\nmethods\t-0.73525\nmexico\t-0.8616\nmiddle\t-0.88311\nmight\t-0.56229\nmight be\t0.91612\nmiles\t-1.8693\nmillion\t-0.75477\nmillions\t1.6989\nmillions of\t1.6104\nmind\t0.91469\nmind .\t1.4776\nminister\t1.4682\nminutes\t1.2048\nmiss\t-2.9125\nmission\t1.1728\nmitigate\t2.6223\nmixed\t1.3\nmodel\t1.3689\nmodels\t1.6352\nmolecules\t-1.2244\nmoment\t0.11065\n",
+    L"moment ,\t2.1283\nmoment of\t1.0077\nmoments\t0.20894\nmoney\t-0.11187\nmonitoring\t2.058\nmonth\t-1.1255\nmontreal\t1.452\nmood\t0.51433\nmoon ,\t-4.1859\nmore ,\t-1.8169\nmore .\t-2.6953\nmore than\t-1.4049\nmoreover ,\t-3.3239\nmost\t-0.31963\nmost of\t-1.4097\nmotion\t-2.1099\nmountains\t-3.0109\nmouth\t-1.5092\nmove\t1.5703\nmoves\t2.1463\nmovie\t-1.525\nmuch\t-0.80903\nmultiple\t-1.5028\nmuscle\t-1.6342\nmuscles\t-1.207\nmusic\t-0.22727\nmusical\t-2.3904\nmust\t-0.80916\nmy chest\t2.1714\nmy dear\t2.1184\nmy mind\t1.8469\nmy own\t1.4213\nmy wife\t-1.9262\nmyself\t-0.66405\nmyth\t-2.6775\nn .\t-2.5345\nname\t0.61557\nname of\t2.801\nnamed\t1.5679\nnarrator\t-1.9036\n",
+    L"nations\t1.0471\nnative\t-1.8168\nnatural\t0.72243\nnature\t-0.60201\nnear\t-0.56552\nneed a\t1.2825\nneed to\t0.5746\nneeded\t-0.38208\nneeds to\t-2.5624\nnegative\t-0.99569\nneighbor\t3.4208\nnet\t-1.6114\nnetwork\t0.43144\nnevertheless\t-2.7187\nnew\t0.36998\nnew <unk>\t1.53\nnew things\t-2.5975\nnews\t-0.029315\nnext\t0.98598\nnice\t-1.2254\nnight\t0.61182\nnight ,\t1.7634\nnights\t1.8409\nnights ,\t2.1858\nnine\t1.1519\nno\t-1.9361\nno ,\t-1.1785\nno .\t-2.9354\nno more\t1.559\nno one\t2.1554\nnobody\t1.2672\nnodded\t3.279\nnon\t-1.3556\nnor\t-2.1639\nnormal\t-0.77138\nnormally\t-2.8787\nnorman\t1.238\nnorth america\t3.6115\nnose\t-2.8283\nnot\t-1.62\n",
+    L"not .\t2.0587\nnot a\t0.55526\nnot be\t2.2637\nnot like\t-1.9932\nnot only\t-3.4529\nnot to\t-1.4869\nnote\t3.2362\nnotes\t1.0613\nnothing\t-1.7263\nnothing .\t2.5018\nnovember\t1.9518\nnow\t0.48807\nnow that\t-3.4608\nnowadays\t-2.9115\nnumerous\t-1.3914\nnursing\t-2.1816\no\t-2.2581\nobtain\t-2.226\nobvious\t-1.0973\nobviously\t-1.8659\noccur\t-2.3133\noccurred\t-2.0737\nocean\t-1.6089\noctober <num>\t0.94345\nof\t-0.47273\nof <num>\t0.54409\nof a\t-1.4159\nof any\t-1.5619\nof communication\t-2.7885\nof her\t-0.79276\nof how\t1.0804\nof its\t-0.67893\nof our\t-2.1884\nof people\t-1.7354\nof the\t-0.71908\nof world\t-2.5152\noff\t-0.65202\noffered\t-1.4774\noffice\t1.3836\nofficers\t-2.9483\n",
+    L"official\t-1.6757\nofficially\t1.2755\noften\t2.0158\noil\t-0.72422\nok\t-2.105\nold\t-0.1673\non\t-0.71568\non .\t-1.1716\non <unk>\t-1.1681\non april\t3.4438\non earth\t0.82638\non friday\t-2.0185\non her\t-1.6951\non its\t1.0816\non september\t2.2445\non the\t-0.86601\non their\t-1.5859\non this\t-0.56518\non time\t1.4284\non top\t1.4434\non wednesday\t-2.2991\non your\t-2.6753\nonce\t-0.15172\nonce more\t-2.6268\none\t-0.90066\none ,\t2.1638\none .\t-2.2426\none can\t-2.9269\none is\t2.8306\none of\t-0.65219\none's\t-1.718\nongoing\t1.9804\nonly\t-0.63905\nonly a\t-1.6991\nopen\t-1.0588\nopening\t-0.75793\nopens\t-1.5558\noperation\t-2.1181\nopposed\t-2.2675\noptional\t3.0857\n",
+    L"options\t1.0822\nor\t0.26323\nor \"\t1.8759\nor <num>\t-1.0284\nor <unk>\t-0.72682\nor a\t1.8964\norange\t-1.5719\norder to\t-1.7244\nordinary\t1.7898\norganization\t-2.3785\norganizational\t-1.5878\norganizations\t-0.76438\noriginal\t2.3818\nother\t-1.1299\nother .\t1.4668\nother <unk>\t1.1545\notherwise\t-1.4605\nour\t-0.54164\nout\t-0.11503\nout and\t-2.3823\nout in\t-3.1944\nout of\t-1.1971\noutcomes .\t1.9184\noutdoor\t2.0209\noutside\t-1.6819\nover\t1.0048\nover time\t0.95931\noverall\t1.0243\nown\t1.3239\nowned\t-0.80342\nownership\t2.3378\npace\t-2.7476\npaid\t1.2839\npain\t-1.6673\npainting\t1.3359\npandemic .\t2.8416\npanic\t2.4527\npaper\t-2.4633\nparents '\t3.9542\nparis\t-0.43084\n",
+    L"park ,\t1.6061\npart\t-1.0007\nparticle\t-1.8756\nparticular\t-2.277\nparticularly in\t2.082\npass\t-3.1211\npassage\t1.8845\npassive\t2.4784\npast\t-1.1587\npast .\t2.3013\npath\t1.6205\npatience\t1.3559\npatients\t0.46668\npaused ,\t1.9181\npay\t-0.71503\npaying\t1.347\npearl\t-1.7882\npeople\t-1.0595\npeople are\t-1.5572\npeople have\t-1.2423\npeople to\t1.1773\npeople's\t-2.0495\npepper\t-2.2842\nper\t-0.26015\npercent\t-1.4207\nperform\t-2.6499\nperformed\t-2.0327\nperiod\t-0.4354\nperiod .\t-2.0566\nperiod of\t-1.618\npersonal\t-1.3297\npersonality\t-2.3263\nperspective\t0.6396\nperspectives\t1.4862\nphase\t-2.0651\nphenomenon\t-1.8139\nphysics\t-1.7964\npick\t-1.9451\npicture\t-2.3835\npieces\t-2.4128\n",
+    L"pigs\t-3.0615\nplane\t-2.652\nplanned\t-2.423\nplans\t0.76288\nplant\t0.82358\nplants\t-1.1517\nplatform\t1.4388\nplatforms\t2.2683\nplay a\t1.4339\nplayers\t1.15\nplaying\t1.476\nplays\t1.0116\nplays the\t1.7487\npocket\t-1.4868\npoem\t4.4771\npoint\t0.54994\npoint .\t2.1652\npoint of\t-1.7163\npoints\t2.0197\npolice\t-0.068755\npop\t-2.4162\npopulation\t-1.2784\nportion\t2.2611\nposition\t-1.2362\npossible\t-1.5935\nposts\t2.3783\npotential\t2.3823\npotentially\t4.0703\npotter\t2.8839\npound\t-1.7049\npounds\t-1.1421\npower\t1.1021\npowerful\t0.89795\npowers\t0.55739\npractice\t-1.2105\nprague\t1.8837\nprecise\t-1.6102\npregnant\t-2.256\nprepare\t1.9702\npresence\t-0.063149\n",
+    L"present\t-1.0097\npresented\t-2.5432\npresident\t-1.7328\nprevious\t-2.7529\nprey\t1.0034\nprice\t0.80051\nprices\t0.97153\nprimary\t-1.2893\nprioritize\t2.1007\nprison\t1.1602\nproblem\t-1.0377\nproblems\t-2.3243\nproblems ,\t2.3216\nprocess\t0.41186\nproduct\t-0.95564\nproductivity\t3.1453\nproducts\t-0.9842\nprofessor\t-1.8891\nprogram\t-1.2018\nprogramming\t-1.303\nprogress\t-1.039\npromote\t1.5829\nproperty\t-1.7565\npros\t2.7025\nprotect\t0.83161\nprotection\t-1.2777\nprovide\t0.85792\nprovide a\t2.4599\nprovided\t0.49205\nproviding\t2.6667\npublic\t1.8548\npublishing\t2.1168\npurchase\t-1.906\npurpose\t1.2002\npurpose .\t1.9085\npurpose of\t-2.3948\npush\t0.91126\npushing\t2.8621\nput\t-1.3573\nq\t0.49415\n",
+    L"quality\t0.15916\nquality of\t1.2967\nquantum\t2.1912\nqueen\t-1.9401\nquestion\t-1.6878\nquestions\t1.243\nquickly\t-1.9197\nquiet\t2.1373\nquietly\t2.0045\nquite\t-0.81428\nraced\t3.5535\nran\t-1.6551\nrandom\t1.3485\nrange of\t1.8807\nrates\t0.48348\nrather\t-0.084687\nre\t-2.2656\nreach the\t-1.9089\nreached the\t-2.3283\nreaching\t0.68433\nread\t-1.4015\nready\t0.41372\nreal\t1.959\nrealized that\t1.4834\nrealm\t-2.782\nreasonable\t3.0404\nreasons\t-1.5113\nrecent\t0.50132\nrecent years\t2.381\nrecently\t-1.8869\nrecognizing\t4.1366\nrecommend\t1.8985\nrecord of\t2.7249\nrecovery\t1.4171\nreduce\t0.80236\nreduced\t1.7292\nrefers to\t2.0944\nrefined\t2.9078\nreflect\t1.6489\nreflection\t2.2318\n",
+    L"reflects\t1.1807\nregard\t-3.5491\nregarding\t-1.1635\nregion\t0.19179\nregion .\t1.7389\nregulatory\t3.4008\nrelated\t-2.1117\nrelated to\t-1.6294\nrelating\t-1.6435\nrelationship\t1.6432\nrelatively\t-2.0333\nreleased\t0.3192\nreliable\t1.616\nrelies\t2.5491\nreligion\t-0.77927\nremain\t2.4592\nremained\t1.6437\nremains\t2.3836\nremember ,\t2.8067\nreminder\t1.938\nreminding\t2.8178\nreplied\t-1.5694\nreportedly\t1.8902\nrepresentation\t1.7649\nrepresented\t1.5524\nrepresenting\t-2.0719\nrepublican\t-3.4573\nrescue\t1.4897\nresearch\t0.54942\nresearchers\t0.46315\nresistance\t1.4271\nresistant\t2.4464\nresolution\t2.3898\nrespect\t0.98251\nresponse\t1.9183\nresponsibility\t-1.8832\nresponsible for\t-0.75983\nresult\t-0.98534\nresulting\t-0.9735\nresults\t0.57095\n",
+    L"return\t1.8114\nrevenue\t0.80922\nrevenues\t-2.5182\nreview\t1.3288\nreward\t4.0468\nright .\t-1.3932\nrights\t0.81024\nring\t-1.1466\nrising\t1.0322\nrisk\t2.3305\nrisks\t1.0364\nriver\t-1.4069\nrivers\t2.1255\nrobert\t-3.4946\nrock\t0.98861\nrole\t0.95495\nrole in\t0.46244\nroles\t0.86721\nroof\t-2.5992\nrose\t-0.61697\nrough\t1.409\nround\t-1.595\nrule\t0.79967\nruled\t1.7062\nrules\t0.97917\nrural\t1.6325\ns\t-0.49388\nsafety\t1.6813\nsaid\t-1.8941\nsaid ,\t1.0642\nsaid .\t-2.0024\nsaid he\t-2.3715\nsaid in\t-2.5171\nsaid it\t-2.0593\nsaid the\t-1.3771\nsalt\t-0.93914\nsame time\t-1.9649\nsandwich\t3.012\nsanta\t1.9909\nsarah\t2.4394\n",
+    L"saturn\t2.3965\nsauce\t2.6763\nsave the\t-3.193\nsaw\t-0.49818\nsay anything\t3.0656\nsay that\t-1.8211\nsays\t-1.5706\nscandal\t2.0281\nscene\t-1.9075\nscenes\t-1.6464\nschool\t-0.94878\nschool .\t-1.0996\nschools\t1.482\nscoring\t3.118\nscreen time\t2.3161\nsea\t-1.9869\nseason\t1.8091\nseason ,\t2.7075\nsecondly\t-2.6916\nseconds ,\t2.5133\nsecret\t3.1836\nsector\t2.0593\nsecure\t1.2505\nsecurity\t1.1167\nsee\t-0.56738\nsee how\t1.4413\nseeds\t1.6012\nseem\t-1.8751\nseems\t-2.7691\nseen as\t2.1304\nself\t-1.369\nsend\t-2.0455\nsensation\t-2.1136\nsense of\t0.46977\nsentence\t1.4027\nseptember\t1.2646\nseries\t0.50944\nseriously\t1.5902\nserved\t1.0009\nserves\t2.1881\n",
+    L"service\t-0.49517\nservice .\t-1.1234\nservices\t-0.025975\nserving\t1.4578\nsession\t-1.9092\nset\t0.81915\nseveral\t-0.83754\nsex\t-2.8604\nshadows\t0.73102\nshall\t-1.8591\nshape\t1.0815\nshaped\t3.4041\nshaping\t3.1069\nshare\t0.86288\nshared\t3.5734\nshe\t-0.90472\nshe asked\t2.4357\nshe could\t-1.6152\nshe is\t-2.1997\nshe said\t1.6179\nshe thought\t1.7696\nshe would\t-1.4808\nshe's\t0.89543\nsheet\t1.8466\nshift\t2.7908\nshit\t-2.7303\nshore\t-1.44\nshort\t-1.3945\nshort ,\t2.7124\nshot\t-4.0478\nshould\t-1.0132\nshould be\t-0.52953\nshow\t0.90186\nshow up\t1.7815\nshowed\t0.81639\nshowed that\t1.4426\nshown\t-1.9896\nshows\t1.7089\nshows that\t1.153\nsides\t1.1765\n",
+    L"significance\t0.51771\nsignificant\t2.3536\nsigns\t1.2289\nsilence\t0.795\nsilent\t1.4228\nsilver\t-1.0864\nsimilar\t-1.1217\nsimply\t1.8161\nsince\t-2.0304\nsince <num>\t0.79576\nsince it\t-1.97\nsinger\t-2.0431\nsingle\t2.0917\nsite\t-0.96965\nsix\t-0.79362\nsix months\t-2.229\nskeptical\t3.3371\nskies\t-2.8406\nskin\t-2.6661\nsky\t0.87027\nsleep\t1.6336\nsleep ,\t1.3227\nslightly\t1.212\nslow\t1.309\nsmall\t-0.44744\nsmell\t-1.4991\nsmile\t0.97283\nso\t-0.54962\nso ,\t3.4379\nso .\t1.8205\nso i\t-0.49083\nso it\t-2.5222\nso that\t-2.4813\nso the\t0.96476\nsocieties\t1.6408\nsociety\t-0.42114\nsoft\t-1.4184\nsolace\t1.7901\nsolutions\t-1.7661\nsome\t-0.50543\n",
+    L"some things\t2.0667\nsomeone\t1.1191\nsometimes\t-0.45909\nson\t-1.1507\nsong\t1.0855\nsoon\t-0.062982\nsort of\t-1.9847\nsouls\t1.4771\nsound\t0.0070673\nsound .\t-1.8128\nsounds\t3.0355\nsounds like\t2.8398\nsource\t-3.6854\nsouth\t-1.7052\nsouthern\t-1.9532\nsoviet\t3.1829\nspace .\t1.8694\nspain\t1.254\nspeaking\t-0.95569\nspecial\t-1.6002\nspecific\t1.7783\nspeed .\t-2.42\nspending\t1.7489\nspiritual\t-1.718\nspread\t2.603\nstammered\t3.0485\nstandard\t-0.93071\nstandards\t0.57688\nstands\t-2.7071\nstared at\t2.3694\nstars\t1.977\nstart\t0.68779\nstart .\t2.4386\nstarted\t1.9436\nstarted to\t-2.9795\nstarting\t-2.2364\nstarts\t-2.6166\nstate\t-0.63834\nstated\t-2.1069\nstates .\t-1.5734\n",
+    L"states and\t2.2874\nstep\t0.42421\nstill\t1.0805\nstocks\t-1.4012\nstomach\t0.008941\nstop\t-1.194\nstorage\t1.1947\nstory\t1.0761\nstrange\t3.2728\nstrategic\t1.7204\nstrategies\t0.70303\nstreets\t1.5912\nstrength\t-1.0241\nstrength of\t-1.8977\nstretching\t1.9546\nstrict\t2.372\nstricter\t2.4162\nstrike\t2.2013\nstrong\t0.51568\nstructural\t1.4421\nstructure\t-1.6633\nstruggle\t0.17465\nstruggled\t2.2971\nstruggles\t1.7551\nstudent\t-0.27525\nstudents\t-0.70457\nstudies\t1.6614\nstudy\t-1.9305\nstumbled\t2.0011\nstyle\t-2.1191\nsubject\t-1.4548\nsubjects\t-3.0592\nsubsequent\t2.7892\nsubstances\t-2.4922\nsuccess\t0.22565\nsuccessful\t-1.6924\nsuch\t-2.9991\nsuch a\t0.82228\nsuch as\t2.4499\nsugar\t-1.0818\n",
+    L"suggesting\t2.3036\nsuggests that\t1.6264\nsuicide\t-1.4574\nsuit .\t-2.1791\nsuitable\t-2.2125\nsummary\t1.9421\nsun .\t2.0431\nsupplies\t2.9329\nsupply\t-0.46189\nsupport\t0.5057\nsupporters\t2.0899\nsure that\t-2.4017\nsurface\t2.0515\nsurge\t2.681\nsurprise\t2.4987\nsurrounding\t2.3707\nsustainable\t0.50052\nsweat\t-1.7756\nsword\t-1.1481\nsymbolize\t-1.8869\nsymptoms\t2.6112\nsystemic\t1.7567\nsystems\t1.323\nt\t0.96602\ntable\t-1.8061\ntake\t-0.35288\ntakes\t-0.3333\ntale\t1.0615\ntalking\t-1.5858\ntall\t-1.3492\ntargeted\t1.4843\ntariffs\t2.5542\ntea\t-1.0607\nteams\t1.132\ntech\t1.0195\ntechnological\t-1.6156\ntechnologies\t1.2949\ntechnology\t-0.71493\nteenagers\t2.4603\ntell\t-0.018375\n",
+    L"tends\t1.5826\ntends to\t1.5839\ntensions\t2.7626\nterm\t0.18469\nterrible\t-1.6556\nterror\t-1.4581\ntexas\t-2.491\nthan\t-0.38847\nthan a\t1.2903\nthan the\t-0.93625\nthan you\t1.3751\nthank you\t2.1998\nthat\t0.50288\nthat ,\t0.83738\nthat <unk>\t-0.068127\nthat a\t-1.7278\nthat all\t-2.3432\nthat can\t1.639\nthat even\t1.4715\nthat had\t0.65534\nthat he\t-1.6052\nthat helps\t-3.5057\nthat if\t1.4017\nthat in\t-2.1042\nthat it\t-0.73143\nthat it's\t-3.3068\nthat made\t3.7981\nthat moment\t1.8689\nthat of\t-2.3745\nthat said\t4.1255\nthat these\t2.0733\nthat was\t-0.36662\nthat will\t-1.5255\nthat would\t1.6674\nthat's\t0.91116\nthat's a\t3.4013\nthe\t0.085674\nthe \"\t0.58639\nthe <num>\t1.1873\nthe <unk>\t0.3032\n",
+    L"the above\t-2.667\nthe area\t0.92026\nthe article\t1.2911\nthe author\t-1.9384\nthe beauty\t2.3332\nthe bill\t0.90924\nthe blood\t-1.6656\nthe book\t-1.3913\nthe building\t-1.964\nthe cell\t1.4902\nthe chance\t-1.7242\nthe chinese\t0.93746\nthe city\t-0.043313\nthe closing\t2.2113\nthe coming\t2.7571\nthe company\t2.8479\nthe company's\t0.46933\nthe context\t1.3696\nthe conversation\t1.5719\nthe data\t1.0401\nthe death\t1.8408\nthe decision\t1.9794\nthe door\t-1.2944\nthe dough\t1.065\nthe early\t1.889\nthe earth's\t1.3249\nthe electoral\t-1.9808\nthe end\t0.59382\nthe exact\t1.438\nthe extra\t1.6802\nthe fact\t-1.2065\nthe fifth\t2.3844\nthe film\t-1.4596\nthe following\t-2.0996\nthe forest\t2.485\nthe house\t2.667\nthe human\t-1.0723\nthe impact\t0.98784\nthe increase\t-2.4443\nthe individual\t1.885\n",
+    L"the lake\t-2.2179\nthe latest\t1.3066\nthe list\t1.8585\nthe little\t-1.3043\nthe local\t-1.4608\nthe long\t2.0844\nthe main\t-1.354\nthe market\t-1.8625\nthe military\t-1.2087\nthe moment\t-2.2062\nthe more\t-1.7077\nthe move\t1.9812\nthe music\t-1.5085\nthe new\t-1.2777\nthe next\t0.60655\nthe novel\t1.2873\nthe original\t2.6433\nthe other\t0.7936\nthe passage\t2.6678\nthe people\t-0.47665\nthe phone\t-2.1811\nthe planet\t1.2445\nthe present\t-1.9689\nthe process\t-2.2716\nthe proposed\t1.7911\nthe public\t-2.4984\nthe rate\t2.018\nthe reason\t1.1309\nthe region\t1.4795\nthe rest\t-0.48825\nthe right\t0.29997\nthe road\t1.0127\nthe second\t-2.6599\nthe shadows\t1.3773\nthe side\t1.7995\nthe site\t-2.1118\nthe size\t2.484\nthe specific\t2.0097\nthe state\t-1.6304\nthe steps\t1.1843\n",
+    L"the story\t1.4896\nthe studio\t2.0833\nthe sun\t1.5578\nthe system\t-1.8058\nthe table\t-1.4042\nthe text\t2.4334\nthe three\t-0.21057\nthe top\t-0.91842\nthe town\t0.67215\nthe treaty\t2.8611\nthe true\t2.075\nthe truth\t2.4651\nthe two\t-1.1976\nthe u\t1.7163\nthe union\t-1.6442\nthe value\t-2.1172\nthe voice\t-2.3908\nthe way\t1.1274\nthe whole\t-2.804\nthe world\t0.78377\nthe young\t-1.9286\nthee\t-3.2631\ntheir <unk>\t1.1186\ntheir own\t1.2705\nthem\t-0.89209\nthem ,\t-0.74408\nthem .\t0.22204\nthem a\t4.1993\ntheme\t-1.7376\nthemselves\t-1.1054\nthen\t-1.2657\nthen ,\t2.6466\nthen she\t2.4467\ntheories\t1.803\ntheory\t-1.9136\nthere\t-0.50271\nthere are\t-0.23786\nthere is\t-1.2958\nthere's\t-2.0426\ntherefore\t-6.021\n",
+    L"these\t0.88244\nthese are\t-1.9329\nthey\t-0.79974\nthey are\t-0.43967\nthey didn't\t-1.7844\nthey go\t2.4831\nthey had\t0.98367\nthey have\t-0.57512\nthey need\t0.94762\nthey'd\t-2.517\nthey're\t0.33281\nthing\t-1.3171\nthink about\t1.9152\nthink that\t-3.3392\nthinking\t-1.3298\nthinking about\t-1.7928\nthird\t1.2597\nthird ,\t2.5468\nthis\t-0.58822\nthis ,\t0.39476\nthis article\t-2.7188\nthis can\t1.8438\nthis day\t1.9608\nthis is\t-0.69853\nthis makes\t2.5004\nthis project\t-2.9813\nthis was\t-0.82983\nthose\t-1.1353\nthose of\t-2.5331\nthose who\t-0.60433\nthough\t-0.59463\nthought\t-0.22158\nthousand\t-2.9691\nthreat\t-2.4742\nthreats\t-1.4524\nthree\t-1.3386\nthrilled\t2.3017\nthroat\t-1.4421\nthrough\t0.43947\nthrough the\t0.33154\n",
+    L"throughout\t-2.3174\nthursday\t-3.3883\nthus\t-3.5343\nthus ,\t-3.5574\ntim\t2.2673\ntime\t-0.57622\ntime ,\t1.5969\ntime to\t-0.27824\ntip\t2.5661\ntitle\t0.69007\ntitle :\t1.0999\ntitled\t1.5794\nto\t-0.35008\nto -\t0.98432\nto <unk>\t-0.6335\nto achieve\t-1.3929\nto an\t2.7997\nto anyone\t1.8052\nto as\t-1.5941\nto be\t0.20765\nto break\t-1.601\nto build\t1.2321\nto buy\t-1.622\nto change\t-0.75566\nto come\t0.82227\nto create\t0.97647\nto develop\t-1.1219\nto embrace\t2.6477\nto ensure\t1.839\nto expand\t1.4928\nto face\t2.0876\nto figure\t2.0894\nto find\t1.0589\nto form\t2.7044\nto get\t-0.27478\nto go\t-1.7071\nto have\t1.0008\nto help\t0.64121\nto her\t-1.7511\nto hide\t-2.1394\n",
+    L"to him\t-3.2282\nto his\t-0.26746\nto make\t0.69689\nto new\t-1.566\nto our\t-1.1515\nto play\t-1.4374\nto prevent\t2.0186\nto protect\t3.0676\nto reduce\t-2.4934\nto save\t-2.8873\nto say\t1.498\nto share\t1.6881\nto show\t-2.0764\nto support\t1.2441\nto take\t-0.94918\nto the\t-0.48803\nto their\t-2.201\nto understand\t1.0632\ntoday ,\t2.008\ntogether\t-0.21838\ntogether ,\t0.65456\ntogether .\t1.3482\ntokyo\t-1.3487\ntold\t-2.1151\ntoll\t2.6882\ntom\t2.3203\ntoo\t0.23295\ntoo .\t0.64155\ntook\t-1.1198\ntook a\t1.6091\ntools\t1.7013\ntopic\t-3.1564\ntotal\t0.81186\ntouched\t-1.6231\ntourist\t-1.4292\ntowards the\t-3.1675\ntoys\t2.7354\ntrack\t-1.8931\ntracks\t1.667\ntrade\t-1.3616\n",
+    L"traditional\t0.82836\ntrailer\t2.3942\ntrain\t-1.0781\ntrained\t1.9566\ntransformed\t1.751\ntransport\t-1.7571\ntransportation\t-0.99835\ntrapped\t2.1265\ntraveling\t-1.8274\ntravelling\t-1.7761\ntreat\t2.9279\ntreating\t2.6801\ntreatment\t-0.64245\ntreatments\t1.9993\ntree\t-0.73824\ntrial\t2.028\ntried to\t-1.5744\ntrip\t2.0062\ntrouble\t1.4452\ntrue\t1.2698\ntruly\t0.3682\ntrust\t0.8537\ntruth\t0.51853\ntruth .\t2.9705\ntrying\t1.9835\ntrying to\t-2.1548\nturn ,\t-2.6014\nturns\t1.8619\ntwenty\t-1.7048\ntwo\t-0.44977\ntypes\t-1.399\ntypically\t3.4396\nultimately\t1.8448\nunable to\t1.4431\nuncle\t-2.7066\nunder\t0.41772\nunderstanding\t0.086334\nunexpected\t3.012\nunited\t0.25637\nunits\t-1.9871\n",
+    L"unity\t1.8271\nuniverse\t1.1734\nuniversity\t-1.076\nuntil\t0.87906\nunwavering\t2.4606\nup\t-0.54817\nup and\t-1.2139\nup to\t1.8397\nup with\t0.88341\nupon\t0.15649\nupon a\t0.58971\nus\t-0.13001\nus to\t2.586\nuse a\t2.7878\nuse the\t-3.5055\nused\t-0.84701\nused to\t0.48108\nuses\t-1.6717\nusing\t-0.22567\nusing the\t-1.4872\nusual\t1.2574\nvalid\t2.8448\nvaluable\t2.1741\nvaried\t-1.9218\nvarious\t-0.17937\nvary\t2.0898\nvegas\t0.98782\nvehicle\t1.7344\nvehicles\t0.69953\nverse\t3.7579\nversion\t1.7077\nvery\t-3.2387\nvery little\t4.1815\nvia\t-2.9392\nvibrant\t0.9377\nvideo\t0.40443\nview of\t-3.0953\nvillagers\t1.7076\nviolence\t-0.85209\nvisual\t-1.7618\n",
+    L"vital\t-0.92067\nvote\t-1.36\nvowed\t1.5701\nvowel\t1.6782\nwaiting\t0.86395\nwalked\t1.1855\nwalking\t-1.6487\nwall\t-2.1094\nwant\t0.034249\nwant to\t-0.27295\nwants\t-1.8138\nwar\t-1.5254\nwarehouse\t1.9726\nwarm\t-1.7123\nwarmth\t2.0911\nwas\t-1.4341\nwas a\t2.2895\nwas able\t2.2644\nwas also\t-1.2999\nwas an\t1.9207\nwas being\t1.9859\nwas going\t2.6453\nwas no\t2.329\nwas not\t3.5324\nwas so\t-2.7979\nwasn't\t-0.90745\nwaste\t0.74378\nwasting\t-2.7613\nwatch\t-1.0979\nwatching\t-1.5738\nwater\t-1.6206\nwater ,\t1.5852\nwaves\t-1.1806\nway\t0.47299\nway of\t-1.0467\nways to\t2.9638\nwe don't\t-2.3173\nwe know\t-3.3139\nwe need\t1.2242\nwe should\t0.64482\n",
+    L"we'll\t1.8737\nwe're\t2.1226\nweather\t1.4359\nweek ,\t2.3003\nweeks\t1.1144\nweight\t-0.71718\nweight of\t3.5627\nwell\t-1.6307\nwell -\t1.7008\nwell .\t-1.2064\nwent\t-1.4154\nwere\t-1.3198\nwere not\t1.5589\nwere the\t-1.5457\nweren't\t-1.5298\nwet\t-2.083\nwhat\t-0.74589\nwhat a\t-1.9082\nwhat are\t3.6296\nwhat do\t3.6743\nwhat i\t1.4076\nwhat was\t1.3681\nwhen\t-0.51849\nwhen he\t2.377\nwhen i\t-2.4487\nwhen she\t-1.7235\nwhen the\t-1.588\nwhen you\t-1.4234\nwhere she\t1.9842\nwhere the\t-0.82906\nwhere they\t2.476\nwhether\t1.5903\nwhich\t-3.7631\nwhich <unk>\t-2.0858\nwhich was\t-1.1613\nwhile <unk>\t2.92\nwhite\t-0.87845\nwho\t0.73232\nwho are\t1.669\nwho had\t1.4094\n",
+    L"who lived\t-2.1412\nwho was\t0.49083\nwhom\t-1.6034\nwhose\t-0.73017\nwide\t-2.7564\nwider\t1.4621\nwife\t-1.1816\nwill\t-1.7906\nwill be\t0.80047\nwill help\t-2.336\nwill never\t2.8064\nwill not\t-0.62836\nwindow\t-1.2059\nwindows\t-0.79182\nwinning\t-2.5285\nwinter\t-2.5649\nwisconsin\t-2.0182\nwisdom\t1.3048\nwith\t-0.33446\nwith <unk>\t1.2229\nwith a\t0.67888\nwith my\t-1.1503\nwith that\t-1.5786\nwith the\t-1.6008\nwithin\t1.2803\nwithout\t1.0523\nwoman :\t-1.53\nwoman who\t2.5219\nwomen's\t-2.4263\nwon\t2.3117\nwon't\t-1.3586\nwondering\t1.3139\nwood\t-1.986\nwords )\t2.8109\nwork .\t-0.76424\nworking\t-0.3264\nworks\t2.2516\nworld\t-0.82486\nworld ,\t1.5316\nworld .\t-0.76843\n",
+    L"world with\t-2.8762\nworld's\t-1.22\nworry\t0.43925\nworth\t2.5066\nwould\t-1.1548\nwould be\t-0.21776\nwould have\t-2.2955\nwouldn't\t-1.5237\nwrite\t-1.0114\nx\t2.1478\nyeah ,\t-1.2917\nyear and\t-2.441\nyears .\t0.99327\nyellow\t-1.7742\nyes ,\t3.4071\nyet ,\t0.88565\nyet .\t1.8409\nyork ,\t-3.7569\nyork city\t4.2695\nyou\t-0.36437\nyou .\t-0.8829\nyou ?\t-2.0923\nyou can\t-0.85364\nyou could\t2.2138\nyou do\t3.1689\nyou for\t1.4779\nyou may\t-1.2836\nyou need\t-2.1856\nyou see\t0.98441\nyou the\t-2.3375\nyou want\t-2.6253\nyou're\t1.0555\nyou've been\t1.7262\nyoung\t-1.8183\nyour phone\t2.1351\nyours\t2.0435\nyourself to\t1.7473\n—\t-2.0161\n‘\t2.7625\n",
+    NULL };
+
+typedef struct { wchar_t *k; float w; } NgW;
+static NgW *dtNg; static int dtNgN;
+static int ngCmp(const void *a, const void *b) { return wcscmp(((const NgW *)a)->k, ((const NgW *)b)->k); }
+static void dtModelInit(void) {
+    if (dtNg) return;
+    int cap = 4096; dtNg = malloc(cap * sizeof(NgW));
+    for (int b = 0; DT_NG[b]; b++)
+        for (const wchar_t *p = DT_NG[b]; *p;) {
+            const wchar_t *tab = wcschr(p, L'\t'), *nl = wcschr(p, L'\n');
+            if (!tab || !nl) break;
+            if (dtNgN == cap) { cap *= 2; dtNg = realloc(dtNg, cap * sizeof(NgW)); }
+            NgW e; e.k = malloc((tab - p + 1) * sizeof(wchar_t)); wmemcpy(e.k, p, tab - p); e.k[tab - p] = 0;
+            e.w = (float)wcstod(tab + 1, NULL);
+            dtNg[dtNgN++] = e;
+            p = nl + 1;
+        }
+    qsort(dtNg, dtNgN, sizeof(NgW), ngCmp);
+}
+static float ngLook(const wchar_t *k, int *found) {
+    NgW key = { (wchar_t *)k, 0 };
+    NgW *r = bsearch(&key, dtNg, dtNgN, sizeof(NgW), ngCmp);
+    *found = r != NULL; return r ? r->w : 0;
+}
+
+static void dtScore(const wchar_t *t, Detect *d) {
+    dtModelInit();
+    double F[DT_NF];
+    dtF = F; dtAnalyze(t, d); dtF = NULL;
+    if (!d->words) return;
+    double za = DT_AB, zm = DT_B;
+    for (int k = 0; k < DT_NF; k++) {
+        double z = (F[k] - DT_MU[k]) / DT_SD[k]; if (z > 5) z = 5; if (z < -5) z = -5;
+        za += z * DT_AW[k]; zm += z * DT_DW[k];
+    }
+    wchar_t **v; int n = dtTokens(t, &v);
+    /* count unigrams + bigrams (with a start marker) that the model knows */
+    int cap = 256, nk = 0; struct { int idx, c; } *hit = malloc(cap * sizeof *hit);
+    wchar_t buf[100];
+    for (int i = -1; i < n; i++)
+        for (int kind = 0; kind < 2; kind++) {
+            if (kind == 0) { if (i < 0) continue; wcsncpy(buf, v[i], 99); buf[99] = 0; }
+            else { if (i + 1 >= n) continue; swprintf(buf, 100, L"%ls %ls", i < 0 ? L"<s>" : v[i], v[i + 1]); }
+            int f; ngLook(buf, &f); if (!f) continue;
+            NgW key = { buf, 0 }; NgW *r = bsearch(&key, dtNg, dtNgN, sizeof(NgW), ngCmp);
+            int idx = (int)(r - dtNg), j;
+            for (j = 0; j < nk; j++) if (hit[j].idx == idx) { hit[j].c++; break; }
+            if (j == nk) { if (nk == cap) { cap *= 2; hit = realloc(hit, cap * sizeof *hit); } hit[nk].idx = idx; hit[nk].c = 1; nk++; }
+        }
+    double norm = 0;
+    for (int j = 0; j < nk; j++) { double x = 1 + log((double)hit[j].c); norm += x * x; }
+    norm = sqrt(norm);
+    if (norm > 0) for (int j = 0; j < nk; j++) zm += 3.0 * (1 + log((double)hit[j].c)) / norm * dtNg[hit[j].idx].w;
+    free(hit);
+    for (int i = 0; i < n; i++) free(v[i]);
+    free(v);
+    double pm = 1 / (1 + exp(-zm)), pa = 1 / (1 + exp(-za)), p = 0.5 * pm + 0.5 * pa;
+    d->pModel = (int)(pm * 100 + 0.5); d->pAlgo = (int)(pa * 100 + 0.5);
+    d->score = (int)(p * 100 + 0.5); if (d->score > 99) d->score = 99; if (d->score < 1) d->score = 1;
+    wcscpy(d->verdict, d->score < 25 ? L"Likely human" : d->score < 50 ? L"Leans human" : d->score < 75 ? L"Possibly AI" : L"Likely AI");
+    wcscpy(d->conf, d->words < 60 ? L"low confidence: short text" : d->words < 200 ? L"medium confidence" : L"higher confidence");
 }
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.5.0"
-#define APP_VERSION_W L"1.5.0"
+#define APP_VERSION   "1.6.0"
+#define APP_VERSION_W L"1.6.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
@@ -39784,7 +40125,7 @@ static void renderPages(void) {
         if (p == PG_DETECT) {
             glassPanel(c, 96, 10, 654, 40);
             textAt(dc, hTitle, L"AI Detector", 108, 19, 200, 22, NAVY, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
-            textAt(dc, hSmall, L"algorithms only · nothing leaves your PC", 400, 22, 338, 16, HINT, DT_RIGHT | DT_SINGLELINE);
+            textAt(dc, hSmall, L"trained model + algorithm · runs offline", 400, 22, 338, 16, HINT, DT_RIGHT | DT_SINGLELINE);
             glassPanel(c, 96, 58, 330, 324);
             textAt(dc, hTitle, L"Text to check", 108, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
             textAt(dc, hSmall, L"checks as you type", 260, 64, 156, 16, HINT, DT_RIGHT | DT_SINGLELINE);
@@ -39980,7 +40321,9 @@ static void paintMain(HDC hdc) {
             textAt(dc, hHuge, b, 444, 80, 104, 46, col, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
             textAt(dc, hBold, det.verdict, 552, 86, 190, 18, col, DT_LEFT | DT_SINGLELINE);
             wchar_t cf[96]; swprintf(cf, 96, L"%d words · %ls", det.words, det.conf);
-            textAt(dc, hTiny, cf, 552, 106, 190, 14, HINT, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+            textAt(dc, hTiny, cf, 552, 103, 190, 13, HINT, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
+            wchar_t mb[96]; swprintf(mb, 96, L"model %d%%  ·  algorithm %d%%", det.pModel, det.pAlgo);
+            textAt(dc, hTiny, mb, 552, 115, 190, 13, NAVY, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS);
             double x = S(446), y = S(130), w = S(292), h = S(10), r = S(5), f = w * sc / 100.0;
             int bc = sc < 25 ? 0x3cbf5a : sc < 50 ? 0x9ccc2a : sc < 75 ? 0xf0a030 : 0xe0483a;
             rrFill(&backC, x, y, w, h, r, 0xe8f6fa, 0xcfeef5, 0.95, 0.95);
@@ -39991,7 +40334,7 @@ static void paintMain(HDC hdc) {
             wchar_t gh[64]; swprintf(gh, 64, L"Grammar & issues (%d)", det.nGram);
             textAt(dc, hBold, gh, 446, 210, 296, 18, NAVY, DT_LEFT | DT_SINGLELINE);
         } else {
-            textAt(dc, hFont, L"Paste or type text on the left. Nano scores how AI-like it reads and lists grammar, spelling and punctuation problems.\n\nIt's an estimate from writing patterns, not proof.", 446, 88, 292, 120, HINT, DT_LEFT | DT_WORDBREAK);
+            textAt(dc, hFont, L"Paste or type text on the left. A small model trained on ~75,000 human and AI samples (ChatGPT, Claude, Gemini, Llama, and more) runs right here on your PC, alongside a writing-pattern algorithm. It also lists grammar, spelling and punctuation problems.\n\nIt's an estimate, not proof.", 446, 88, 292, 120, HINT, DT_LEFT | DT_WORDBREAK);
             textAt(dc, hBold, L"Grammar & issues", 446, 210, 296, 18, NAVY, DT_LEFT | DT_SINGLELINE);
         }
     }
@@ -40638,7 +40981,7 @@ static void runDetect(int quiet) {
     POINT scroll; SendMessageW(in, EM_GETSCROLLPOS, 0, (LPARAM)&scroll);
     resetTextFormat(in);
     if (any) {
-        dtAnalyze(t, &det); detHave = 1;
+        dtScore(t, &det); detHave = 1;
         CHARFORMAT2W cf; memset(&cf, 0, sizeof cf); cf.cbSize = sizeof cf; cf.dwMask = CFM_BACKCOLOR | CFM_COLOR;
         for (int pass = 0; pass < 2; pass++)
             for (int k = 0; k < det.nIss; k++) {
