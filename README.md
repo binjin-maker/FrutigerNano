@@ -19,6 +19,8 @@ Everything runs offline, instantly. Nano rearranges sentences (moves "because/al
 
 **Strength**: Light / Medium / Heavy controls how much changes.
 
+**Passes** (1-1000): feeds each result back in for another round. Nano remembers every word it swapped out and every sentence shape it produced, so it never undoes or repeats a change, and it stops early once there's nothing new left. Click the arrow again to stop.
+
 ## Shortcuts
 
 - **Ctrl+Enter** in the Original box: rewrite

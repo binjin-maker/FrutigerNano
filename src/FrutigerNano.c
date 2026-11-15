@@ -27,7 +27,7 @@
    # not before a particle (up/out/off...), = not after is/was/seems..., P not after a pronoun or modal,
    [a,b] = not before these words */
 static const wchar_t *THES2[] = {
-    L"B in place|in the first place|first place|in shape|out of shape|real estate|for real|in danger|in charge of|on purpose|by far|at once|of course not|in a sense|a couple|the rest|at the same time|in general terms|so to speak|on the other side",
+    L"B point of view|points of view|in place|in the first place|first place|in shape|out of shape|real estate|for real|in danger|in charge of|on purpose|by far|at once|of course not|in a sense|a couple|the rest|at the same time|in general terms|so to speak|on the other side",
 
     L"V state > declare|say:says:said:said:saying",
     L"V observe > notice|witness",
@@ -559,6 +559,589 @@ static const wchar_t *THES2[] = {
     L"P more than ever > like never before",
     L"P isn't simply > is not merely|isn't just",
     L"P is not simply > is not merely|isn't just",
+    L"L,d and > as well as",
+    L"L,X but > yet",
+    L"L[of] because > since",
+    L"Lw also > additionally",
+    L"LX[of,more,times,other,others,than,a] many > numerous|plenty of",
+    L"L, while > whereas",
+    L"LA then > after that|afterward",
+    L"LN about > around|roughly",
+    L"LN over > more than",
+    L"LN almost > nearly|close to",
+
+    L"V need:needs:needed:needed:needing to > have:has:had:had:having to",
+    L"V have:has:had:had:having to > need:needs:needed:needed:needing to",
+    L"V come:comes:came:come:coming back > return",
+    L"V go:goes:went:gone:going back > return",
+    L"V go:goes:went:gone:going up > rise:rises:rose:risen:rising|climb",
+    L"V go:goes:went:gone:going down > drop:drops:dropped:dropped:dropping|decline",
+    L"V turn:turns:turned:turned:turning into > become:becomes:became:become:becoming",
+    L"V try:tries:tried:tried:trying out > test",
+    L"V show:shows:showed:shown:showing off > flaunt",
+    L"V fill out > complete",
+    L"V hand in > submit:submits:submitted:submitted:submitting|turn:turns:turned:turned:turning in",
+    L"V turn:turns:turned:turned:turning in > submit:submits:submitted:submitted:submitting|hand in",
+    L"V submit:submits:submitted:submitted:submitting > hand in|turn:turns:turned:turned:turning in",
+    L"V throw:throws:threw:thrown:throwing away > discard|toss out",
+    L"V discard > throw:throws:threw:thrown:throwing away|get:gets:got:gotten:getting rid of",
+    L"V avoid > steer:steers:steered:steered:steering clear of|stay:stays:stayed:stayed:staying away from",
+    L"V escape > flee:flees:fled:fled:fleeing|get:gets:got:gotten:getting away",
+    L"V flee:flees:fled:fled:fleeing > escape|run:runs:ran:run:running away",
+    L"V chase > pursue|run:runs:ran:run:running after",
+    L"V pursue > chase|go:goes:went:gone:going after",
+    L"V rescue > save",
+    L"V invent > devise|come:comes:came:come:coming up with",
+    L"V hit:hits:hit:hit:hitting > strike:strikes:struck:struck:striking",
+    L"V strike:strikes:struck:struck:striking > hit:hits:hit:hit:hitting",
+    L"V wake:wakes:woke:woken:waking up > awaken",
+    L"V# shut:shuts:shut:shut:shutting > close",
+    L"V= finish > complete|wrap:wraps:wrapped:wrapped:wrapping up",
+    L"V[to] continue > carry on|keep going",
+    L"V relax > unwind|calm down",
+    L"V frown > scowl",
+    L"V glance > peek",
+    L"V scream > shriek|yell",
+    L"V organize > arrange|sort:sorts:sorted:sorted:sorting out",
+    L"V arrange > organize|set:sets:set:set:setting up",
+    L"V guide > lead:leads:led:led:leading|steer",
+    L"V obey > follow|comply with",
+    L"V take:takes:took:taken:taking a break > rest|pause",
+    L"V make:makes:made:made:making a mistake > slip:slips:slipped:slipped:slipping up|err",
+    L"V make:makes:made:made:making progress > advance|move forward",
+    L"V pay:pays:paid:paid:paying attention > focus|concentrate",
+    L"V keep:keeps:kept:kept:keeping going > carry on|continue",
+    L"V get:gets:got:gotten:getting ready > prepare",
+    L"V get:gets:got:gotten:getting back > return",
+    L"V realise > realize|recognize",
+    L"V seem > appear|look:looks:looked:looked:looking",
+    L"V beg > plead",
+    L"V plead > beg",
+    L"V brag > boast",
+    L"V boast > brag",
+    L"V mumble > mutter",
+    L"V mutter > mumble",
+    L"V giggle > chuckle|laugh",
+    L"V chuckle > laugh|giggle",
+    L"V sprint > dash|race",
+    L"V dash > rush|sprint",
+    L"V stroll > wander|amble",
+    L"V wreck > ruin|destroy",
+    L"V ruin > wreck|spoil",
+    L"V spoil > ruin",
+    L"V soak > drench",
+    L"V drench > soak",
+    L"V gaze > stare",
+    L"V notify > inform|tell:tells:told:told:telling",
+    L"V inform > tell:tells:told:told:telling|notify",
+    L"V reveal > show:shows:showed:shown:showing|disclose",
+    L"V disclose > reveal",
+    L"V exhibit > display|show:shows:showed:shown:showing",
+    L"V display > show:shows:showed:shown:showing|exhibit",
+    L"V attain > achieve|reach",
+    L"V accomplish > achieve|pull:pulls:pulled:pulled:pulling off",
+    L"V achieve > accomplish|reach",
+    L"V= comprise > include|consist of",
+    L"V cease > stop:stops:stopped:stopped:stopping",
+    L"V halt > stop:stops:stopped:stopped:stopping",
+    L"V commence > begin:begins:began:begun:beginning|start",
+    L"V endure > withstand:withstands:withstood:withstood:withstanding|bear:bears:bore:borne:bearing",
+    L"V withstand:withstands:withstood:withstood:withstanding > endure|survive",
+    L"V assemble > put:puts:put:put:putting together|build:builds:built:built:building",
+    L"V dismantle > take:takes:took:taken:taking apart",
+    L"V demolish > tear:tears:tore:torn:tearing down|destroy",
+    L"V construct > build:builds:built:built:building|put:puts:put:put:putting up",
+    L"V emphasize > stress|underline",
+    L"V underline > emphasize|stress",
+    L"V highlight > emphasize|spotlight",
+    L"V criticize > fault|knock",
+    L"V tease > mock|poke:pokes:poked:poked:poking fun at",
+    L"V startle > surprise|alarm",
+    L"V astonish > amaze|stun:stuns:stunned:stunned:stunning",
+    L"V amaze > astonish|stun:stuns:stunned:stunned:stunning",
+    L"V frighten > scare",
+    L"V scare > frighten",
+    L"V annoy > irritate|bother",
+    L"V irritate > annoy|bother",
+    L"V bother > annoy|trouble",
+    L"V soothe > calm|comfort",
+    L"V calm down > settle down|relax",
+    L"V confuse > puzzle|baffle",
+    L"V baffle > confuse|puzzle",
+    L"V encourage > urge|motivate",
+
+    L"N fellow > guy|man:men",
+    L"N gadget > device",
+    L"N instrument > tool|device",
+    L"N scenario > situation",
+    L"N circumstance > situation|condition",
+    L"N episode > event|incident",
+    L"N mishap > accident",
+    L"N catastrophe > disaster",
+    L"N clash:clashes > conflict|fight",
+    L"N dispute > argument|disagreement",
+    L"N disagreement > dispute|argument",
+    L"N bond > connection|tie",
+    L"N specialist > expert",
+    L"N spot > place",
+    L"N getaway > vacation|trip",
+    L"N chore > task|job",
+    L"N obligation > duty:duties|responsibility:responsibilities",
+    L"N remedy:remedies > cure|solution",
+    L"N liberty:liberties > freedom",
+    L"N independence > freedom",
+    L"N knack > talent|gift",
+    L"N craving > longing|desire",
+    L"N longing > craving|desire",
+    L"N alternative > option|choice",
+    L"N hazard > danger|risk",
+    L"N peril > danger|risk",
+    L"N menace > threat|danger",
+    L"N security > safety",
+    L"N cash:cash > money:money",
+    L"N hue > color|shade",
+    L"N shade > tone|hue",
+    L"N racket > noise|din",
+    L"N gloom > darkness",
+    L"N blaze:blazes > fire|flame",
+    L"N flame > fire",
+    L"N photograph > photo|picture",
+    L"N note > message",
+    L"N emblem > symbol",
+    L"N triumph > victory:victories|win",
+    L"N offense > crime",
+    L"N offender > criminal|lawbreaker",
+    L"N sickness:sicknesses > illness:illnesses",
+    L"N wound > injury:injuries",
+    L"N woodland > forest",
+    L"N stone > rock",
+    L"N exam > test",
+    L"N item > thing|object",
+    L"N age > era",
+    L"N slip > mistake|error",
+    L"N globe > world",
+    L"N conviction > belief",
+    L"N regulation > rule",
+    L"N guideline > rule",
+    L"N mother > mom",
+    L"N father > dad",
+    L"N refrigerator > fridge",
+    L"N term > word",
+    L"N impulse > urge|craving",
+    L"N investigator > researcher",
+    L"N crew > team|group",
+    L"N rise > increase|growth",
+    L"N drop > decline|decrease",
+    L"N decline > drop|decrease",
+    L"N buddy:buddies > friend|pal",
+    L"N pal > friend|buddy:buddies",
+    L"N bunch:bunches > group|lot",
+    L"N heap > pile",
+    L"N pile > heap|stack",
+    L"N stack > pile",
+    L"N path > route|trail",
+    L"N trail > path|track",
+    L"N inquiry:inquiries > question|query:queries",
+    L"N query:queries > question",
+    L"N assistance > help|support",
+    L"N aid > help|assistance",
+    L"N guidance > advice|direction",
+    L"N advice > guidance|tips",
+    L"N tip > hint|pointer",
+    L"N pointer > tip|hint",
+    L"N goal > target|aim",
+    L"N target > goal|aim",
+    L"N attempt > try:tries|effort",
+    L"N effort > attempt|try:tries",
+    L"N struggle > fight|battle",
+    L"N fight > battle|clash:clashes",
+    L"N argument > dispute|quarrel",
+    L"N quarrel > argument|fight",
+    L"N pace > speed|rate",
+    L"N speed > pace|rate",
+    L"N scene > setting|view",
+    L"N view > sight|outlook",
+    L"N outlook > view|attitude",
+    L"N attitude > outlook|mindset",
+    L"N mindset > attitude|mentality:mentalities",
+    L"N habit > routine|custom",
+    L"N routine > habit|schedule",
+    L"N tradition > custom",
+    L"N celebration > party:parties|festivity:festivities",
+    L"N party:parties > celebration|gathering",
+    L"N gathering > meeting|get-together",
+    L"N meeting > gathering|session",
+    L"N session > meeting|period",
+    L"N opportunity:opportunities > chance|opening",
+    L"N reward > prize|payoff",
+    L"N gift > present|offering",
+    L"N mistake > error|blunder",
+    L"N blunder > mistake|slip",
+    L"N victory:victories > win|triumph",
+    L"N failure > flop|defeat",
+    L"N outcome > result|consequence",
+    L"N source > origin|cause",
+    L"N origin > source|beginning",
+    L"N role > part|function",
+    L"N feature > aspect|characteristic",
+    L"N aspect > side|feature",
+    L"N element > part|component",
+    L"N component > part|piece",
+    L"N section > part|portion",
+    L"N portion > part|share",
+    L"N amount > quantity:quantities|sum",
+    L"N level > degree|extent",
+    L"N extent > degree|scope",
+    L"N variety:varieties > range|mix:mixes",
+    L"N mixture > mix:mixes|blend",
+    L"N blend > mix:mixes|mixture",
+    L"N sample > example|specimen",
+    L"N design > plan|layout",
+    L"N layout > design|arrangement",
+    L"N structure > framework|form",
+    L"N framework > structure|system",
+    L"N pattern > trend|design",
+    L"N trend > pattern|tendency:tendencies",
+    L"N tendency:tendencies > trend|inclination",
+    L"N belief > view|conviction",
+    L"N theory:theories > idea|hypothesis:hypotheses",
+    L"N hypothesis:hypotheses > theory:theories",
+    L"N concept > idea|notion",
+    L"N notion > idea|concept",
+    L"N principle > rule|idea",
+    L"N aim > goal|target",
+    L"N motive > reason|motivation",
+    L"N motivation > drive|motive",
+    L"N ambition > goal|dream",
+    L"N memory:memories > recollection",
+    L"N recollection > memory:memories",
+    L"N moment > instant|second",
+    L"N span > stretch|period",
+    L"N phase > stage",
+
+    L"A ready > prepared",
+    L"A available > accessible",
+    L"A wide > broad",
+    L"A broad > wide",
+    L"A ashamed > embarrassed",
+    L"A embarrassed > ashamed",
+    L"A jealous > envious",
+    L"A envious > jealous",
+    L"A lonely > lonesome",
+    L"A bored > uninterested",
+    L"A curious > inquisitive",
+    L"A relaxed > at ease",
+    L"A stressed > tense|under pressure",
+    L"A generous > giving|charitable",
+    L"A selfish > self-centered",
+    L"A loyal > faithful|devoted",
+    L"A faithful > loyal|devoted",
+    L"A creative > imaginative|inventive",
+    L"A talented > gifted|skilled",
+    L"A skilled > talented|capable",
+    L"A gifted > talented",
+    L"A ideal > perfect",
+    L"A cute > adorable",
+    L"A adorable > cute",
+    L"A precious > valuable|treasured",
+    L"A violent > brutal",
+    L"A brutal > harsh|vicious",
+    L"A crowded > packed|busy",
+    L"A packed > crowded|full",
+    L"A spotless > clean",
+    L"A filthy > dirty",
+    L"A tidy > neat",
+    L"A untidy > messy",
+    L"A costly > expensive",
+    L"A pricey > expensive|costly",
+    L"A affordable > cheap|inexpensive",
+    L"A ill > sick|unwell",
+    L"A unwell > sick|ill",
+    L"A sensible > wise|reasonable",
+    L"A reasonable > sensible|fair",
+    L"A insane > crazy|wild",
+    L"A wild > crazy|untamed",
+    L"A thrilling > exciting",
+    L"A exhilarating > exciting|thrilling",
+    L"A obscure > little-known|unknown",
+    L"A harsh > severe|tough",
+    L"A severe > harsh|serious",
+    L"A tender > gentle|soft",
+    L"A steady > constant|stable",
+    L"A stable > steady|secure",
+    L"A regular > normal|routine",
+    L"A noticeable > visible|clear",
+    L"A unseen > invisible|hidden",
+    L"A hidden > concealed|secret",
+    L"A accurate > correct|exact",
+    L"A precise > exact|accurate",
+    L"A minor > small|slight",
+    L"A massive > huge|enormous",
+    L"A gigantic > huge|enormous",
+    L"A colossal > huge|massive",
+    L"A miniature > tiny|small",
+    L"A minuscule > tiny",
+    L"A fantastic > great|amazing",
+    L"A marvelous > wonderful|amazing",
+    L"A delightful > lovely|charming",
+    L"A charming > lovely|delightful",
+    L"A dreadful > awful|terrible",
+    L"A frightening > scary|terrifying",
+    L"A scary > frightening|creepy",
+    L"A creepy > eerie|scary",
+    L"A eerie > creepy|spooky",
+    L"A gloomy > dark|dreary",
+    L"A dreary > dull|gloomy",
+    L"A sunny > bright",
+    L"A cheerful > upbeat|happy",
+    L"A upbeat > cheerful|positive",
+    L"A positive > hopeful|upbeat",
+    L"A hopeful > optimistic|positive",
+    L"A optimistic > hopeful|positive",
+    L"A pessimistic > negative|gloomy",
+    L"A furious > enraged|livid",
+    L"A enraged > furious",
+    L"A livid > furious",
+    L"A irritated > annoyed",
+    L"A annoyed > irritated|bothered",
+    L"A terrified > petrified|horrified",
+    L"A petrified > terrified",
+    L"A horrified > appalled|shocked",
+    L"A shocked > stunned|astonished",
+    L"A stunned > shocked|amazed",
+    L"A eager > keen|enthusiastic",
+    L"A keen > eager",
+    L"A enthusiastic > eager|keen",
+    L"A determined > resolved|set",
+    L"A stubborn > obstinate|headstrong",
+    L"A clumsy > awkward",
+    L"A awkward > clumsy|uncomfortable",
+    L"A graceful > elegant",
+    L"A elegant > graceful|stylish",
+    L"A stylish > fashionable|elegant",
+    L"A fashionable > stylish|trendy",
+    L"A modest > humble",
+    L"A humble > modest",
+    L"A arrogant > cocky|conceited",
+    L"A brilliant > excellent|genius",
+    L"A capable > able|competent",
+    L"A competent > capable|skilled",
+    L"A efficient > effective|productive",
+    L"A productive > efficient",
+    L"A thorough > careful|detailed",
+    L"A detailed > thorough|in-depth",
+    L"A vague > unclear|fuzzy",
+    L"A unclear > vague|uncertain",
+    L"A doubtful > unsure|uncertain",
+    L"A uncertain > unsure|doubtful",
+    L"A unsure > uncertain|doubtful",
+    L"A ancient > age-old|very old",
+    L"A outdated > old-fashioned|obsolete",
+    L"A obsolete > outdated",
+    L"A former > previous|past",
+    L"A latest > newest|most recent",
+    L"A initial > first|early",
+    L"A eventual > final|ultimate",
+    L"A ultimate > final|eventual",
+    L"A typical > usual|standard",
+    L"A ordinary > normal|everyday",
+    L"A everyday > ordinary|daily",
+    L"A bizarre > strange|weird",
+    L"A weird > strange|odd",
+    L"A odd > strange|weird",
+    L"A strange > odd|weird|unusual",
+    L"A mysterious > puzzling|strange",
+    L"A obvious > clear|plain",
+    L"A apparent > clear|evident",
+    L"A essential > crucial|vital",
+    L"A vital > crucial|essential",
+    L"A crucial > vital|essential",
+    L"A optional > voluntary|elective",
+    L"A mandatory > required|compulsory",
+    L"A required > needed|necessary",
+    L"A needed > necessary|required",
+    L"A sufficient > enough|adequate",
+    L"A adequate > enough|sufficient",
+    L"A bare > empty|plain",
+    L"A plain > simple|basic",
+    L"A fancy > elaborate|elegant",
+    L"A elaborate > detailed|complex",
+    L"A rapid > quick|fast",
+    L"A swift > quick|fast",
+    L"A sluggish > slow",
+    L"A immediate > instant|prompt",
+    L"A frequent > regular|common",
+    L"A occasional > periodic|infrequent",
+    L"A constant > nonstop|continuous",
+    L"A continuous > constant|nonstop",
+    L"A permanent > lasting|enduring",
+    L"A temporary > short-term|brief",
+    L"A brief > short|quick",
+    L"A lengthy > long|drawn-out",
+    L"A endless > never-ending|infinite",
+    L"A vast > huge|immense",
+    L"A tiny > small|minuscule",
+    L"A slim > thin|slender",
+    L"A slender > slim|thin",
+    L"A sturdy > strong|solid",
+    L"A fragile > delicate|breakable",
+    L"A delicate > fragile|gentle",
+    L"A solid > firm|sturdy",
+    L"A firm > solid|steady",
+    L"A smooth > even|sleek",
+    L"A rough > coarse|bumpy",
+    L"A damp > moist|wet",
+    L"A moist > damp",
+    L"A freezing > icy|frigid",
+    L"A icy > freezing|frigid",
+    L"A scorching > blazing|sweltering",
+    L"A boiling > scorching|sweltering",
+    L"A silent > quiet|hushed",
+    L"A deafening > ear-splitting",
+    L"A tasty > delicious|yummy",
+    L"A yummy > tasty|delicious",
+    L"A bland > dull|flavorless",
+    L"A greasy > oily",
+    L"A stale > old",
+    L"A rotten > spoiled|decayed",
+    L"A ugly > unattractive|hideous",
+    L"A handsome > good-looking|attractive",
+    L"A attractive > appealing|good-looking",
+    L"A appealing > attractive|inviting",
+    L"A awful > terrible|dreadful",
+    L"A wealthy > rich|well-off",
+    L"A needy > poor",
+    L"A lucky > fortunate",
+    L"A weak > feeble|frail",
+    L"A gentle > kind|mild",
+    L"A mild > gentle|moderate",
+    L"A moderate > mild|reasonable",
+    L"A extreme > intense|severe",
+    L"A intense > extreme|fierce",
+    L"A fierce > intense|ferocious",
+    L"A friendly > kind|welcoming",
+    L"A hostile > unfriendly|aggressive",
+    L"A aggressive > hostile|forceful",
+    L"A peaceful > calm|tranquil",
+    L"A calm > relaxed|peaceful",
+    L"A nervous > anxious|jittery",
+    L"A tense > nervous|stressed",
+    L"A grateful > thankful|appreciative",
+    L"A thankful > grateful",
+    L"A innocent > blameless",
+    L"A honest > truthful|sincere",
+    L"A unfair > unjust",
+    L"A strict > firm|harsh",
+    L"A lenient > easygoing|relaxed",
+    L"A easygoing > relaxed|laid-back",
+    L"A silly > goofy|foolish",
+    L"A clever > smart|sharp",
+    L"A dumb > stupid|foolish",
+    L"A brave > courageous|fearless",
+    L"A cowardly > timid|fearful",
+    L"A timid > shy|nervous",
+    L"A shy > timid|reserved",
+    L"A outgoing > sociable|friendly",
+    L"A sociable > outgoing|friendly",
+    L"A lazy > idle|sluggish",
+    L"A busy > occupied|swamped",
+    L"A hectic > busy|chaotic",
+    L"A chaotic > hectic|messy",
+    L"A orderly > neat|organized",
+    L"A organized > orderly|tidy",
+    L"A wonderful > great|fantastic",
+
+    L"A frequently > often",
+    L"A immediately > right away|instantly",
+    L"A eventually > in the end|ultimately",
+    L"A recently > lately",
+    L"A currently > right now|presently",
+    L"A truly > really|genuinely",
+    L"A completely > totally|entirely",
+    L"A almost > nearly|practically",
+    L"A mostly > mainly|largely",
+    L"A definitely > certainly|surely",
+    L"A carefully > cautiously",
+    L"A happily > cheerfully|gladly",
+    L"A sadly > unhappily|sorrowfully",
+    L"A angrily > furiously",
+    L"A quietly > softly|silently",
+    L"A loudly > noisily",
+    L"A suddenly > all of a sudden|abruptly",
+    L"A secretly > privately|in secret",
+    L"A openly > publicly",
+    L"A briefly > for a moment",
+    L"A rarely > seldom|hardly ever",
+    L"A constantly > always|nonstop",
+    L"A gently > softly|lightly",
+    L"A firmly > solidly",
+    L"A poorly > badly",
+    L"A properly > correctly|right",
+    L"A correctly > properly|accurately",
+    L"A accurately > correctly|precisely",
+    L"A clearly > plainly|obviously",
+    L"A easily > effortlessly|readily",
+    L"A surely > certainly",
+    L"A probably > likely|most likely",
+    L"A anyway > anyhow|regardless",
+    L"A otherwise > or else",
+    L"A afterward > later|afterwards",
+    L"A previously > before|earlier",
+    L"A beforehand > in advance|ahead of time",
+    L"A meanwhile > in the meantime",
+    L"A abroad > overseas",
+    L"A overseas > abroad",
+    L"A outdoors > outside",
+    L"A indoors > inside",
+    L"A forever > for good|permanently",
+    L"A permanently > for good|forever",
+
+    L"P a lot > a great deal|very much",
+    L"P all day > the whole day|all day long",
+    L"P all night > the whole night|all night long",
+    L"P the whole time > the entire time",
+    L"P a long time > a long while",
+    L"P right after > just after|immediately after",
+    L"P right before > just before",
+    L"P no one > nobody",
+    L"P over and over > again and again|repeatedly",
+    L"P again and again > over and over|repeatedly",
+    L"P step by step > one step at a time|gradually",
+    L"P little by little > bit by bit|gradually",
+    L"P bit by bit > little by little|gradually",
+    L"P by accident > accidentally|by mistake",
+    L"P by mistake > accidentally|by accident",
+    L"P in the end > ultimately|eventually",
+    L"P at last > finally|in the end",
+    L"P as soon as possible > right away|quickly",
+    L"P in front of > before|ahead of",
+    L"P inside of > within|inside",
+    L"P outside of > beyond|outside",
+    L"P most of all > above all|especially",
+    L"P more or less > roughly|about",
+    L"P in a way > to some extent|somewhat",
+    L"P to some extent > in a way|partly",
+    L"P all of a sudden > suddenly|out of nowhere",
+    L"P out of nowhere > suddenly|all of a sudden",
+    L"P in the middle of > amid|halfway through",
+    L"P for a while > for some time",
+    L"P for some time > for a while",
+    L"P at times > sometimes|now and then",
+    L"P in time > eventually",
+    L"P on time > punctually",
+    L"P at the moment > right now|currently",
+    L"P right now > at the moment|currently",
+    L"P so far > until now|up to now",
+    L"P up to now > so far|until now",
+    L"P until now > so far|up to now",
+    L"P by now > already|at this point",
+    L"P at this point > by now|now",
+    L"P from now on > going forward|in the future",
+    L"P going forward > from now on",
+    L"P all in all > overall|on the whole",
+    L"P after all > in the end|ultimately",
+    L"P in short > briefly|in brief",
+    L"P in brief > in short|briefly",
     NULL
 };
 /* ---------- Nano rewrite engine (portable C, no Win32) ---------- */
@@ -619,9 +1202,11 @@ static const wchar_t *BEFORMS[] = { L"is", L"are", L"was", L"were", L"be", L"bee
     L"became", L"become", L"it's", L"that's", L"isn't", L"wasn't", L"not", NULL };
 static const wchar_t *PERSONAL[] = { L"i", L"we", L"you", L"he", L"she", L"they", L"would", L"could", L"might", L"can", L"may", L"to", L"will",
     L"should", L"must", L"me", L"us", L"i'd", L"we'd", NULL };
+static const wchar_t *QUANTPREV[] = { L"how", L"so", L"too", L"as", L"very", L"the", L"of", L"nothing", L"all", L"anything",
+    L"everything", L"none", L"anyone", L"anybody", L"everyone", L"no", L"not", L"many", NULL };
 static const wchar_t *AFTERSET[] = { L"to", L"that", L"with", L"about", L"for", L"of", L"in", L"on", L"at", L"by", NULL };
 static const wchar_t *PPCUE[] = { L"have", L"has", L"had", L"having", L"been", L"be", L"was", L"were", L"is", L"are", L"am",
-    L"being", L"get", L"got", L"gets", L"i've", L"you've", L"we've", L"they've", L"it's", L"he's", L"she's", L"never", NULL };
+    L"being", L"get", L"got", L"gets", L"i've", L"you've", L"we've", L"they've", L"it's", L"he's", L"she's", NULL };
 static const wchar_t *ABBR[] = { L"mr", L"mrs", L"ms", L"dr", L"prof", L"st", L"jr", L"sr", L"vs", L"etc", L"inc", L"ltd",
     L"co", L"mt", L"ft", L"no", L"vol", L"fig", L"gen", L"gov", L"sen", L"rep", L"lt", L"col", L"sgt", L"capt", L"approx", L"dept", NULL };
 static const wchar_t *UNITS[] = { L"percent", L"million", L"millions", L"billion", L"billions", L"trillion", L"thousand",
@@ -858,7 +1443,7 @@ static const wchar_t *THES[] = {
     L"A accurate > correct|exact",
     L"A incorrect > wrong|inaccurate",
     L"A whole|entire",
-    L"A main|primary|chief|principal",
+    L"A main > primary|chief",
     L"A sufficient > enough",
     L"A similar|comparable",
     L"A rare|uncommon",
@@ -919,7 +1504,7 @@ static const wchar_t *THES[] = {
     L"P such as > like|including",
     L"P in my opinion|in my view|from my perspective",
     L"P on the other hand|by contrast|conversely",
-    L"P as well as|along with|together with",
+    L"P along with|together with|+as well as",
     L"P each other|one another",
     L"P even though > although|though",
     L"P although > even though|though",
@@ -1420,6 +2005,7 @@ static Ent *matchAt(Toks *v, int i, Ent *table, int *endTok, int *nWords) {
 }
 
 static wchar_t aposCh = L'\'';
+static int lockHasDigit(const Tok *k);
 
 static wchar_t *casedCopy(const wchar_t *src, const wchar_t *tgt) {
     wchar_t *o = wdup(tgt);
@@ -1442,16 +2028,68 @@ static void replaceRange(Toks *v, int i, int j, wchar_t *s) {
 }
 
 typedef struct { int strength, strict; } NanoOpts;
+
+/* memory shared by all passes of one run, so nothing gets undone or redone */
+typedef struct { wchar_t **k; int cap, n; } StrSet;
+static int ssFind(StrSet *s, const wchar_t *k) {
+    if (!s->cap) return -1;
+    for (unsigned h = hashW(k) & (s->cap - 1);; h = (h + 1) & (s->cap - 1)) {
+        if (!s->k[h]) return -(int)h - 2;
+        if (!wcscmp(s->k[h], k)) return (int)h;
+    }
+}
+static int ssHas(StrSet *s, const wchar_t *k) { return ssFind(s, k) >= 0; }
+static void ssAdd(StrSet *s, const wchar_t *k) {
+    if ((s->n + 1) * 2 > s->cap) {
+        StrSet t = { calloc(s->cap ? s->cap * 2 : 1024, sizeof(wchar_t *)), s->cap ? s->cap * 2 : 1024, 0 };
+        for (int i = 0; i < s->cap; i++) if (s->k[i]) { int r = ssFind(&t, s->k[i]); t.k[-r - 2] = s->k[i]; t.n++; }
+        free(s->k); *s = t;
+    }
+    int r = ssFind(s, k);
+    if (r >= 0) return;
+    s->k[-r - 2] = wdup(k); s->n++;
+}
+static void ssFree(StrSet *s) { for (int i = 0; i < s->cap; i++) free(s->k[i]); free(s->k); memset(s, 0, sizeof *s); }
+
+typedef struct { StrSet keys; int *val; } StrMap;
+static void smSet(StrMap *m, const wchar_t *k, int v) {
+    int oldCap = m->keys.cap;
+    if ((m->keys.n + 1) * 2 > m->keys.cap) {
+        StrSet t = { calloc(oldCap ? oldCap * 2 : 1024, sizeof(wchar_t *)), oldCap ? oldCap * 2 : 1024, 0 };
+        int *tv = calloc(t.cap, sizeof(int));
+        for (int i = 0; i < oldCap; i++) if (m->keys.k[i]) { int r = -ssFind(&t, m->keys.k[i]) - 2; t.k[r] = m->keys.k[i]; tv[r] = m->val[i]; t.n++; }
+        free(m->keys.k); free(m->val); m->keys = t; m->val = tv;
+    }
+    int r = ssFind(&m->keys, k);
+    if (r >= 0) return;
+    r = -r - 2; m->keys.k[r] = wdup(k); m->val[r] = v; m->keys.n++;
+}
+static int smGet(StrMap *m, const wchar_t *k) { int r = ssFind(&m->keys, k); return r >= 0 ? m->val[r] : -1; }
+
+typedef struct { StrSet retired, seen; StrMap origin; int contrMode, pass; } NanoCtx;
+static NanoCtx *curCtx;
+
+static void retire(const wchar_t *w) {
+    if (!curCtx) return;
+    int n = (int)wcslen(w); if (n > 150) return;
+    wchar_t k[160]; lowerInto(w, n, k); ssAdd(&curCtx->retired, k);
+}
+static int isRetired(const wchar_t *w) {
+    if (!curCtx) return 0;
+    int n = (int)wcslen(w); if (n > 150) return 0;
+    wchar_t k[160]; lowerInto(w, n, k); return ssHas(&curCtx->retired, k);
+}
 typedef struct { int words, changed, restructured, locks; } NanoStats;
 
-static int pickTarget(Grp *g, int not) {
-    int c[64], nc = 0;
-    for (int i = 0; i < g->n && nc < 64; i++) if (g->m[i].tgt && i != not) c[nc++] = i;
+static int pickTarget(Grp *g, int not, int f) {
+    int c[64], nc = 0, ff = f < nForms(g->type) ? f : 0;
+    for (int i = 0; i < g->n && nc < 64; i++) if (g->m[i].tgt && i != not && !isRetired(g->m[i].f[ff])) c[nc++] = i;
     return nc ? c[nri(nc)] : -1;
 }
 
 static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
-    static const double PW[3] = { 0.35, 0.7, 0.95 }, PP[3] = { 0.55, 0.85, 1.0 }, PO[3] = { 0.5, 0.8, 1.0 }, PC[3] = { 0.25, 0.7, 1.0 };
+    static const double PW[3] = { 0.35, 0.7, 0.95 }, PP[3] = { 0.55, 0.85, 1.0 }, PO[3] = { 0.5, 0.8, 1.0 }, PC[3] = { 0.25, 0.7, 1.0 },
+                        PL[3] = { 0.08, 0.15, 0.25 };
     int s = o->strength;
     for (int i = 0; i < v->n; i++) {
         Tok *t = &v->t[i];
@@ -1461,42 +2099,77 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
             Ent *e = matchAt(v, i, otab, &endTok, &nw);
             if (e && endTok < v->n && v->t[endTok].type == TK_PUNCT && v->t[endTok].s[0] == L',') {
                 if (nrnd() < PO[s]) {
-                    Grp *g = &grp[e->g]; int m = pickTarget(g, e->m);
-                    if (m >= 0) { replaceRange(v, i, endTok, casedCopy(v->t[i].s, g->m[m].f[0])); st->changed += nw; }
+                    Grp *g = &grp[e->g]; int m = pickTarget(g, e->m, 0);
+                    if (m >= 0) { retire(g->m[e->m].f[0]); replaceRange(v, i, endTok, casedCopy(v->t[i].s, g->m[m].f[0])); st->changed += nw; continue; }
                 }
+                i = endTok - 1;
                 continue;
             }
         }
         Ent *e = matchAt(v, i, tab, &endTok, &nw);
         if (!e) continue;
+        Ent eo = *e;
+        int jump = nw > 1 ? endTok - 1 : i;
+        wchar_t mk[200] = L"";
+        if (curCtx) {
+            int p2 = 0;
+            for (int q = i; q < endTok && p2 < 190; q++) {
+                int L2 = (int)wcslen(v->t[q].s); if (p2 + L2 >= 199) break;
+                if (v->t[q].type == TK_SPACE) mk[p2++] = L' '; else { lowerInto(v->t[q].s, L2, mk + p2); p2 += L2; }
+            }
+            mk[p2] = 0;
+            int og = smGet(&curCtx->origin, mk);
+            if (og >= 0 && og != e->g) {
+                Grp *G = &grp[og]; int found = -1;
+                for (int mm = 0; mm < G->n && found < 0; mm++)
+                    for (int ff = 0; ff < nForms(G->type) && found < 0; ff++) {
+                        wchar_t lk[160]; int L3 = (int)wcslen(G->m[mm].f[ff]); if (L3 > 150) { i = jump; continue; }
+                        lowerInto(G->m[mm].f[ff], L3, lk);
+                        if (!wcscmp(lk, mk)) { found = mm; eo.f = ff; }
+                    }
+                if (found < 0) { i = jump; continue; }
+                eo.g = og; eo.m = found;
+            }
+        }
+        e = &eo;
         Grp *g = &grp[e->g];
         wchar_t prev[40], next[40];
         prevWordL(v, i, prev); nextWordL(v, endTok, next);
         double p;
         switch (g->type) {
         case L'B': i = endTok - 1; continue;
-        case L'C': if (contrMode != 1) continue; p = PC[s]; break;
-        case L'K': if (contrMode != 2 || !nextIsWord(v, endTok)) continue; p = PC[s]; break;
+        case L'C': if (contrMode != 1) { i = jump; continue; } p = PC[s]; break;
+        case L'K': if (contrMode != 2 || !nextIsWord(v, endTok)) { i = jump; continue; } p = PC[s]; break;
         case L'P': p = PP[s]; break;
+        case L'L': {
+            int k = i - 1; while (k >= 0 && v->t[k].type == TK_SPACE) k--;
+            int prevComma = k >= 0 && v->t[k].type == TK_PUNCT && v->t[k].s[0] == L',';
+            int nk = endTok; while (nk < v->n && v->t[nk].type == TK_SPACE) nk++;
+            if (wcschr(g->flags, L',') && !prevComma) { i = jump; continue; }
+            if (wcschr(g->flags, L'A') && !prevComma && wcscmp(prev, L"and")) { i = jump; continue; }
+            if (wcschr(g->flags, L'N') && !(nk < v->n && lockHasDigit(&v->t[nk]))) { i = jump; continue; }
+            if (wcschr(g->flags, L'd') && !(nk < v->n && (v->t[nk].type == TK_LOCK || inList(DETS, next)))) { i = jump; continue; }
+            if (wcschr(g->flags, L'X') && inList(QUANTPREV, prev)) { i = jump; continue; }
+            if (wcschr(g->flags, L'w') && !nextIsWord(v, endTok)) { i = jump; continue; }
+            p = PL[s];
+        } break;
         case L'V':
-            if (inList(DETS, prev) || (e->f != 4 && inList(PREPS, prev))) continue;
+            if (inList(DETS, prev) || (e->f != 4 && inList(PREPS, prev))) { i = jump; continue; }
             p = PW[s]; break;
         case L'N':
-            if (inList(VERBISH, prev) || inList(NOUNPREV, prev) || !wcscmp(next, L"to")) continue;
+            if (inList(VERBISH, prev) || inList(NOUNPREV, prev) || !wcscmp(next, L"to")) { i = jump; continue; }
             p = PW[s]; break;
         default: p = PW[s];
         }
-        if (wcschr(g->flags, L'!') && !wcscmp(next, L"to")) continue;
-        if (wcschr(g->flags, L'?') && inList(AFTERSET, next)) continue;
-        if (wcschr(g->flags, L'^') && inList(DETS, prev)) continue;
-        if (wcschr(g->flags, L'#') && inList(PARTICLES, next)) continue;
-        if (wcschr(g->flags, L'=') && inList(BEFORMS, prev)) continue;
-        if (wcschr(g->flags, L'P') && inList(PERSONAL, prev)) continue;
-        if (wcschr(g->flags, L'D') && !inList(DETS, prev)) continue;
-        if (g->skip && next[0]) { wchar_t pat[48]; swprintf(pat, 48, L",%ls,", next); if (wcsstr(g->skip, pat)) continue; }
-        if (nrnd() >= p) { i = endTok - 1; continue; }
-        int m = pickTarget(g, e->m);
-        if (m < 0) continue;
+        if (wcschr(g->flags, L'!') && !wcscmp(next, L"to")) { i = jump; continue; }
+        if (wcschr(g->flags, L'?') && inList(AFTERSET, next)) { i = jump; continue; }
+        if (wcschr(g->flags, L'^') && inList(DETS, prev)) { i = jump; continue; }
+        if (wcschr(g->flags, L'#') && inList(PARTICLES, next)) { i = jump; continue; }
+        if (wcschr(g->flags, L'=') && inList(BEFORMS, prev)) { i = jump; continue; }
+        if (wcschr(g->flags, L'P') && inList(PERSONAL, prev)) { i = jump; continue; }
+        if (wcschr(g->flags, L'D') && !inList(DETS, prev)) { i = jump; continue; }
+        if (g->skip && next[0]) { wchar_t pat[48]; swprintf(pat, 48, L",%ls,", next); if (wcsstr(g->skip, pat)) { i = jump; continue; } }
+        if (nrnd() >= p) { i = jump; continue; }
         int f = e->f;
         if (g->type == L'V' && f == 2 && !wcscmp(g->m[e->m].f[2], g->m[e->m].f[3])) {
             wchar_t pp[40]; prevWordL(v, i, pp);
@@ -1507,11 +2180,19 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
                 if (k2 >= 0 && isWordish(&v->t[k2])) { lastWordLower(v->t[k2].s, pp, 40); if (inList(PPCUE, pp)) f = 3; }
             }
         }
+        int m = pickTarget(g, e->m, f);
+        if (m < 0) { i = jump; continue; }
+        retire(g->m[e->m].f[f < nForms(g->type) ? f : 0]);
         const wchar_t *tgt = g->m[m].f[f < nForms(g->type) ? f : 0];
         wchar_t buf[128];
         if (g->type == L'C' && (!wcscmp(next, L"been") || !wcscmp(next, L"got") || !wcscmp(next, L"gotten"))) {
             int L2 = (int)wcslen(tgt);
             if (L2 > 3 && !wcscmp(tgt + L2 - 3, L" is") && L2 < 120) { wcscpy(buf, tgt); wcscpy(buf + L2 - 2, L"has"); tgt = buf; }
+        }
+        if (curCtx) {
+            int og = smGet(&curCtx->origin, mk);
+            int L3 = (int)wcslen(tgt);
+            if (L3 < 150) { wchar_t tk[160]; lowerInto(tgt, L3, tk); smSet(&curCtx->origin, tk, og >= 0 ? og : e->g); }
         }
         replaceRange(v, i, endTok, casedCopy(v->t[i].s, tgt));
         st->changed += nw;
@@ -1730,6 +2411,7 @@ static int patPPBack(Tok *t, int n, Toks *o) {
         lowerInto(head.t[i].s, L2, hk + hp); hp += L2;
     }
     hk[hp] = 0;
+    if (tFind(otab, hk) && !inList(DISC, hk)) return 0;
     pushSpan(o, rest, 1);
     if (inList(DISC, hk)) pushP(o, L',');
     pushSp(o);
@@ -1776,6 +2458,11 @@ static int patReport(Tok *t, int n, Toks *o) {
         Span subj = trimSpan(t, 0, v);
         int sw = spanWords(subj);
         if (sw < 1 || sw > 5) return 0;
+        static const wchar_t *NEGMOD[] = { L"can't", L"cannot", L"can", L"could", L"couldn't", L"would", L"wouldn't", L"should",
+            L"shouldn't", L"will", L"won't", L"might", L"may", L"must", L"don't", L"doesn't", L"didn't", L"not", L"never",
+            L"do", L"does", L"did", L"to", NULL };
+        for (int q = 0; q < subj.n; q++) if (isWordIn(&subj.t[q], NEGMOD)) return 0;
+        { int q = v - 1; while (q >= 0 && t[q].type == TK_SPACE) q--; if (q >= 0 && t[q].type == TK_WORD) { wchar_t pw[40]; lastWordLower(t[q].s, pw, 40); if (inList(NEGMOD, pw)) return 0; } }
         Tok *s0 = &subj.t[0];
         if (!(s0->type == TK_LOCK || isWordIn(s0, SUBJ) || isWordIn(s0, CLAUSEDET))) return 0;
         int c = v + 1; while (c < n && t[c].type == TK_SPACE) c++;
@@ -1846,6 +2533,35 @@ typedef int (*PatFn)(Tok *, int, Toks *);
 static PatFn PATS[] = { patFrontSub, patTrailSub, patButSo, patPPBack, patPPFront, patReport, patHoist, patSplit };
 #define NPATS (int)(sizeof PATS / sizeof PATS[0])
 
+/* shape of a sentence that word swaps can't change: locked bits, pronouns/determiners and punctuation, in order.
+   if a rearrangement recreates a shape we've already had, it's an undo and gets refused */
+static const wchar_t *SKEL[] = { L"the", L"a", L"an", L"he", L"she", L"they", L"it", L"we", L"i", L"you", L"his", L"her", L"their",
+    L"our", L"my", L"your", L"its", L"this", L"that", L"these", L"those", L"him", L"them", L"us", L"me", NULL };
+static wchar_t *sentKey(Tok *t, int n) {
+    Str o = {0}; sAdd(&o, L"");
+    for (int i = 0; i < n; i++) {
+        if (t[i].type == TK_LOCK) { sAdd(&o, t[i].s); sAddC(&o, L'|'); continue; }
+        if (t[i].type == TK_PUNCT) { sAddC(&o, t[i].s[0]); continue; }
+        if (t[i].type != TK_WORD) continue;
+        const wchar_t *p = t[i].s;
+        while (*p) {
+            const wchar_t *e = p; while (*e && *e != L' ') e++;
+            int L2 = (int)(e - p), a = 0; while (a < L2 && !isApos(p[a])) a++;
+            if (a < 30) { wchar_t w[32]; lowerInto(p, a, w); if (inList(SKEL, w)) { sAdd(&o, w); sAddC(&o, L'|'); } }
+            p = *e ? e + 1 : e;
+        }
+    }
+    return o.s;
+}
+static int sentSeen(Toks *s) {
+    if (!curCtx) return 0;
+    wchar_t *k = sentKey(s->t, s->n); int r = ssHas(&curCtx->seen, k); free(k); return r;
+}
+static void sentRemember(Tok *t, int n) {
+    if (!curCtx || !n) return;
+    wchar_t *k = sentKey(t, n); ssAdd(&curCtx->seen, k); free(k);
+}
+
 static int restructureOnce(Toks *s, int *used) {
     int order[NPATS];
     for (int i = 0; i < NPATS; i++) order[i] = i;
@@ -1854,7 +2570,7 @@ static int restructureOnce(Toks *s, int *used) {
         int p = order[i];
         if (*used & (1 << p)) continue;
         Toks o = {0};
-        if (PATS[p](s->t, s->n, &o)) {
+        if (PATS[p](s->t, s->n, &o) && !sentSeen(&o)) {
             static const int INV[NPATS] = { (1 << 1) | (1 << 4), 1 << 0, 0, 1 << 4, (1 << 3) | (1 << 0), 0, 0, 0 };
             tFree(s); *s = o; *used |= (1 << p) | INV[p]; return 1;
         }
@@ -1868,6 +2584,8 @@ static int sentWords(Toks *s) { Span sp = { s->t, s->n }; return spanWords(sp); 
 static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
     static const double P1[3] = { 0.3, 0.75, 1.0 }, P2[3] = { 0.0, 0.3, 0.75 }, PM[3] = { 0.0, 0.3, 0.6 };
     int str = op->strength;
+    static const int MAXPASS[3] = { 1, 2, 3 };
+    int allowRe = !curCtx || curCtx->pass <= MAXPASS[str], allowMerge = !curCtx || curCtx->pass <= 1;
     /* split into units: 0 = separator run, 1 = sentence */
     Toks *units = NULL; int *kind = NULL, nu = 0, i = 0;
     while (i < v->n) {
@@ -1889,16 +2607,17 @@ static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
         kind[nu++] = 1;
     }
     int *done = calloc(nu + 1, sizeof(int));
+    for (int u = 0; u < nu; u++) if (kind[u] == 1) sentRemember(units[u].t, units[u].n);
     for (int u = 0; u < nu; u++) {
         if (kind[u] != 1) continue;
         int used = 0;
-        if (nrnd() < P1[str] && restructureOnce(&units[u], &used)) {
+        if (allowRe && nrnd() < P1[str] && restructureOnce(&units[u], &used)) {
             st->restructured++; done[u] = 1;
             if (nrnd() < P2[str]) restructureOnce(&units[u], &used);
         }
     }
     /* merge short neighbours: "X. It Y." -> "X, and it Y." */
-    for (int u = 0; u + 2 < nu; u++) {
+    for (int u = 0; allowMerge && u + 2 < nu; u++) {
         if (kind[u] != 1 || kind[u + 2] != 1 || units[u + 1].n != 1 || units[u + 1].t[0].type != TK_SPACE) continue;
         Toks *a = &units[u], *b = &units[u + 2];
         if (a->n < 3 || b->n < 3 || sentShape(a->t, a->n) < 0 || sentShape(b->t, b->n) < 0) continue;
@@ -1909,12 +2628,14 @@ static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
         Span sa = { a->t, a->n - 1 }, sb = { b->t, b->n };
         pushSpan(&m, sa, 0); pushP(&m, L','); pushSp(&m); pushW(&m, L"and", 1); pushSp(&m);
         pushSpan(&m, sb, -1);
+        if (sentSeen(&m)) { tFree(&m); continue; }
         tFree(a); *a = m;
         tFree(&units[u + 1]); tFree(b);
         kind[u + 1] = kind[u + 2] = 2;
         if (!done[u]) st->restructured++;
         u += 2;
     }
+    for (int u = 0; u < nu; u++) if (kind[u] == 1) sentRemember(units[u].t, units[u].n);
     Toks out = {0};
     for (int u = 0; u < nu; u++) {
         if (kind[u] != 2) for (int k = 0; k < units[u].n; k++) tCopy(&out, &units[u].t[k]);
@@ -1977,6 +2698,8 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
         }
     }
     int contrMode = countContractions(&v) ? 1 : 2;
+    if (curCtx) curCtx->pass++;
+    if (curCtx) { if (!curCtx->contrMode) curCtx->contrMode = contrMode; contrMode = curCtx->contrMode; }
     restructurePass(&v, op, st);
     swapPass(&v, op, st, contrMode);
     articlePass(&v);
@@ -1988,8 +2711,8 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.1.0"
-#define APP_VERSION_W L"1.1.0"
+#define APP_VERSION   "1.2.0"
+#define APP_VERSION_W L"1.2.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
@@ -2009,7 +2732,7 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
 #define WM_UPDFAIL    (WM_APP + 6)
 #define WM_UPDRESTART (WM_APP + 7)
 
-enum { ID_IN = 101, ID_OUT, ID_GO, ID_COPY, ID_USE, ID_CLR,
+enum { ID_IN = 101, ID_OUT, ID_GO, ID_COPY, ID_USE, ID_CLR, ID_PASSES,
        ID_UCHECK = 301, ID_UINSTALL, ID_UPAGE, ID_UNOTES,
        ID_ACTKEY = 401, ID_ACT };
 #define HK_CLIP 1
@@ -2713,7 +3436,9 @@ static void renderPages(void) {
             glassPanel(c, 96, 10, 654, 40);
             textAt(dc, hTitle, L"Rewrite", 108, 19, 110, 22, NAVY, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
             textAt(dc, hFont, L"Strength:", 236, 22, 62, 18, HINT, DT_LEFT | DT_SINGLELINE);
-            textAt(dc, hSmall, L"every press gives a new version", 540, 22, 200, 16, HINT, DT_RIGHT | DT_SINGLELINE);
+            rrFill(c, S(536), S(22), 1.2, S(18), 0, 0x1a8fa3, 0x1a8fa3, 0.5, 0.5);
+            textAt(dc, hFont, L"Passes:", 548, 22, 52, 18, HINT, DT_LEFT | DT_SINGLELINE);
+            textAt(dc, hSmall, L"1 – 1000", 662, 22, 78, 16, HINT, DT_LEFT | DT_SINGLELINE);
             glassPanel(c, 96, 58, 300, 324);
             glassPanel(c, 450, 58, 300, 324);
             textAt(dc, hTitle, L"Original", 108, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
@@ -3068,7 +3793,7 @@ static int clipSet(const wchar_t *s) {
     return 1;
 }
 
-typedef struct { wchar_t *in, *out, *err; int toClip, engine; NanoStats st; } NRes;
+typedef struct { wchar_t *in, *out, *err; int toClip, engine, passes, asked, stopped, converged; NanoStats st; } NRes;
 
 static int missingLocks(const wchar_t *in, const wchar_t *out, int strict, wchar_t *list, int cap) {
     int n = (int)wcslen(in), miss = 0, used = 0;
@@ -3106,18 +3831,54 @@ static void finishRewrite(NRes *r) {
         wchar_t tail[100] = L"";
         if (r->toClip && clipSet(r->out)) wcscpy(tail, L"  Copied, paste it anywhere.");
         if (m) status(L"Heads up: %d locked bit%ls changed or moved: %ls", m, m == 1 ? L"" : L"s", miss);
-        else status(L"Done. %d of %d words reworded, %d sentence%ls rearranged, %d part%ls locked.%ls",
+        else if (r->asked <= 1)
+            status(L"Done. %d of %d words reworded, %d sentence%ls rearranged, %d part%ls locked.%ls",
                    r->st.changed, r->st.words, r->st.restructured, r->st.restructured == 1 ? L"" : L"s",
                    r->st.locks, r->st.locks == 1 ? L"" : L"s", tail);
+        else status(L"%ls %d pass%ls: %d swaps, %d rearrangements, nothing undone or repeated.%ls%ls",
+                   r->stopped ? L"Stopped after" : L"Done,", r->passes, r->passes == 1 ? L"" : L"es",
+                   r->st.changed, r->st.restructured,
+                   r->converged ? L" Ran out of new changes early." : L"", tail);
     }
     free(r->in); free(r->out); free(r->err); free(r);
     InterlockedExchange(&nanoBusy, 0);
     setGoLabel();
 }
 
+typedef struct { wchar_t *text; NanoOpts o; int passes, toClip; } PJob;
+static volatile LONG stopPasses;
+
+static DWORD WINAPI PassThread(LPVOID arg) {
+    PJob *j = arg;
+    NRes *res = calloc(1, sizeof *res);
+    res->in = j->text; res->toClip = j->toClip; res->asked = j->passes;
+    NanoCtx ctx = {0};
+    curCtx = &ctx;
+    LARGE_INTEGER c; QueryPerformanceCounter(&c);
+    unsigned long long seed = (unsigned long long)c.QuadPart ^ GetTickCount64();
+    wchar_t *cur = wdup(j->text);
+    DWORD lastMsg = GetTickCount();
+    for (int i = 0; i < j->passes; i++) {
+        if (stopPasses) { res->stopped = 1; break; }
+        NanoStats st;
+        wchar_t *nx = nanoRewrite(cur, &j->o, &st, seed + (unsigned long long)i * 0x9E3779B97F4A7C15ULL);
+        if (i == 0) { res->st.words = st.words; res->st.locks = st.locks; }
+        if (!wcscmp(nx, cur) && i > 0) { free(nx); res->converged = 1; break; }
+        res->st.changed += st.changed; res->st.restructured += st.restructured;
+        free(cur); cur = nx; res->passes++;
+        if (j->passes > 1 && GetTickCount() - lastMsg > 150) { lastMsg = GetTickCount(); status(L"Pass %d of %d… click the arrow again to stop.", i + 1, j->passes); }
+    }
+    curCtx = NULL;
+    ssFree(&ctx.retired); ssFree(&ctx.seen); free(ctx.origin.val); ssFree(&ctx.origin.keys);
+    res->out = cur;
+    free(j);
+    PostMessageW(hMain, WM_NANODONE, 0, (LPARAM)res);
+    return 0;
+}
+
 static void doRewrite(int fromClip) {
     if (!activated) return;
-    if (nanoBusy) { status(L"Still working on the last one…"); return; }
+    if (nanoBusy) { InterlockedExchange(&stopPasses, 1); status(L"Stopping…"); return; }
     wchar_t *text;
     if (fromClip) {
         text = clipGet();
@@ -3129,12 +3890,15 @@ static void doRewrite(int fromClip) {
     if (!any) { free(text); status(L"Type or paste some text in the Original box first."); return; }
     InterlockedExchange(&nanoBusy, 1);
     setGoLabel();
-    NanoOpts o = { strength(), tog[TG_STRICT].on };
-    NRes *res = calloc(1, sizeof *res);
-    LARGE_INTEGER c; QueryPerformanceCounter(&c);
-    res->in = text; res->toClip = fromClip; res->engine = 0;
-    res->out = nanoRewrite(text, &o, &res->st, (unsigned long long)c.QuadPart ^ GetTickCount64());
-    finishRewrite(res);
+    PJob *jb = calloc(1, sizeof *jb);
+    jb->text = text; jb->toClip = fromClip;
+    jb->o.strength = strength(); jb->o.strict = tog[TG_STRICT].on;
+    jb->passes = (int)GetDlgItemInt(hMain, ID_PASSES, NULL, FALSE);
+    if (jb->passes < 1) jb->passes = 1;
+    if (jb->passes > 1000) { jb->passes = 1000; SetDlgItemInt(hMain, ID_PASSES, 1000, FALSE); }
+    InterlockedExchange(&stopPasses, 0);
+    if (jb->passes > 1) status(L"Rewriting… click the arrow again to stop.");
+    CloseHandle(CreateThread(NULL, 0, PassThread, jb, 0, NULL));
 }
 
 /* ---------- frame ---------- */
@@ -3273,6 +4037,8 @@ static void buildUI(void) {
     mkRich(106, 86, 280, 286, ID_IN);
     mkRich(460, 86, 280, 286, ID_OUT);
     BTN(L"Rewrite", 399, 196, 48, 48, ID_GO);
+    HWND pe = mk(WS_EX_CLIENTEDGE, L"EDIT", L"1", WS_TABSTOP | ES_NUMBER | ES_CENTER, 600, 18, 56, 24, ID_PASSES);
+    SendMessageW(pe, EM_SETLIMITTEXT, 4, 0);
     BTN(L"Copy", 480, 393, 76, 30, ID_COPY);
     BTN(L"Use as input", 560, 393, 106, 30, ID_USE);
     BTN(L"Clear", 670, 393, 70, 30, ID_CLR);
@@ -3344,6 +4110,7 @@ static const wchar_t *TOGKEY[TG_N] = { L"Light", L"Medium", L"Heavy", L"LockFact
 
 static void loadSettings(void) {
     for (int i = 0; i < TG_N; i++) tog[i].on = GetPrivateProfileIntW(L"Settings", TOGKEY[i], tog[i].on, iniPath) != 0;
+    { int ps = GetPrivateProfileIntW(L"Settings", L"Passes", 1, iniPath); SetDlgItemInt(hMain, ID_PASSES, ps < 1 ? 1 : ps > 1000 ? 1000 : ps, FALSE); }
     if (tog[TG_LIGHT].on + tog[TG_MED].on + tog[TG_HEAVY].on != 1) { tog[TG_LIGHT].on = tog[TG_HEAVY].on = 0; tog[TG_MED].on = 1; }
     wchar_t b[400];
     GetPrivateProfileStringW(L"Activation", L"Key", L"", b, 400, iniPath);
@@ -3352,6 +4119,7 @@ static void loadSettings(void) {
 
 static void saveSettings(void) {
     for (int i = 0; i < TG_N; i++) WritePrivateProfileStringW(L"Settings", TOGKEY[i], tog[i].on ? L"1" : L"0", iniPath);
+    { wchar_t b[16]; swprintf(b, 16, L"%u", GetDlgItemInt(hMain, ID_PASSES, NULL, FALSE)); WritePrivateProfileStringW(L"Settings", L"Passes", b, iniPath); }
 }
 
 static void idleStatus(void) {

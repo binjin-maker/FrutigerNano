@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "url": "https://raw.githubusercontent.com/binjin-maker/FrutigerNano/main/update/FrutigerNano.exe",
-  "sha256": "63dd76afaa39bc6edea0c0570b15ef4e3e165ebe6d91f0c9932d990d6ac546fd",
-  "notes": "1.1.0\n- Much stronger rewrites: ~1000 more synonyms and phrases\n- Rearranges sentences: moves clauses and time phrases, flips \"X says Y\" around, splits and merges sentences, moves adverbs\n- Removed the Claude engine; everything runs offline"
+  "sha256": "b0af7ad6e521efe517a3059ecd36ad7b89abc9983866fb82b0edf8df055d442b",
+  "notes": "1.2.0\n- Passes box (1-1000): runs the rewriter over its own output, never undoing or repeating a change, and stops early when nothing new is left\n- About 600 more words and phrases\n- Occasional connector swaps (and -> as well as, but -> yet, many -> numerous, about 12 -> around 12)\n- Click the arrow again to stop a long run"
 }
