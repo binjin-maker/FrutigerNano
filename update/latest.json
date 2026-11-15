@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "url": "https://raw.githubusercontent.com/binjin-maker/FrutigerNano/main/update/FrutigerNano.exe",
-  "sha256": "28cd3b9d44ed3f10a87e93946819564e0af8f9886fa62597566efdcba1c007a0",
-  "notes": "1.0.0\n- First release: offline rewriter + Claude engine, locked quotes/parens/names/numbers, Ctrl+Alt+N clipboard rewrite\n- Activation key on first launch\n- New underwater look with sidebar and side-by-side panes"
+  "sha256": "0eb1c42f0e85dd01c9ef70ac2355967a46e899945c0b9bb699ed8167afd79a1c",
+  "notes": "1.0.1\n- Added Windows version info to the EXE (helps with antivirus false positives)\n- Removed brand text from the app"
 }

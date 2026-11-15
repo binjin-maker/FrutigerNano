@@ -1,7 +1,7 @@
 /* Frutiger Nano — rewrites text so it reads completely differently while saying the same thing.
    Offline engine (built-in thesaurus + sentence restructuring) or Claude with your own API key.
    Quotes, (parentheses), [brackets], links, code, names and numbers are never changed.
-   DOOG unincorporated. Single file, Win32 only. */
+   Single file, Win32 only. */
 #define UNICODE
 #define _UNICODE
 #define WIN32_LEAN_AND_MEAN
@@ -1185,8 +1185,8 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.0.0"
-#define APP_VERSION_W L"1.0.0"
+#define APP_VERSION   "1.0.1"
+#define APP_VERSION_W L"1.0.1"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
@@ -2010,7 +2010,7 @@ static void renderPages(void) {
             orb(c, S(425), S(112), S(34));
             orbLetter(dc, S(425), S(112), S(34));
             textAt(dc, hBrand, L"Activate Frutiger Nano", 190, 158, 470, 26, NAVY, DT_CENTER | DT_SINGLELINE);
-            textAt(dc, hFont, L"Enter the key you got from DOOG unincorporated.\nYou only have to do this once on this PC.", 210, 188, 430, 40, HINT, DT_CENTER | DT_WORDBREAK);
+            textAt(dc, hFont, L"Enter your activation key to unlock the app.\nYou only have to do this once on this PC.", 210, 188, 430, 40, HINT, DT_CENTER | DT_WORDBREAK);
             textAt(dc, hSmall, L"keys look like NANO-XXXX-XXXX-XXXX", 190, 362, 470, 16, HINT, DT_CENTER | DT_SINGLELINE);
         }
         for (int i = 0; i < TG_N; i++)

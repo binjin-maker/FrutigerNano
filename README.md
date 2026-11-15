@@ -2,8 +2,6 @@
 
 Rewrites your text so it reads completely differently while saying exactly the same thing. One small EXE, no installer.
 
-Made by **DOOG unincorporated**.
-
 ## What stays locked
 
 Nano never touches:

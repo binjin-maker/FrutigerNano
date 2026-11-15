@@ -1,4 +1,4 @@
-Frutiger Nano - DOOG unincorporated
+Frutiger Nano
 
 1. Put FrutigerNano.exe anywhere (Desktop is fine) and double-click it.
 2. If Windows blocks it: it isn't code-signed, so Smart App Control must be off
