@@ -1494,7 +1494,6 @@ static const wchar_t *THES3[] = {
     L"J vital > indispensable",
     L"N exhibition:exhibitions > expo:expos",
     L"J genuine > sincere",
-    L"N instruction:instructions > education:educations",
     L"R merely > simply",
     L"N achievement:achievements > accomplishment:accomplishments",
     L"N destruction:destructions > demolition:demolitions",
@@ -36875,7 +36874,7 @@ static const wchar_t *THES[] = {
     L"O personally|for my part|speaking for myself",
     L"O in my opinion|in my view|from my perspective|as I see it|to me",
     L"O clearly|obviously|evidently",
-    L"O eventually|ultimately|in the end|in time",
+    L"O eventually|ultimately|in the end",
     L"O suddenly|all of a sudden|without warning",
     L"O currently|right now|at the moment|at present|presently",
     L"O recently|lately|not long ago",
@@ -37098,9 +37097,15 @@ static int sentInitial(const wchar_t *t, int p) {
 static int wordEnd(const wchar_t *t, int n, int s) {
     int j = s;
     while (j < n && (iswalpha(t[j]) || ((isApos(t[j]) || t[j] == L'-') && j + 1 < n && iswalpha(t[j + 1])))) j++;
+    /* plural possessive: "students' books" */
+    if (j < n && isApos(t[j]) && j > s && towlower(t[j - 1]) == L's' && j + 2 < n && t[j + 1] == L' ' && iswalpha(t[j + 2])) {
+        int open = 0; for (int q = j - 1; q >= 0 && t[q] != L'\n'; q--) { if (isApos(t[q]) && (q == 0 || !iswalpha(t[q - 1]))) { open = 1; break; } if (t[q] == L'.') break; }
+        if (!open) j++;
+    }
     return j;
 }
 
+static int commonLowerWord(const wchar_t *lw);
 static unsigned char *computeLocks(const wchar_t *t, int n, int strict) {
     nanoInit();
     unsigned char *L = calloc(n + 1, 1);
@@ -37163,6 +37168,7 @@ static unsigned char *computeLocks(const wchar_t *t, int n, int strict) {
                     int lock = 0;
                     wchar_t lw[40]; int wl = we - k < 39 ? we - k : 39; lowerInto(t + k, wl, lw);
                     if (isKnownWord(lw)) { k = we; continue; }
+                    if (commonLowerWord(lw)) { k = we; continue; }
                     int q = we; while (q < n && (t[q] == L' ' || t[q] == L'\t')) q++;
                     if (q < n && iswupper(t[q]) && !(t[q] == L'I' && (q + 1 >= n || !iswalpha(t[q + 1])))) {
                         int qe = wordEnd(t, n, q);
@@ -37587,18 +37593,20 @@ static void textBudget(const wchar_t *t) {
             if (startsWithList(t + i, OPENLIST)) gOpeners++;
             { static const wchar_t *FL[] = { L"in fact", L"indeed", L"as it turns out", L"in truth", L"as it happens", L"truth be told", NULL };
               for (int q = 0; FL[q]; q++) { const wchar_t *one[2] = { FL[q], NULL }; if (startsWithList(t + i, one)) gFillUsed |= 1 << q; } }
-            if ((!wcsncmp(t + i, L"It was ", 7) || !wcsncmp(t + i, L"It is ", 6))) {
-                int e = i; while (e < n && t[e] != L'.' && t[e] != L'\n') e++;
-                for (int k = i + 6; k + 5 < e; k++) if (!wcsncmp(t + k, L" that ", 6)) { gClefts++; break; }
-            }
+
         }
         if (iswalpha(t[i]) && (i == 0 || !iswalpha(t[i - 1]))) gWords++;
+        if ((i == 0 || !iswalpha(t[i - 1])) && (!wcsncmp(t + i, L"It was ", 7) || !wcsncmp(t + i, L"It is ", 6) || !wcsncmp(t + i, L"it was ", 7) || !wcsncmp(t + i, L"it is ", 6))) {
+            int e = i; while (e < n && t[e] != L'.' && t[e] != L',' && t[e] != L'\n') e++;
+            for (int k = i + 6; k + 5 < e && k < i + 60; k++) if (!wcsncmp(t + k, L" that ", 6) || !wcsncmp(t + k, L" who ", 5)) { gClefts++; break; }
+        }
         if (t[i] == L'.' || t[i] == L'!' || t[i] == L'?' || t[i] == L'\n') atStart = 1;
         else if (!iswspace(t[i]) && t[i] != L'"' && t[i] != 0x201C && t[i] != L'(' && !iswalpha(t[i])) {}
         if ((i == 0 || !iswalpha(t[i - 1])) && !wcsncmp(t + i, L"as well as", 10)) gLconn++;
     }
 }
 
+static int npEnd(Tok *t, int n, int k, int *plural, int *pron);
 static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
     static const double PW[4] = { 0.35, 0.7, 0.95, 1.0 }, PP[4] = { 0.55, 0.85, 1.0, 1.0 }, PO[4] = { 0.5, 0.8, 1.0, 1.0 },
                         PC[4] = { 0.25, 0.7, 1.0, 1.0 }, PL[4] = { 0.08, 0.15, 0.25, 0.15 };
@@ -37669,6 +37677,13 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
                     if (v->t[c2].type == TK_WORD) { words++; int tg = v->t[c2].tag; if (words > 1 && (isVerbTag(tg) || tg == T_BE || tg == T_HV || tg == T_MD)) { clause = 1; break; } }
                     c2++;
                 }
+                if (clause) { i = jump; continue; }
+                /* the right side must be a plain noun phrase, not the start of a new clause */
+                int pp2, qq2, ne = npEnd(v->t, v->n, nk, &pp2, &qq2);
+                if (ne < 0) { i = jump; continue; }
+                int af = ne; while (af < v->n && v->t[af].type == TK_SPACE) af++;
+                if (af < v->n && (v->t[af].type == TK_LOCK || isVerbTag(v->t[af].tag) || v->t[af].tag == T_BE || v->t[af].tag == T_HV || v->t[af].tag == T_MD || v->t[af].tag == T_DO)) { i = jump; continue; }
+                for (int z = af; z < v->n && !(v->t[z].type == TK_PUNCT && wcschr(L".!?;,", v->t[z].s[0])); z++) if (v->t[z].tag == T_BE || v->t[z].tag == T_VBZ || v->t[z].tag == T_VBD || v->t[z].tag == T_MD) { clause = 1; break; }
                 if (clause) { i = jump; continue; }
             }
             if (wcschr(g->flags, L'X') && inList(QUANTPREV, prev)) { i = jump; continue; }
@@ -37747,9 +37762,9 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
 
 /* ---------- sentence restructuring ---------- */
 
-static const wchar_t *FRONT[] = { L"even though", L"as soon as", L"because", L"since", L"although", L"though", L"if", L"when",
+static const wchar_t *FRONT[] = { L"even though", L"as soon as", L"as long as", L"so long as", L"because", L"since", L"although", L"though", L"if", L"when",
     L"while", L"whenever", L"unless", L"once", L"after", L"before", NULL };
-static const wchar_t *TRAIL[] = { L"even though", L"as soon as", L"because", L"although", L"unless", L"whenever", L"since", NULL };
+static const wchar_t *TRAIL[] = { L"even though", L"as soon as", L"as long as", L"so long as", L"because", L"although", L"unless", L"whenever", L"since", NULL };
 static const wchar_t *NOTBEFORE[] = { L"just", L"only", L"not", L"partly", L"simply", L"mainly", L"largely", L"and", L"or", L"but",
     L"even", L"ever", L"long", L"is", L"was", L"it's", L"that's", L"probably", NULL };
 static const wchar_t *PPSTART[] = { L"in spite of", L"thanks to", L"because of", L"for", L"in", L"during", L"over", L"throughout",
@@ -37801,12 +37816,18 @@ static Span trimSpan(Tok *t, int a, int b) {
     Span s = { t + a, b - a }; return s;
 }
 
+static TagEnt *tagLookupFwd(const char *w);
 static int lowerable(const Tok *k) {
     if (k->type == TK_LOCK) return 1;
     if (k->type != TK_WORD) return 0;
     wchar_t w[40]; firstWordLower(k->s, w, 40);
     if (!wcscmp(w, L"i") || !wcsncmp(w, L"i'", 2)) return 1;
-    return isKnownWord(w);
+    if (isKnownWord(w)) return 1;
+    char nb[48]; int kk = 0; for (; w[kk] && kk < 47; kk++) { if (w[kk] > 127) return 0; nb[kk] = (char)w[kk]; } nb[kk] = 0;
+    TagEnt *e = tagLookupFwd(nb);
+    if (!e) return 0;
+    int best = 0; for (int q = 1; q < e->nt; q++) if (e->sc[q] > e->sc[best]) best = q;
+    return e->tag[best] != T_NP;
 }
 
 static void pushSpan(Toks *o, Span s, int caseMode) {
@@ -37866,6 +37887,33 @@ static int firstComma(Tok *t, int n) { for (int i = 0; i < n; i++) if (t[i].type
 static int lockHasDigit(const Tok *k) { if (k->type != TK_LOCK) return 0; for (wchar_t *p = k->s; *p; p++) if (iswdigit(*p)) return 1; return 0; }
 
 /* "Because X, Y." -> "Y because X." */
+static const wchar_t *PERSONN[] = { L"critic", L"critics", L"man", L"men", L"woman", L"women", L"person", L"people", L"student", L"students",
+    L"teacher", L"teachers", L"scholar", L"scholars", L"friend", L"friends", L"worker", L"workers", L"boy", L"girl", L"child", L"children",
+    L"kid", L"kids", L"doctor", L"doctors", L"writer", L"writers", L"reader", L"readers", L"guy", L"player", L"players", L"team", L"family",
+    L"neighbor", L"stranger", L"officer", L"scientist", L"scientists", L"researcher", L"researchers", L"author", L"artist", L"poet",
+    L"individual", L"individuals", L"persons", L"humans", L"human", L"employee", L"employees", L"pupil", L"pupils", L"learner", L"learners",
+    L"citizen", L"citizens", L"customer", L"customers", L"user", L"users", L"parent", L"parents", L"member", L"members", L"expert", L"experts",
+    L"educator", L"educators", L"staff", L"adult", L"adults", L"teen", L"teens", L"teenager", L"teenagers", L"folks", L"group", NULL };
+static void pushWs(Toks *o, const wchar_t *s, int chg) {
+    const wchar_t *p = s;
+    while (*p) {
+        const wchar_t *e = p; while (*e && *e != L' ') e++;
+        tPush(o, TK_WORD, p, (int)(e - p), chg);
+        if (*e) { pushSp(o); p = e + 1; } else p = e;
+    }
+}
+static int nextNS(Tok *t, int n, int i);
+static int wordIs(const Tok *k, const wchar_t *w) { wchar_t a[40]; if (k->type != TK_WORD || wcschr(k->s, L' ')) return 0; wordL(k, a); return !wcscmp(a, w); }
+static int isFiniteTok(Tok *t, int i) {
+    int tg = t[i].tag;
+    if (t[i].type != TK_WORD) return 0;
+    if (tg == T_VBD || tg == T_VBZ || tg == T_MD || tg == T_DO) return 1;
+    if (tg == T_HV) return !wordIs(&t[i], L"having");
+    if (tg == T_BE) return !(wordIs(&t[i], L"being") || wordIs(&t[i], L"been") || wordIs(&t[i], L"be"));
+    if (tg == T_VB) { int p = i - 1; while (p >= 0 && t[p].type == TK_SPACE) p--; return !(p >= 0 && (t[p].tag == T_TO || t[p].tag == T_MD || wordIs(&t[p], L"to"))); }
+    return 0;
+}
+
 static int patFrontSub(Tok *t, int n, Toks *o) {
     const wchar_t *cj;
     int commas = sentShape(t, n), cn = conjAt(t, n, 0, FRONT, &cj);
@@ -37955,8 +38003,9 @@ static int patPPBack(Tok *t, int n, Toks *o) {
         lowerInto(head.t[i].s, L2, hk + hp); hp += L2;
     }
     hk[hp] = 0;
-    if (tFind(otab, hk) && !inList(DISC, hk)) return 0;
-    if (startsWithList(hk, OPENLIST) || startsWithList(hk, (const wchar_t *[]){ L"in the end", L"at first", L"in the beginning", L"at last", L"by the way", NULL })) return 0;
+    static const wchar_t *MOVEOK[] = { L"in the end", L"at first", L"in the beginning", L"at the time", L"at that point", L"in time", NULL };
+    if (tFind(otab, hk) && !inList(DISC, hk) && !inList(MOVEOK, hk)) return 0;
+    if (startsWithList(hk, OPENLIST) || startsWithList(hk, (const wchar_t *[]){ L"at last", L"by the way", NULL })) return 0;
     { wchar_t lw[40]; lastWordLower(head.t[head.n - 1].type == TK_WORD ? head.t[head.n - 1].s : L"", lw, 40);
       static const wchar_t *DEM[] = { L"this", L"that", L"these", L"those", L"it", NULL }; if (inList(DEM, lw)) return 0; }
     pushSpan(o, rest, 1);
@@ -38007,7 +38056,7 @@ static int patReport(Tok *t, int n, Toks *o) {
         if (sw < 1 || sw > 5) return 0;
         static const wchar_t *NEGMOD[] = { L"can't", L"cannot", L"can", L"could", L"couldn't", L"would", L"wouldn't", L"should",
             L"shouldn't", L"will", L"won't", L"might", L"may", L"must", L"don't", L"doesn't", L"didn't", L"not", L"never",
-            L"do", L"does", L"did", L"to", NULL };
+            L"do", L"does", L"did", L"to", L"had", L"has", L"have", L"is", L"was", L"are", L"were", L"be", L"been", NULL };
         for (int q = 0; q < subj.n; q++) if (isWordIn(&subj.t[q], NEGMOD)) return 0;
         { int q = v - 1; while (q >= 0 && t[q].type == TK_SPACE) q--; if (q >= 0 && t[q].type == TK_WORD) { wchar_t pw[40]; lastWordLower(t[q].s, pw, 40); if (inList(NEGMOD, pw)) return 0; } }
         Tok *s0 = &subj.t[0];
@@ -38019,9 +38068,14 @@ static int patReport(Tok *t, int n, Toks *o) {
         if (spanWords(cl) < 4) return 0;
         Tok *c0 = &cl.t[0];
         if (!(c0->type == TK_LOCK || isWordIn(c0, SUBJ) || isWordIn(c0, CLAUSEDET))) return 0;
-        int aux = hadThat;
-        for (int q = 1; q < cl.n && !aux; q++) if (isWordIn(&cl.t[q], AUXV)) aux = 1;
-        if (!aux) return 0;
+        int aux = 0, fin = 0;
+        for (int q = 1; q < cl.n; q++) {
+            if (cl.t[q].type == TK_PUNCT) break;
+            if (isWordIn(&cl.t[q], AUXV)) aux = 1;
+            if (isFiniteTok(cl.t, q)) fin = 1;
+        }
+        if (!(fin && (aux || hadThat))) return 0;
+        for (int q = 0; q + 2 < cl.n; q++) if (wordIs(&cl.t[q], L"and") && wordIs(&cl.t[nextNS(cl.t, cl.n, q + 1)], L"that")) return 0;
         pushSpan(o, cl, 1); pushP(o, L','); pushSp(o);
         pushSpan(o, subj, -1); pushSp(o);
         tCopy(o, &t[v]);
@@ -38101,7 +38155,12 @@ static int npEnd(Tok *t, int n, int k, int *plural, int *pron) {
     if (t[i].tag == T_DET || isWordIn(&t[i], POSSPRON)) { i++; while (i < n && t[i].type == TK_SPACE) i++; }
     while (i < n && cnt < 7) {
         int tg = t[i].tag;
-        if (tg == T_ADJ || tg == T_NUM || tg == T_N || tg == T_NS || tg == T_NP || (t[i].type == TK_LOCK && tg != T_PUNCT)) {
+        int premod = 0;
+        if ((tg == T_VBG || tg == T_VBN) && t[i].type == TK_WORD) {
+            int j2 = i + 1; while (j2 < n && t[j2].type == TK_SPACE) j2++;
+            premod = j2 < n && (t[j2].tag == T_N || t[j2].tag == T_NS || t[j2].tag == T_ADJ) && (i > k || t[k].tag == T_DET);
+        }
+        if (premod || tg == T_ADJ || tg == T_NUM || tg == T_N || tg == T_NS || tg == T_NP || (t[i].type == TK_LOCK && tg != T_PUNCT)) {
             if (tg == T_N || tg == T_NS || tg == T_NP || t[i].type == TK_LOCK) { last = i; *plural = tg == T_NS; }
             cnt++; i++;
             while (i < n && t[i].type == TK_SPACE) i++;
@@ -38167,6 +38226,7 @@ static int patPassive(Tok *t, int n, Toks *o) {
     if (r < n - 1 && !(t[r].tag == T_ADP && t[r].type == TK_WORD)) return 0;
     if (r < n - 1) { wchar_t w[40]; wordL(&t[r], w); if (!wcscmp(w, L"of") || !wcscmp(w, L"to") || !wcscmp(w, L"by")) return 0; }
     if (!lowerable(&t[0])) return 0;
+    if (!(q2 || t[s2].type == TK_LOCK || isWordIn(&t[s2], (const wchar_t *[]){ L"the", L"this", L"that", L"these", L"those", L"his", L"her", L"their", L"its", L"my", L"our", L"your", NULL }))) return 0;
     Span np1 = trimSpan(t, 0, adv >= 0 ? adv : k), np2 = trimSpan(t, s2, e2), rest = trimSpan(t, e2, n - 1);
     if (spanWords(np1) > 7 || spanWords(np2) > 8) return 0;
     wchar_t pp[64]; mbstowcs(pp, vfm->f[3], 63); pp[63] = 0;
@@ -38268,16 +38328,20 @@ static int patConcession(Tok *t, int n, Toks *o) {
 
 /* "The storm destroyed the bridge." -> "It was the storm that destroyed the bridge." */
 static int patCleft(Tok *t, int n, Toks *o) {
-    if (!maxMode || sentShape(t, n) != 0 || gClefts >= 1 + gSents / 25) return 0;
+    if (!maxMode || sentShape(t, n) != 0 || gClefts >= 1 + gSents / 40) return 0;
     int p1, q1, e1 = npEnd(t, n, 0, &p1, &q1);
     if (e1 < 0 || q1) return 0;
     int k = nextNS(t, n, e1);
     if (k >= n || t[k].type != TK_WORD || !(t[k].tag == T_VBD || t[k].tag == T_VBZ)) return 0;
     Span np = trimSpan(t, 0, e1), rest = trimSpan(t, k, n - 1);
     if (spanWords(np) > 6 || spanWords(rest) < 3 || !lowerable(&t[0])) return 0;
-    pushW(o, t[k].tag == T_VBD ? L"It was" : L"It is", 1); pushSp(o);
+    { int k2 = nextNS(t, n, k + 1); if (k2 < n && wordIs(&t[k2], L"that")) return 0; }
+    for (int q = 0; q < rest.n; q++) if (rest.t[q].type == TK_LOCK && wcspbrk(rest.t[q].s, L".!?") && q + 1 < rest.n) return 0;
+    pushWs(o, t[k].tag == T_VBD ? L"It was" : L"It is", 1); pushSp(o);
     gClefts++;
-    pushSpan(o, np, -1); pushSp(o); pushW(o, L"that", 1); pushSp(o);
+    int who = 0; for (int q = 0; q < np.n; q++) if (isWordIn(&np.t[q], PERSONN)) who = 1;
+    if (np.n == 1 && np.t[0].type == TK_LOCK && iswupper(np.t[0].s[0]) && !wcschr(np.t[0].s, L' ') && !wcschr(np.t[0].s, L'"')) who = 1;
+    pushSpan(o, np, -1); pushSp(o); pushW(o, who ? L"who" : L"that", 1); pushSp(o);
     pushSpan(o, rest, 0);
     tCopy(o, &t[n - 1]);
     return 1;
@@ -38293,7 +38357,10 @@ static int patAdvEnd(Tok *t, int n, Toks *o) {
         int L2 = (int)wcslen(t[a].s);
         if (L2 < 5 || wcscmp(t[a].s + L2 - 2, L"ly")) continue;
         int nx = nextNS(t, n, a + 1);
-        if (nx >= n - 1 || !isVerbTag(t[nx].tag)) continue;
+        if (nx >= n - 1 || !isVerbTag(t[nx].tag) || t[nx].tag == T_VBN) continue;
+        { int pv = a - 1; while (pv >= 0 && t[pv].type == TK_SPACE) pv--; if (pv >= 0 && (t[pv].tag == T_BE || t[pv].tag == T_HV)) continue; }
+        if (isWordIn(&t[a], (const wchar_t *[]){ L"really", L"truly", L"extremely", L"fully", L"completely", L"totally", L"highly", L"fairly", L"nearly", L"barely", L"hardly", L"only", L"simply", L"merely", NULL })) continue;
+        { int sub = 0; for (int q = 0; q < n; q++) if (isWordIn(&t[q], (const wchar_t *[]){ L"because", L"although", L"when", L"while", L"if", L"since", L"that", L"which", L"who", NULL })) sub = 1; if (sub) return 0; }
         Span before = { t, a - 1 }, after = trimSpan(t, a + 1, n - 1);
         if (spanWords(after) < 2) return 0;
         pushSpan(o, before, 0); pushSp(o); pushSpan(o, after, 0); pushSp(o);
@@ -38336,6 +38403,8 @@ static int patSplitMore(Tok *t, int n, Toks *o) {
             for (int q = 0; q < y.n; q++) { int tg = y.t[q].tag; if ((tg == T_VBD || tg == T_VBZ || tg == T_BE || tg == T_HV || tg == T_MD) && !isWordIn(&y.t[q], (const wchar_t *[]){ L"being", L"having", NULL })) hasVerb = 1; }
             for (int q = 0; q < x.n; q++) { int tg = x.t[q].tag; if (tg == T_VBD || tg == T_VBZ || tg == T_VB || tg == T_BE || tg == T_HV || tg == T_MD) hasVerbX = 1; }
             if (!hasVerb || !hasVerbX) continue;
+            { int cc = 0; for (int q = 0; q < x.n; q++) if (x.t[q].type == TK_PUNCT && x.t[q].s[0] == L',') cc++; if (cc >= 2) continue; }
+            { int p3, q3, ye = npEnd(y.t, y.n, 0, &p3, &q3); if (ye < 0) continue; int yv = nextNS(y.t, y.n, ye); if (yv >= y.n || !isFiniteTok(y.t, yv)) continue; }
             pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
             if (!wcscmp(w, L"but")) { pushW(o, L"However", 1); pushP(o, L','); pushSp(o); pushSpan(o, y, -1); }
             else pushSpan(o, y, 1);
@@ -38412,6 +38481,7 @@ static int patListShuffle(Tok *t, int n, Toks *o) {
         if (ni < 2) continue;
         int after = nextNS(t, n, ie[ni - 1]);
         if (!(after == n - 1 || (after < n && t[after].type == TK_PUNCT && t[after].s[0] == L','))) continue;
+        if (after < n - 1) { int a2 = nextNS(t, n, after + 1); if (a2 < n && (wordIs(&t[a2], L"and") || wordIs(&t[a2], L"or"))) continue; }
         int perm[8]; for (int i = 0; i < ni; i++) perm[i] = i;
         for (int tries = 0; tries < 10; tries++) {
             for (int i = ni - 1; i > 0; i--) { int j = nri(i + 1), x = perm[i]; perm[i] = perm[j]; perm[j] = x; }
@@ -38439,17 +38509,491 @@ static int patListShuffle(Tok *t, int n, Toks *o) {
     return 0;
 }
 
+
+/* ---------- MAX rebuild patterns: whole-sentence reconstructions ---------- */
+
+
+static void mkIngB(const char *base, wchar_t *out) {
+    wchar_t b[64]; mbstowcs(b, base, 60); b[60] = 0;
+    int n = (int)wcslen(b);
+    if (n > 2 && !wcscmp(b + n - 2, L"ie")) { b[n - 2] = 0; swprintf(out, 64, L"%lsying", b); return; }
+    if (n > 2 && b[n - 1] == L'e' && !wcschr(L"eoy", b[n - 2])) { b[n - 1] = 0; swprintf(out, 64, L"%lsing", b); return; }
+    int V = wcschr(L"aeiou", b[n - 1]) != NULL;
+    if (n >= 3 && n <= 4 && !V && !wcschr(L"wxy", b[n - 1]) && wcschr(L"aeiou", b[n - 2]) && !wcschr(L"aeiou", b[n - 3]))
+        { swprintf(out, 64, L"%ls%lcing", b, b[n - 1]); return; }
+    swprintf(out, 64, L"%lsing", b);
+}
+static int startsClause(Tok *k) { return k->type == TK_LOCK || isWordIn(k, SUBJ) || isWordIn(k, CLAUSEDET) || k->tag == T_NP; }
+
+/* "Note the absence." -> "Let's note the absence." / "It is worth noting the absence." */
+static int patImperative(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) != 0 || t[0].type != TK_WORD || wcschr(t[0].s, L' ') || !lowerable(&t[0])) return 0;
+    VForm *vf = verbOf(t[0].s); if (!vf) return 0;
+    wchar_t b[64], w[40]; mbstowcs(b, vf->f[0], 63); b[63] = 0; wordL(&t[0], w);
+    if (wcscmp(b, w) || t[0].tag != T_VB) return 0;
+    static const wchar_t *NO[] = { L"be", L"let", L"please", L"thank", L"have", L"do", L"go", L"get", L"come", L"see", NULL };
+    if (inList(NO, w)) return 0;
+    int k = nextNS(t, n, 1); if (k >= n - 1 || isWordIn(&t[k], SUBJ) || t[k].tag == T_VBD || t[k].tag == T_VBZ) return 0;
+    Span all = { t, n - 1 };
+    if (!wcscmp(w, L"try") || !wcscmp(w, L"imagine") || !wcscmp(w, L"remember") || nri(2)) { pushW(o, L"Let's", 1); pushSp(o); pushSpan(o, all, -1); }
+    else {
+        wchar_t ing[64]; mkIngB(vf->f[0], ing);
+        pushWs(o, L"It is worth", 1); pushSp(o); pushW(o, ing, 1);
+        Span rest = trimSpan(t, 1, n - 1); pushSp(o); pushSpan(o, rest, 0);
+    }
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "I would like an extension." -> "What I would like is an extension." ; "Some say he wept." -> "What some say is that he wept." */
+static int patPseudoCleft(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0 || !lowerable(&t[0])) return 0;
+    static const wchar_t *OBJV[] = { L"like", L"want", L"need", L"love", L"hate", L"prefer", L"enjoy", NULL };
+    static const wchar_t *CLV[] = { L"believe", L"think", L"say", L"know", L"suggest", L"mean", L"argue", L"claim", L"feel", L"hope", L"expect", L"remember", L"realize", NULL };
+    int p1, q1, e = npEnd(t, n, 0, &p1, &q1);
+    if (e < 0 && (isWordIn(&t[0], (const wchar_t *[]){ L"some", L"others", L"many", L"most", NULL }))) e = 1;
+    if (e < 0) return 0;
+    if (isWordIn(&t[0], (const wchar_t *[]){ L"it", L"there", L"this", L"that", L"what", NULL })) return 0;
+    Span subj = trimSpan(t, 0, e); if (spanWords(subj) > 8) return 0;
+    for (int q = 0; q < subj.n; q++) if (subj.t[q].type == TK_PUNCT) return 0;
+    int k = nextNS(t, n, e), md = -1;
+    if (k < n && (t[k].tag == T_MD || t[k].tag == T_DO)) { if (isWordIn(&t[k], (const wchar_t *[]){ L"don't", L"doesn't", L"didn't", L"won't", L"can't", L"wouldn't", NULL })) return 0; md = k; k = nextNS(t, n, k + 1); }
+    if (k >= n || t[k].type != TK_WORD || wcschr(t[k].s, L' ')) return 0;
+    VForm *vf = verbOf(t[k].s); if (!vf) return 0;
+    wchar_t b[64]; mbstowcs(b, vf->f[0], 63); b[63] = 0;
+    int ob = inList(OBJV, b), cl = inList(CLV, b);
+    if (!ob && !cl) return 0;
+    if (!(t[k].tag == T_VB || t[k].tag == T_VBZ || t[k].tag == T_VBD)) return 0;
+    int r = nextNS(t, n, k + 1);
+    if (r >= n - 1) return 0;
+    Span rest = trimSpan(t, r, n - 1);
+    if (spanWords(rest) < 2) return 0;
+    int hasThat = wordIs(&t[r], L"that");
+    if (cl && !hasThat && !startsClause(&t[r]) && !wordIs(&t[r], L"to")) return 0;
+    if (ob && (wordIs(&t[r], L"it") || wordIs(&t[r], L"them") || wordIs(&t[r], L"him") || wordIs(&t[r], L"her"))) return 0;
+    for (int q = 0; q < rest.n; q++) if (rest.t[q].type == TK_PUNCT && rest.t[q].s[0] != L',') return 0;
+    int past = t[k].tag == T_VBD || (md >= 0 && wordIs(&t[md], L"did"));
+    pushW(o, L"What", 1); pushSp(o); pushSpan(o, subj, -1); pushSp(o);
+    if (md >= 0) { tCopy(o, &t[md]); pushSp(o); }
+    tCopy(o, &t[k]); pushSp(o);
+    pushW(o, past ? L"was" : L"is", 1); pushSp(o);
+    if (cl && !hasThat && !wordIs(&t[r], L"to")) { pushW(o, L"that", 1); pushSp(o); }
+    pushSpan(o, rest, 0);
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "A critic in New York wrote that ..." -> "There was a critic in New York who wrote that ..." */
+static int patThereWas(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    static const wchar_t *INDEF[] = { L"a", L"an", L"some", L"several", L"many", L"two", L"three", L"four", L"few", NULL };
+    if (!isWordIn(&t[0], INDEF)) return 0;
+    int p1, q1, e = npEnd(t, n, 0, &p1, &q1);
+    if (e < 0) return 0;
+    int j = e; while (j < n && t[j].type == TK_SPACE) j++;
+    /* allow a short trailing prepositional phrase on the subject: "a critic in New York" */
+    if (j < n && t[j].tag == T_ADP && !wordIs(&t[j], L"of")) { int s2 = nextNS(t, n, j + 1), p2, q2, e2 = npEnd(t, n, s2, &p2, &q2); if (e2 > 0) e = e2; }
+    int k = nextNS(t, n, e);
+    if (k >= n - 1 || !(t[k].tag == T_VBD || t[k].tag == T_VBZ || (t[k].tag == T_VB && p1))) return 0;
+    if (t[k].tag == T_BE || t[k].tag == T_HV) return 0;
+    Span np = trimSpan(t, 0, e), rest = trimSpan(t, k, n - 1);
+    if (spanWords(np) > 9 || spanWords(rest) < 2) return 0;
+    for (int q = 0; q < np.n; q++) if (np.t[q].type == TK_PUNCT) return 0;
+    int person = 0; for (int q = 0; q < np.n; q++) if (isWordIn(&np.t[q], PERSONN)) person = 1;
+    const wchar_t *be = t[k].tag == T_VBD ? (p1 ? L"were" : L"was") : (p1 ? L"are" : L"is");
+    pushW(o, L"There", 1); pushSp(o); pushW(o, be, 1); pushSp(o); pushSpan(o, np, -1); pushSp(o);
+    pushW(o, person ? L"who" : L"that", 1); pushSp(o); pushSpan(o, rest, 0);
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "The poem also follows a meter." -> "The poem follows a meter as well." */
+static int patAlsoEnd(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    Span all = { t, n }; if (spanWords(all) > 22) return 0;
+    for (int a = 2; a < n - 3; a++) {
+        if (!wordIs(&t[a], L"also")) continue;
+        int nx = nextNS(t, n, a + 1);
+        if (nx >= n - 1 || !(isVerbTag(t[nx].tag) || t[nx].tag == T_BE || t[nx].tag == T_HV)) return 0;
+        int pv = a - 1; while (pv >= 0 && t[pv].type == TK_SPACE) pv--;
+        if (pv < 0 || t[pv].type == TK_PUNCT) return 0;
+        for (int i = 0; i < a; i++) tCopy(o, &t[i]);
+        int i = a + 1; while (i < n && t[i].type == TK_SPACE) i++;
+        for (; i < n - 1; i++) tCopy(o, &t[i]);
+        if (nri(2)) { pushSp(o); pushWs(o, L"as well", 1); } else { pushP(o, L','); pushSp(o); pushW(o, L"too", 1); }
+        tCopy(o, &t[n - 1]);
+        return 1;
+    }
+    return 0;
+}
+
+/* perfect / modal passives: "Some scholars have spent careers on this." -> "Careers have been spent on this by some scholars."
+   "You will feel it." -> "It will be felt." */
+static int patAuxPassive(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    int p1, q1, e1 = npEnd(t, n, 0, &p1, &q1);
+    if (e1 < 0 || !lowerable(&t[0])) return 0;
+    int k = nextNS(t, n, e1);
+    if (k >= n || !(t[k].tag == T_HV || t[k].tag == T_MD)) return 0;
+    if (isWordIn(&t[k], (const wchar_t *[]){ L"won't", L"can't", L"wouldn't", L"couldn't", L"shouldn't", L"hasn't", L"haven't", L"hadn't", L"having", NULL })) return 0;
+    int v = nextNS(t, n, k + 1);
+    if (v >= n || t[v].type != TK_WORD || wcschr(t[v].s, L' ')) return 0;
+    int modal = t[k].tag == T_MD;
+    if (modal ? t[v].tag != T_VB : t[v].tag != T_VBN) return 0;
+    VForm *vf = verbOf(t[v].s); if (!vf) return 0;
+    wchar_t b[64]; mbstowcs(b, vf->f[0], 63); b[63] = 0;
+    wchar_t sw0[40]; wordL(&t[0], sw0);
+    int genericYou = q1 && !wcscmp(sw0, L"you") && modal;
+    if ((inList(NOPASSIVE, b) && !(genericYou && wcscmp(b, L"have") && wcscmp(b, L"get") && wcscmp(b, L"go") && wcscmp(b, L"come") && wcscmp(b, L"be")))
+        || !wcscmp(b, L"be") || !wcscmp(b, L"say") || !wcscmp(b, L"like")) return 0;
+    int s2 = nextNS(t, n, v + 1), p2, q2, e2 = npEnd(t, n, s2, &p2, &q2);
+    if (e2 < 0) return 0;
+    int r = nextNS(t, n, e2);
+    if (r < n - 1 && !(t[r].tag == T_ADP && t[r].type == TK_WORD) && !(t[r].tag == T_ADV)) return 0;
+    if (r < n - 1 && (wordIs(&t[r], L"of") || wordIs(&t[r], L"to") || wordIs(&t[r], L"by"))) return 0;
+    for (int q = r; q < n - 1; q++) if (t[q].type == TK_PUNCT) return 0;
+    wchar_t sw[40]; wordL(&t[0], sw);
+    int generic = q1 && !wcscmp(sw, L"you") && modal;
+    if (q1 && !generic && (!wcscmp(sw, L"i") || !wcscmp(sw, L"we") || !wcscmp(sw, L"you") || !wcscmp(sw, L"it"))) return 0;
+    Span np1 = trimSpan(t, 0, e1), np2 = trimSpan(t, s2, e2), rest = trimSpan(t, e2, n - 1);
+    if (spanWords(np1) > 7 || spanWords(np2) > 8) return 0;
+    if (!(q2 || t[s2].type == TK_LOCK || isWordIn(&t[s2], (const wchar_t *[]){ L"the", L"this", L"that", L"these", L"those", L"his", L"her", L"their", L"its", L"my", L"our", L"your", L"entire", L"whole", L"all", NULL }))) return 0;
+    wchar_t pp[64]; mbstowcs(pp, vf->f[3], 63); pp[63] = 0;
+    pushNP(o, np2, 0, 1); pushSp(o);
+    if (modal) { tCopy(o, &t[k]); pushSp(o); pushW(o, L"be", 1); }
+    else {
+        wchar_t hv[40]; wordL(&t[k], hv);
+        pushW(o, !wcscmp(hv, L"had") ? L"had" : (p2 || (q2 && !wcscmp(np2.t[0].s, L"them"))) ? L"have" : L"has", 1); pushSp(o); pushW(o, L"been", 1);
+    }
+    pushSp(o); pushW(o, pp, 1);
+    if (rest.n) { pushSp(o); pushSpan(o, rest, 0); }
+    if (!generic) { pushSp(o); pushW(o, L"by", 1); pushSp(o); pushNP(o, np1, 1, -1); }
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* negation rephrasing: "not well received" -> "poorly received", "did not have much X" -> "had little X",
+   "never wrote another X" -> "wrote no other X", "is not happy" -> "is unhappy" */
+static int patNegation(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    for (int i = 0; i < n - 3; i++) {
+        if (t[i].type != TK_WORD || wcschr(t[i].s, L' ')) continue;
+        int a = nextNS(t, n, i + 1), b = a < n ? nextNS(t, n, a + 1) : n, c = b < n ? nextNS(t, n, b + 1) : n;
+        if (wordIs(&t[i], L"not") && a < n && wordIs(&t[a], L"well") && b < n && t[b].tag == T_VBN) {
+            for (int q = 0; q < i; q++) tCopy(o, &t[q]);
+            pushW(o, L"poorly", 1);
+            for (int q = a + 1; q < n; q++) tCopy(o, &t[q]);
+            return 1;
+        }
+        if ((wordIs(&t[i], L"did") && a < n && wordIs(&t[a], L"not")) || wordIs(&t[i], L"didn't")) {
+            int h = wordIs(&t[i], L"didn't") ? a : b, m = h < n ? nextNS(t, n, h + 1) : n;
+            if (h < n && wordIs(&t[h], L"have") && m < n && (wordIs(&t[m], L"much") || wordIs(&t[m], L"many"))) {
+                for (int q = 0; q < i; q++) tCopy(o, &t[q]);
+                pushW(o, L"had", 1); pushSp(o); pushW(o, wordIs(&t[m], L"much") ? L"little" : L"few", 1);
+                for (int q = m + 1; q < n; q++) tCopy(o, &t[q]);
+                return 1;
+            }
+        }
+        if (wordIs(&t[i], L"never") && a < n && t[a].tag == T_VBD && b < n && wordIs(&t[b], L"another")) {
+            for (int q = 0; q < i; q++) tCopy(o, &t[q]);
+            tCopy(o, &t[a]); pushSp(o); pushWs(o, L"no other", 1);
+            for (int q = b + 1; q < n; q++) tCopy(o, &t[q]);
+            return 1;
+        }
+        if (wordIs(&t[i], L"not") && a < n && t[a].tag == T_ADJ && !wcschr(t[a].s, L' ') && (c >= n || b == n - 1 || t[b].type == TK_PUNCT)) {
+            wchar_t adj[48], un[52]; wordL(&t[a], adj); swprintf(un, 52, L"un%ls", adj);
+            char nb[56]; wcstombs(nb, un, 55); nb[55] = 0;
+            if (!tagLookup(tw, ntw, nb)) continue;
+            int pv = i - 1; while (pv >= 0 && t[pv].type == TK_SPACE) pv--;
+            if (pv < 0 || t[pv].tag != T_BE) continue;
+            for (int q = 0; q < i; q++) tCopy(o, &t[q]);
+            pushW(o, un, 1);
+            for (int q = a + 1; q < n; q++) tCopy(o, &t[q]);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* "That poem was 40,000 lines long." -> "That poem had a length of 40,000 lines." */
+static int patMeasure(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    static const wchar_t *DIM[] = { L"long", L"tall", L"wide", L"deep", L"high", NULL };
+    static const wchar_t *NOUN[] = { L"length", L"height", L"width", L"depth", L"height" };
+    for (int i = 0; i < n - 4; i++) {
+        if (t[i].tag != T_BE || !isFiniteTok(t, i)) continue;
+        int a = nextNS(t, n, i + 1); if (a >= n || !(t[a].type == TK_LOCK || t[a].tag == T_NUM)) continue;
+        int u = nextNS(t, n, a + 1); if (u >= n || t[u].type != TK_WORD || !(t[u].tag == T_NS || t[u].tag == T_N)) continue;
+        int d = nextNS(t, n, u + 1); if (d >= n) continue;
+        int di = -1; for (int q = 0; DIM[q]; q++) if (wordIs(&t[d], DIM[q])) di = q;
+        if (di < 0) continue;
+        wchar_t be[16]; wordL(&t[i], be);
+        const wchar_t *hv = !wcscmp(be, L"was") || !wcscmp(be, L"were") ? L"had" : !wcscmp(be, L"are") ? L"have" : L"has";
+        for (int q = 0; q < i; q++) tCopy(o, &t[q]);
+        pushW(o, hv, 1); pushSp(o); pushW(o, L"a", 1); pushSp(o); pushW(o, NOUN[di], 1); pushSp(o); pushW(o, L"of", 1); pushSp(o);
+        tCopy(o, &t[a]); pushSp(o); tCopy(o, &t[u]);
+        for (int q = d + 1; q < n; q++) tCopy(o, &t[q]);
+        return 1;
+    }
+    return 0;
+}
+
+/* "Every friendship begins here." -> "Here is where every friendship begins." */
+static int patHereFront(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0 || !lowerable(&t[0])) return 0;
+    int h = n - 2; while (h >= 0 && t[h].type == TK_SPACE) h--;
+    if (h < 2 || !(wordIs(&t[h], L"here") || wordIs(&t[h], L"there"))) return 0;
+    int v = h - 1; while (v >= 0 && t[v].type == TK_SPACE) v--;
+    if (v < 1 || !(t[v].tag == T_VBZ || t[v].tag == T_VBD || t[v].tag == T_VB)) return 0;
+    if (isWordIn(&t[0], (const wchar_t *[]){ L"there", L"here", L"it", NULL })) return 0;
+    Span body = trimSpan(t, 0, h);
+    if (nri(2)) { pushWs(o, wordIs(&t[h], L"here") ? L"Here is where" : L"There is where", 1); pushSp(o); pushSpan(o, body, -1); }
+    else { pushWs(o, t[v].tag == T_VBD ? L"It was" : L"It is", 1); pushSp(o); tCopy(o, &t[h]); pushSp(o); pushW(o, L"that", 1); pushSp(o); pushSpan(o, body, -1); }
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "The H is, if you squint, a ladder." -> "If you squint, the H is a ladder."
+   "Fennimore, alone after losing his work, reaches out." -> "Alone after losing his work, Fennimore reaches out." */
+static int patParenFront(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) != 2 || !lowerable(&t[0])) return 0;
+    int c1 = firstComma(t, n), c2 = -1;
+    for (int i = c1 + 1; i < n; i++) if (t[i].type == TK_PUNCT && t[i].s[0] == L',') { c2 = i; break; }
+    if (c1 < 1 || c2 < 0) return 0;
+    Span a = trimSpan(t, 0, c1), p = trimSpan(t, c1 + 1, c2), b = trimSpan(t, c2 + 1, n - 1);
+    int pw = spanWords(p);
+    if (spanWords(a) < 1 || spanWords(a) > 6 || pw < 1 || pw > 9 || spanWords(b) < 2) return 0;
+    static const wchar_t *PSTART[] = { L"if", L"when", L"as", L"in", L"for", L"at", L"on", L"by", L"after", L"before", L"during", L"despite",
+        L"alone", L"like", L"unlike", L"once", L"though", L"although", L"while", L"of", NULL };
+    Tok *p0 = &p.t[0];
+    if (!(isWordIn(p0, PSTART) || p0->tag == T_ADJ || p0->tag == T_VBN || p0->tag == T_ADV)) return 0;
+    if (wordIs(p0, L"of") && pw < 3) return 0;
+    if (isWordIn(p0, (const wchar_t *[]){ L"however", L"too", L"though", NULL }) && pw == 1) return 0;
+    /* B must continue the sentence: a verb, or A must already contain one */
+    int finA = 0, finB = 0;
+    for (int q = 0; q < a.n; q++) if (isFiniteTok(a.t, q)) finA = 1;
+    for (int q = 0; q < b.n; q++) if (isFiniteTok(b.t, q)) finB = 1;
+    if (!finA && !(b.t[0].type == TK_WORD && isFiniteTok(b.t, 0))) return 0;
+    if (!finA && !finB) return 0;
+    if (isWordIn(&b.t[0], (const wchar_t *[]){ L"and", L"but", L"or", L"which", L"who", NULL })) return 0;
+    pushSpan(o, p, 1); pushP(o, L','); pushSp(o);
+    pushSpan(o, a, -1); pushSp(o); pushSpan(o, b, 0);
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "Devastated, Fennimore sat down." -> "Fennimore, devastated, sat down." */
+static int patAdjTuck(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 1) return 0;
+    int c = firstComma(t, n);
+    if (c != 1 && c != 2) return 0;
+    if (!(t[0].tag == T_ADJ || t[0].tag == T_VBN) || wcschr(t[0].s, L' ')) return 0;
+    int s = nextNS(t, n, c + 1), p1, q1, e = npEnd(t, n, s, &p1, &q1);
+    if (e < 0) return 0;
+    int v = nextNS(t, n, e);
+    if (v >= n || !isFiniteTok(t, v)) return 0;
+    Span np = trimSpan(t, s, e), rest = trimSpan(t, v, n - 1);
+    if (spanWords(np) > 5) return 0;
+    pushSpan(o, np, 1); pushP(o, L','); pushSp(o);
+    Span adj = { t, 1 }; pushSpan(o, adj, -1); pushP(o, L','); pushSp(o);
+    pushSpan(o, rest, 0);
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "He sat down at his desk, stared at the page, and wrote one word." -> "After sitting down at his desk, he stared at the page and wrote one word." */
+static int patAfterSeq(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    int p1, q1, e = npEnd(t, n, 0, &p1, &q1);
+    if (e < 0 || !lowerable(&t[0])) return 0;
+    int v1 = nextNS(t, n, e);
+    if (v1 >= n || t[v1].tag != T_VBD || wcschr(t[v1].s, L' ')) return 0;
+    VForm *vf = verbOf(t[v1].s); if (!vf) return 0;
+    wchar_t b[64]; mbstowcs(b, vf->f[0], 63); b[63] = 0;
+    if (!wcscmp(b, L"be") || !wcscmp(b, L"have") || !wcscmp(b, L"do") || !wcscmp(b, L"say")) return 0;
+    /* find the end of the first verb phrase: ", VBD" or "and VBD" */
+    int cut = -1, next = -1, commaList = 0;
+    for (int i = v1 + 1; i < n - 1; i++) {
+        if (t[i].type == TK_PUNCT && t[i].s[0] != L',') return 0;
+        if (t[i].type == TK_PUNCT && t[i].s[0] == L',') {
+            int k = nextNS(t, n, i + 1);
+            if (k < n && t[k].tag == T_VBD) { cut = i; next = k; commaList = 1; break; }
+            if (k < n && wordIs(&t[k], L"and")) { int k2 = nextNS(t, n, k + 1); if (k2 < n && t[k2].tag == T_VBD) { cut = i; next = k2; break; } }
+            return 0;
+        }
+        if (wordIs(&t[i], L"and")) { int k = nextNS(t, n, i + 1); if (k < n && t[k].tag == T_VBD) { cut = i; next = k; break; } return 0; }
+    }
+    if (cut < 0) return 0;
+    static const wchar_t *SUBORD[] = { L"how", L"what", L"why", L"who", L"that", L"which", L"where", L"when", L"if", L"whether", L"because", NULL };
+    for (int q = v1 + 1; q < cut; q++) if (isWordIn(&t[q], SUBORD)) return 0;
+    Span x = trimSpan(t, v1 + 1, cut), subj = trimSpan(t, 0, e);
+    if (spanWords(x) < 1 || spanWords(subj) > 6) return 0;
+    wchar_t ing[64]; mkIngB(vf->f[0], ing);
+    pushW(o, L"After", 1); pushSp(o); pushW(o, ing, 1); pushSp(o); pushSpan(o, x, 0); pushP(o, L','); pushSp(o);
+    pushNP(o, subj, 0, -1); pushSp(o);
+    /* remaining verbs: if it was "A, B, and C" with three, drop the now-orphan comma before "and" */
+    int items = 0; for (int i = next; i < n - 1; i++) if (t[i].type == TK_PUNCT && t[i].s[0] == L',') items++;
+    for (int i = next; i < n - 1; i++) {
+        if (commaList && items == 1 && t[i].type == TK_PUNCT && t[i].s[0] == L',') { int k = nextNS(t, n, i + 1); if (k < n && wordIs(&t[k], L"and")) continue; }
+        tCopy(o, &t[i]);
+    }
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "Others say he went to get a sandwich." -> "According to others, he went to get a sandwich."
+   "The prevailing theory is that X." -> "According to the prevailing theory, X." */
+static int patAccording(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0 || !lowerable(&t[0])) return 0;
+    static const wchar_t *SAYV[] = { L"say", L"says", L"said", L"claim", L"claims", L"claimed", L"report", L"reports", L"reported", L"argue",
+        L"argues", L"argued", L"believe", L"believes", L"believed", L"suggest", L"suggests", L"suggested", L"write", L"writes", L"wrote",
+        L"insist", L"insists", L"insisted", L"maintain", L"maintains", NULL };
+    static const wchar_t *THEORY[] = { L"theory", L"idea", L"view", L"belief", L"consensus", L"assumption", L"argument", L"explanation", L"hypothesis", L"story", NULL };
+    int e = -1, p1 = 0, q1 = 0;
+    if (isWordIn(&t[0], (const wchar_t *[]){ L"some", L"others", L"many", L"most", L"experts", L"critics", L"scholars", NULL })) e = 1;
+    else e = npEnd(t, n, 0, &p1, &q1);
+    if (e < 0 || q1) return 0;
+    Span subj = trimSpan(t, 0, e);
+    if (spanWords(subj) > 8) return 0;
+    for (int q = 0; q < subj.n; q++) if (subj.t[q].type == TK_PUNCT) return 0;
+    int v = nextNS(t, n, e);
+    if (v >= n - 1) return 0;
+    int c;
+    if (isWordIn(&t[v], SAYV)) { c = nextNS(t, n, v + 1); if (c < n && wordIs(&t[c], L"that")) c = nextNS(t, n, c + 1); }
+    else if (t[v].tag == T_BE && isFiniteTok(t, v)) {
+        int hd = 0; for (int q = 0; q < subj.n; q++) if (isWordIn(&subj.t[q], THEORY)) hd = 1;
+        c = nextNS(t, n, v + 1);
+        if (!hd || c >= n || !wordIs(&t[c], L"that")) return 0;
+        c = nextNS(t, n, c + 1);
+    } else return 0;
+    if (c >= n - 1 || !startsClause(&t[c])) return 0;
+    Span cl = trimSpan(t, c, n - 1);
+    int fin = 0; for (int q = 0; q < cl.n; q++) if (isFiniteTok(cl.t, q)) fin = 1;
+    if (!fin || spanWords(cl) < 3) return 0;
+    for (int q = 0; q + 2 < cl.n; q++) if (wordIs(&cl.t[q], L"and") && wordIs(&cl.t[nextNS(cl.t, cl.n, q + 1)], L"that")) return 0;
+    pushWs(o, L"According to", 1); pushSp(o); pushSpan(o, subj, -1); pushP(o, L','); pushSp(o);
+    pushSpan(o, cl, wordIs(&cl.t[0], L"i") ? 0 : -1);
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "What is certain is that X." -> "It is certain that X." */
+static int patWhatIs(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0 || !wordIs(&t[0], L"what")) return 0;
+    int b1 = nextNS(t, n, 1), a = nextNS(t, n, b1 + 1), b2 = nextNS(t, n, a + 1), th = nextNS(t, n, b2 + 1);
+    if (th >= n - 1 || t[b1].tag != T_BE || t[a].tag != T_ADJ || t[b2].tag != T_BE || !wordIs(&t[th], L"that")) return 0;
+    pushW(o, L"It", 1); pushSp(o); tCopy(o, &t[b1]); pushSp(o); tCopy(o, &t[a]); pushSp(o);
+    for (int q = th; q < n; q++) tCopy(o, &t[q]);
+    return 1;
+}
+
+/* "Today it is taught in 23 countries." -> "It is taught in 23 countries today." */
+static int patTimeWordBack(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    static const wchar_t *TW[] = { L"today", L"now", L"yesterday", L"tomorrow", L"eventually", L"soon", L"later", L"then", L"recently", L"nowadays", NULL };
+    if (!isWordIn(&t[0], TW) || wcschr(t[0].s, L' ')) return 0;
+    int k = nextNS(t, n, 1);
+    if (k >= n - 1 || t[k].type == TK_PUNCT || !startsClause(&t[k])) return 0;
+    Span rest = trimSpan(t, k, n - 1), tw0 = { t, 1 };
+    if (spanWords(rest) < 3 || spanWords(rest) > 12) return 0;
+    for (int q = 0; q < rest.n; q++) if (isWordIn(&rest.t[q], (const wchar_t *[]){ L"who", L"which", L"that", L"when", L"where", L"because", L"if", L"and", L"or", NULL })) return 0;
+    for (int q = 0; q < rest.n; q++) if (rest.t[q].type == TK_PUNCT && rest.t[q].s[0] != L',') return 0;
+    pushSpan(o, rest, 1); pushSp(o); pushSpan(o, tw0, -1);
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "X and is Y" verb-phrase coordination -> two sentences: "Today it is taught in 23 countries and is the only poem ..." */
+static int patVPSplit(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    int p1, q1, s = 0;
+    while (s < n && !((t[s].type == TK_WORD && (t[s].tag == T_PRON || t[s].tag == T_DET)) || t[s].type == TK_LOCK)) { if (t[s].type == TK_PUNCT) return 0; s++; }
+    int e = npEnd(t, n, s, &p1, &q1);
+    if (e < 0) return 0;
+    int v = nextNS(t, n, e);
+    if (v >= n || !isFiniteTok(t, v)) return 0;
+    for (int i = v + 1; i < n - 2; i++) {
+        if (t[i].type == TK_PUNCT) return 0;
+        if (isWordIn(&t[i], (const wchar_t *[]){ L"how", L"what", L"why", L"who", L"that", L"which", L"where", L"when", L"if", L"whether", L"because", NULL })) return 0;
+        if (!wordIs(&t[i], L"and")) continue;
+        int k = nextNS(t, n, i + 1);
+        if (k >= n - 1 || !isFiniteTok(t, k) || t[k].tag == T_VB) continue;
+        Span a = trimSpan(t, 0, i), b = trimSpan(t, k, n - 1), subj = trimSpan(t, s, e);
+        if (spanWords(a) < 4 || spanWords(b) < 3) return 0;
+        pushSpan(o, a, 0); pushP(o, L'.'); pushSp(o);
+        if (q1 || spanWords(subj) <= 2) pushNP(o, subj, 0, 1);
+        else pushW(o, p1 ? L"They" : L"It", 1);
+        pushSp(o); pushSpan(o, b, 0);
+        tCopy(o, &t[n - 1]);
+        return 1;
+    }
+    return 0;
+}
+
+/* ---- validation: a rebuilt sentence must still read as grammatical ---- */
+static int dtGramCount(const wchar_t *s);
+static int rebuildOK(Toks *in, Toks *out) {
+    tagAll(out);
+    /* every piece needs a finite verb (headings and quotes aside) */
+    int segStart = 0, fin = 0, words = 0;
+    for (int i = 0; i < out->n; i++) {
+        Tok *k = &out->t[i];
+        if (k->type == TK_WORD) { words++; if (isFiniteTok(out->t, i)) fin = 1; }
+        if (k->type == TK_LOCK) words++;
+        if (k->type == TK_PUNCT && (k->s[0] == L'.' || k->s[0] == L'!' || k->s[0] == L'?')) {
+            if (words >= 3 && !fin) return 0;
+            segStart = i + 1; fin = 0; words = 0;
+        }
+        if (i > 0 && k->type == TK_WORD && out->t[i - 1].type == TK_SPACE && i > 1 && out->t[i - 2].type == TK_WORD) {
+            wchar_t a[40], b[40]; lastWordLower(out->t[i - 2].s, a, 40); firstWordLower(k->s, b, 40);
+            if (a[0] && !wcscmp(a, b) && wcscmp(a, L"that") && wcscmp(a, L"had")) return 0;
+        }
+        if (k->type == TK_PUNCT && i + 1 < out->n && out->t[i + 1].type == TK_PUNCT && k->s[0] == L',' && out->t[i + 1].s[0] != L'"') return 0;
+    }
+    (void)segStart;
+    for (int i = 0; i < out->n; i++) if (out->t[i].type == TK_WORD) {
+        static const wchar_t *BADSTART[] = { L"and", L"or", L"as well as", L"which", NULL };
+        wchar_t w[40]; firstWordLower(out->t[i].s, w, 40); if (inList(BADSTART, w)) return 0; break;
+    }
+    Str a = {0}, b = {0}; sAdd(&a, L""); sAdd(&b, L"");
+    for (int i = 0; i < in->n; i++) sAdd(&a, in->t[i].s);
+    for (int i = 0; i < out->n; i++) sAdd(&b, out->t[i].s);
+    {   /* an additive opener can't introduce a consequence or a contrast */
+        static const wchar_t *ADD[] = { L"also, ", L"in addition, ", L"additionally, ", L"moreover, ", L"furthermore, ", L"on top of that, ", L"what's more, ", NULL };
+        static const wchar_t *NEXT[] = { L"this is why", L"that is why", L"this is because", L"so ", L"therefore", L"however", L"still", L"yet ", L"but ", L"even so", NULL };
+        wchar_t *lw = wdup(b.s); for (wchar_t *q = lw; *q; q++) *q = towlower(*q);
+        int bad = 0;
+        for (int x = 0; ADD[x] && !bad; x++) for (wchar_t *q = lw; (q = wcsstr(q, ADD[x])); q++) {
+            const wchar_t *r = q + wcslen(ADD[x]);
+            for (int y = 0; NEXT[y]; y++) if (!wcsncmp(r, NEXT[y], wcslen(NEXT[y]))) bad = 1;
+            if (wcsstr(r, L", not ") && wcsstr(r, L", not ") - r < 60) bad = 1;
+        }
+        free(lw);
+        if (bad) { free(a.s); free(b.s); return 0; }
+    }
+    int ok = dtGramCount(b.s) <= dtGramCount(a.s);
+    free(a.s); free(b.s);
+    return ok;
+}
+
 typedef int (*PatFn)(Tok *, int, Toks *);
 static PatFn PATS[] = { patFrontSub, patTrailSub, patButSo, patPPBack, patPPFront, patReport, patHoist, patSplit, patPassive, patActive,
-                        patCauseFlip, patConcession, patCleft, patAdvEnd, patSplitMore, patFiller, patListShuffle };
+                        patCauseFlip, patConcession, patCleft, patAdvEnd, patSplitMore, patFiller, patListShuffle,
+                        patImperative, patPseudoCleft, patThereWas, patAlsoEnd, patAuxPassive, patNegation, patMeasure, patHereFront,
+                        patParenFront, patAdjTuck, patAfterSeq, patAccording, patWhatIs, patTimeWordBack, patVPSplit };
+#define FIRST_MAXPAT 17
 static const int INV[] = { (1 << 1) | (1 << 4), 1 << 0, (1 << 10) | (1 << 11), 1 << 4, (1 << 3) | (1 << 0), 0, 1 << 13, 0, 1 << 9, 1 << 8,
-                           1 << 2, 1 << 2, 0, 1 << 6, 0, 0, 0 };
+                           1 << 2, 1 << 2, 0, 1 << 6, 0, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0, 0, 1 << 26, 1 << 25, 0, 1 << 5, 0, 0, 0 };
 #define NPATS (int)(sizeof PATS / sizeof PATS[0])
 
 /* shape of a sentence that word swaps can't change: locked bits, pronouns/determiners and punctuation, in order.
    if a rearrangement recreates a shape we've already had, it's an undo and gets refused */
 static const wchar_t *SKEL[] = { L"the", L"a", L"an", L"he", L"she", L"they", L"it", L"we", L"i", L"you", L"his", L"her", L"their",
-    L"our", L"my", L"your", L"its", L"this", L"that", L"these", L"those", L"him", L"them", L"us", L"me", NULL };
+    L"our", L"my", L"your", L"its", L"this", L"that", L"these", L"those", L"him", L"them", L"us", L"me",
+    L"let's", L"what", L"there", L"here", L"according", L"worth", L"after", L"who", L"which", L"by", L"been", L"be", L"is", L"was",
+    L"are", L"were", L"has", L"have", L"had", L"not", L"no", L"too", L"well", L"of", L"to", L"if", L"so", L"and", L"but", L"because",
+    L"although", L"though", L"when", L"while", L"as", NULL };
 static wchar_t *sentKey(Tok *t, int n) {
     Str o = {0}; sAdd(&o, L"");
     for (int i = 0; i < n; i++) {
@@ -38476,16 +39020,58 @@ static void sentRemember(Tok *t, int n) {
 }
 
 static StrSet recentSkel;
-static int restructureOnce(Toks *s, int *used) {
+/* after a clause swap, "He was tired, so John left." -> "John was tired, so he left." */
+static void fixCataphora(Toks *o) {
+    int pron = -1, name = -1, names = 0;
+    for (int i = 0; i < o->n; i++) {
+        Tok *k = &o->t[i];
+        if (k->type == TK_LOCK && iswupper(k->s[0])) { int alpha = 1; for (wchar_t *p = k->s; *p; p++) if (!iswalpha(*p) && *p != L' ' && *p != L'.') alpha = 0; if (alpha) { names++; if (name < 0) name = i; } }
+        if (pron < 0 && name < 0 && (wordIs(k, L"he") || wordIs(k, L"she"))) pron = i;
+    }
+    if (pron < 0 || name < 0 || names != 1) return;
+    int startP = pron == 0, startN = 0;
+    { int q = name - 1; while (q >= 0 && o->t[q].type == TK_SPACE) q--; startN = q < 0 || (o->t[q].type == TK_PUNCT && o->t[q].s[0] != L','); }
+    wchar_t pw[8]; wordL(&o->t[pron], pw);
+    wchar_t *nm = wdup(o->t[name].s);
+    free(o->t[pron].s); o->t[pron].s = nm; o->t[pron].type = TK_LOCK;
+    free(o->t[name].s); o->t[name].s = wdup(pw); o->t[name].type = TK_WORD; o->t[name].tag = T_PRON;
+    if (startN) o->t[name].s[0] = towupper(o->t[name].s[0]);
+    (void)startP;
+}
+
+static int restructureOnce(Toks *s, unsigned *used) {
     int order[NPATS];
     for (int i = 0; i < NPATS; i++) order[i] = i;
     for (int i = NPATS - 1; i > 0; i--) { int j = nri(i + 1), x = order[i]; order[i] = order[j]; order[j] = x; }
     Toks fb = {0}; int fbp = -1;
     for (int i = 0; i < NPATS; i++) {
         int p = order[i];
-        if (*used & (1 << p)) continue;
+        if (*used & (1u << p)) continue;
+        if (p >= FIRST_MAXPAT && !maxMode) continue;
         Toks o = {0};
-        if (PATS[p](s->t, s->n, &o) && !sentSeen(&o)) {
+        int made = PATS[p](s->t, s->n, &o);
+        if (!made && maxMode && p >= 8 && p != 15 && p != 12) {
+            int c = firstComma(s->t, s->n);
+            if (c > 0 && c < s->n - 4) {
+                Span head = trimSpan(s->t, 0, c);
+                int hw = spanWords(head);
+                Tok *h0 = &head.t[0];
+                if (hw >= 1 && hw <= 4 && h0->type == TK_WORD && (h0->tag == T_ADV || h0->tag == T_ADP || h0->tag == T_CONJ || startsWithList(h0->s, OPENLIST))) {
+                    Toks body = {0}; Span bs = trimSpan(s->t, c + 1, s->n);
+                    pushSpan(&body, bs, 1);
+                    tagAll(&body);
+                    Toks bo = {0};
+                    if (body.n && lowerable(&body.t[0]) && PATS[p](body.t, body.n, &bo) && bo.n) {
+                        pushSpan(&o, head, 0); pushP(&o, L','); pushSp(&o);
+                        Span bsp = { bo.t, bo.n }; pushSpan(&o, bsp, -1);
+                        made = 1;
+                    }
+                    tFree(&bo); tFree(&body);
+                }
+            }
+        }
+        if (made && p != 0) fixCataphora(&o);
+        if (made && !sentSeen(&o) && (!maxMode || rebuildOK(s, &o))) {
             wchar_t *sk = sentKey(o.t, o.n);
             int recent = ssHas(&recentSkel, sk);
             if (recent && fbp < 0) { fb = o; fbp = p; free(sk); continue; }
@@ -38493,13 +39079,13 @@ static int restructureOnce(Toks *s, int *used) {
             if (recentSkel.n > 20000) ssFree(&recentSkel);
             ssAdd(&recentSkel, sk); free(sk);
             if (fbp >= 0) tFree(&fb);
-            tFree(s); *s = o; *used |= (1 << p) | INV[p]; return 1;
+            tFree(s); *s = o; *used |= (1u << p) | (unsigned)INV[p]; return 1;
         }
         tFree(&o);
     }
-    if (fbp >= 0 && nrnd() >= 0.5) { tFree(&fb); fbp = -1; }
+    if (fbp >= 0 && !maxMode && nrnd() >= 0.5) { tFree(&fb); fbp = -1; }
     if (fbp >= 0) {
-        tFree(s); *s = fb; *used |= (1 << fbp) | INV[fbp]; return 1;
+        tFree(s); *s = fb; *used |= (1u << fbp) | (unsigned)INV[fbp]; return 1;
     }
     return 0;
 }
@@ -38529,6 +39115,15 @@ static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
                 tCopy(&units[nu], &v->t[i++]);
                 break;
             }
+            if (v->t[i].type == TK_LOCK) {
+                const wchar_t *ls = v->t[i].s; int L2 = (int)wcslen(ls);
+                int endsQ = L2 >= 2 && wcschr(L"\"\x201D'\x2019)", ls[L2 - 1]) && wcschr(L".!?", ls[L2 - 2]);
+                int nx = i + 1; while (nx < v->n && v->t[nx].type == TK_SPACE) nx++;
+                if (endsQ && nx > i + 1 && nx < v->n && (v->t[nx].type == TK_WORD || v->t[nx].type == TK_LOCK) && iswupper(v->t[nx].s[0])) {
+                    tCopy(&units[nu], &v->t[i++]);
+                    break;
+                }
+            }
             tCopy(&units[nu], &v->t[i++]);
         }
         kind[nu++] = 1;
@@ -38537,7 +39132,7 @@ static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
     for (int u = 0; u < nu; u++) if (kind[u] == 1) sentRemember(units[u].t, units[u].n);
     for (int u = 0; u < nu; u++) {
         if (kind[u] != 1) continue;
-        int used = 0;
+        unsigned used = 0;
         gPrevOpener = 0;
         for (int pu = u - 1; pu >= 0; pu--) if (kind[pu] == 1) {
             Str h = {0}; sAdd(&h, L""); for (int q = 0; q < units[pu].n && q < 12; q++) sAdd(&h, units[pu].t[q].s);
@@ -38550,14 +39145,52 @@ static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
             if (nrnd() < P2[str]) restructureOnce(&units[u], &used);
         }
     }
+    /* MAX: "This is not laziness. This is compression." -> "This is compression, not laziness." */
+    for (int u = 0; maxMode && u + 2 < nu; u++) {
+        if (kind[u] != 1 || kind[u + 2] != 1 || units[u + 1].n != 1 || units[u + 1].t[0].type != TK_SPACE) continue;
+        Toks *a = &units[u], *b = &units[u + 2];
+        if (sentShape(a->t, a->n) != 0 || sentShape(b->t, b->n) != 0) continue;
+        int ba = -1, bb = -1;
+        for (int q = 0; q < a->n; q++) if (a->t[q].tag == T_BE && isFiniteTok(a->t, q)) { ba = q; break; }
+        for (int q = 0; q < b->n; q++) if (b->t[q].tag == T_BE && isFiniteTok(b->t, q)) { bb = q; break; }
+        if (ba < 1 || bb < 1 || ba != bb) continue;
+        int same = 1; for (int q = 0; q <= ba; q++) { wchar_t x[40], y[40]; x[0] = y[0] = 0; if (a->t[q].type == TK_WORD) wordL(&a->t[q], x); else wcscpy(x, a->t[q].s); if (b->t[q].type == TK_WORD) wordL(&b->t[q], y); else wcscpy(y, b->t[q].s); if (wcscmp(x, y)) same = 0; }
+        int nt = nextNS(a->t, a->n, ba + 1);
+        if (same && nt < a->n && (wordIs(&a->t[nt], L"a") || wordIs(&a->t[nt], L"an"))) {
+            int nb2 = nextNS(b->t, b->n, bb + 1);
+            Span x = trimSpan(a->t, nt, a->n - 1), y = trimSpan(b->t, nb2, b->n - 1);
+            if (nb2 < b->n && (wordIs(&b->t[nb2], L"a") || wordIs(&b->t[nb2], L"an")) && spanWords(x) <= 5 && spanWords(y) <= 5) {
+                Toks m = {0}; Span head = { a->t, ba + 1 };
+                pushSpan(&m, head, 0); pushSp(&m); pushW(&m, L"both", 1); pushSp(&m); pushSpan(&m, x, 0); pushSp(&m); pushW(&m, L"and", 1); pushSp(&m); pushSpan(&m, y, 0);
+                tCopy(&m, &b->t[b->n - 1]);
+                if (sentSeen(&m)) { tFree(&m); continue; }
+                tFree(a); *a = m; tFree(&units[u + 1]); tFree(b);
+                kind[u + 1] = kind[u + 2] = 2; st->restructured++; done[u] = 1; u += 2; continue;
+            }
+        }
+        if (!same || nt >= a->n || !wordIs(&a->t[nt], L"not")) continue;
+        Span x = trimSpan(a->t, nt + 1, a->n - 1), y = trimSpan(b->t, bb + 1, b->n - 1);
+        if (spanWords(x) < 1 || spanWords(y) < 1 || spanWords(x) > 6 || spanWords(y) > 8) continue;
+        Toks m = {0};
+        Span head = { b->t, bb + 1 };
+        pushSpan(&m, head, 0); pushSp(&m); pushSpan(&m, y, 0); pushP(&m, L','); pushSp(&m); pushW(&m, L"not", 1); pushSp(&m); pushSpan(&m, x, 0);
+        tCopy(&m, &b->t[b->n - 1]);
+        if (sentSeen(&m)) { tFree(&m); continue; }
+        tFree(a); *a = m; tFree(&units[u + 1]); tFree(b);
+        kind[u + 1] = kind[u + 2] = 2; st->restructured++; done[u] = 1;
+        u += 2;
+    }
     /* merge short neighbours: "X. It Y." -> "X, and it Y." */
     for (int u = 0; allowMerge && u + 2 < nu; u++) {
         if (kind[u] != 1 || kind[u + 2] != 1 || units[u + 1].n != 1 || units[u + 1].t[0].type != TK_SPACE) continue;
         Toks *a = &units[u], *b = &units[u + 2];
         if (a->n < 3 || b->n < 3 || sentShape(a->t, a->n) < 0 || sentShape(b->t, b->n) < 0) continue;
         if (a->t[a->n - 1].s[0] != L'.' || sentWords(a) > 14 || sentWords(b) > 16) continue;
-        static const wchar_t *MERGE[] = { L"it", L"they", L"this", L"he", L"she", L"these", L"there", L"we", NULL };
+        static const wchar_t *MERGE[] = { L"it", L"they", L"this", L"he", L"she", L"these", NULL };
         if (!isWordIn(&b->t[0], MERGE) || nrnd() >= PM[str]) continue;
+        { int dup = 0; Toks *ab[2] = { a, b };
+          for (int z = 0; z < 2; z++) for (int q = 0; q < ab[z]->n; q++) if (wordIs(&ab[z]->t[q], L"and") || wordIs(&ab[z]->t[q], L"but") || wordIs(&ab[z]->t[q], L"so")) dup = 1;
+          if (dup) continue; }
         { int neg = 0; static const wchar_t *NEG[] = { L"not", L"never", L"no", NULL };
           for (int q = 0; q < a->n; q++) if (a->t[q].type == TK_WORD && (isWordIn(&a->t[q], NEG) || wcsstr(a->t[q].s, L"n't") || wcsstr(a->t[q].s, L"n\x2019t"))) neg = 1;
           if (neg) continue; }
@@ -38669,6 +39302,14 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
     for (int i = 0; i < v.n; i++) sAdd(&out, v.t[i].s);
     tFree(&v); free(L);
     return out.s;
+}
+static TagEnt *tagLookupFwd(const char *w) { return tagLookup(tw, ntw, w); }
+static int commonLowerWord(const wchar_t *lw) {
+    char nb[48]; int k = 0; for (; lw[k] && k < 47; k++) { if (lw[k] > 127) return 0; nb[k] = (char)lw[k]; } nb[k] = 0;
+    TagEnt *e = tagLookup(tw, ntw, nb);
+    if (!e) return 0;
+    int best = 0; for (int q = 1; q < e->nt; q++) if (e->sc[q] > e->sc[best]) best = q;
+    return e->tag[best] != T_NP;
 }
 
 /* ---------- AI detector + grammar checker (pure algorithms, offline) ---------- */
@@ -39214,6 +39855,14 @@ static void dtAnalyze(const wchar_t *t, Detect *d) {
     }
     free(low); free(url); free(w); free(sStart); free(sLen);
 }
+
+static int dtGramCount(const wchar_t *s) {
+    Detect d; dtAnalyze(s, &d);
+    int c = 0;
+    for (int i = 0; i < d.nIss; i++) if (d.iss[i].kind == IS_GRAM || d.iss[i].kind == IS_PUNCT) c++;
+    dtFree(&d);
+    return c;
+}
 /* trained AI-text detector weights (logistic regression, generated by train.py) */
 static const double DT_MU[DT_NF] = { 5.02697, 18.3955, 7.06887, 0.410181, 5.01263, 2.6686, 0.81207, 1.34944, 5.79666, 0.149211, 0.660344, 0.203464, 0.258849, 0.905606, 0.311561, 0.248231, 1.61091, 5.65905, 1.39561, 0.601511, 0.366643, 1.10625, 0.715038, 0.0511536, 0.0323254, 1.07962, 1.59337, 0.56085, 1.7216, 0.0828904, 0.0405836, 0.0297547, 0.110763, 0.00825143, 0.0899991, 0.0702891, 0.09473, 0.113708, 0.0195084, 0.00886743 };
 static const double DT_SD[DT_NF] = { 0.728512, 9.26297, 4.81706, 0.188071, 0.787546, 0.497377, 0.0644607, 1.65783, 3.21633, 0.566936, 1.90608, 1.56716, 1.10903, 2.04545, 1.0146, 1.23887, 4.54452, 6.75147, 2.99668, 1.56145, 0.0814589, 1.03862, 1.3163, 0.106721, 0.0880936, 2.00888, 2.95691, 0.284619, 0.513911, 0.119541, 0.126385, 0.0770354, 0.174508, 0.0411945, 0.287892, 0.320221, 0.252494, 0.170787, 0.0594911, 0.038691 };
@@ -39360,8 +40009,8 @@ static void dtScore(const wchar_t *t, Detect *d) {
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.6.0"
-#define APP_VERSION_W L"1.6.0"
+#define APP_VERSION   "1.7.0"
+#define APP_VERSION_W L"1.7.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")

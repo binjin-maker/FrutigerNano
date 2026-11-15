@@ -19,7 +19,7 @@ A built-in grammar tagger (an HMM trained on the Brown corpus) labels every word
 
 **Strength**: Light / Medium / Heavy / MAX controls how much changes. Rough success rates: Light 20%, Medium 45%, Heavy 50–75%, MAX 85–100%.
 
-**MAX** rebuilds whole sentences: cause/effect flips, concession and cleft rewrites, list reordering, extra splits. It always does at least 10 passes (escalating to bigger rebuilds when it gets stuck), and once it hits 10 it keeps adding passes as long as the run is still under 5 seconds (up to 1000). A progress bar shows where it's at. Still 100% algorithmic, no AI.
+**MAX** rebuilds whole sentences with ~30 grammatical transforms (passives incl. perfect/modal, "According to…", "What X wants is…", "There was a … who…", "After doing X, …", moving side-clauses and asides to the front, splitting verb phrases, "not X but Y" merges, negation rephrasing, measurements, imperatives, list reordering, cause/effect and concession flips). Every rebuilt sentence is checked by the built-in grammar checker and rejected if it introduces a problem. It always does at least 10 passes (escalating to bigger rebuilds when it gets stuck), and once it hits 10 it keeps adding passes as long as the run is still under 5 seconds (up to 1000). A progress bar shows where it's at. Still 100% algorithmic, no AI.
 
 **Passes** (1-1000): feeds each result back in for another round. Nano remembers every word it swapped out and every sentence shape it produced, so it never undoes or repeats a change, and it stops early once there's nothing new left. Click the arrow again to stop.
 
