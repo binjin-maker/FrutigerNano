@@ -1,5 +1,5 @@
 /* Frutiger Nano — rewrites text so it reads completely differently while saying the same thing.
-   Offline engine (built-in thesaurus + sentence restructuring) or Claude with your own API key.
+   Offline engine: built-in thesaurus + sentence rearranging.
    Quotes, (parentheses), [brackets], links, code, names and numbers are never changed.
    Single file, Win32 only. */
 #define UNICODE
@@ -22,6 +22,545 @@
 #include <wchar.h>
 #include <wctype.h>
 
+
+/* second, larger word list; flags: ! not before "to", ? not before to/that/with/..., ^ not after a determiner,
+   # not before a particle (up/out/off...), = not after is/was/seems..., P not after a pronoun or modal,
+   [a,b] = not before these words */
+static const wchar_t *THES2[] = {
+    L"B in place|in the first place|first place|in shape|out of shape|real estate|for real|in danger|in charge of|on purpose|by far|at once|of course not|in a sense|a couple|the rest|at the same time|in general terms|so to speak|on the other side",
+
+    L"V state > declare|say:says:said:said:saying",
+    L"V observe > notice|witness",
+    L"V isolate > separate|single:singles:singled:singled:singling out",
+    L"V uncover > reveal|expose|discover",
+    L"VP suggest > indicate|imply",
+    L"V indicate > show:shows:showed:shown:showing|suggest",
+    L"V imply > suggest",
+    L"V? think:thinks:thought:thought:thinking > believe",
+    L"V?[me,you,him,her,us,them,it,so] believe > think:thinks:thought:thought:thinking",
+    L"V! need > require",
+    L"V require > need",
+    L"V? stop:stops:stopped:stopped:stopping > halt:halts:halted:halted:halting|cease",
+    L"V die:dies:died:died:dying > pass:passes:passed:passed:passing away",
+    L"V# stay > remain",
+    L"V# remain > stay",
+    L"V# reach > arrive at",
+    L"V[that,on,whether,if,what,how,which,where,who,when,against] decide > choose:chooses:chose:chosen:choosing",
+    L"V[how,what,why,where,when,who,whether,that] describe > depict|portray",
+    L"V explain > clarify",
+    L"V discover > find:finds:found:found:finding",
+    L"V prove > show:shows:showed:shown:showing|demonstrate",
+    L"V provide > supply",
+    L"V= complete > finish",
+    L"V seek:seeks:sought:sought:seeking > look:looks:looked:looked:looking for",
+    L"V acquire > get:gets:got:gotten:getting|gain|obtain",
+    L"V notice > spot:spots:spotted:spotted:spotting|see:sees:saw:seen:seeing",
+    L"V inspire > motivate",
+    L"V answer > respond to",
+    L"V complain > grumble",
+    L"V forbid:forbids:forbade:forbidden:forbidding > ban:bans:banned:banned:banning|prohibit",
+    L"V prohibit > ban:bans:banned:banned:banning|forbid:forbids:forbade:forbidden:forbidding",
+    L"V defend > protect",
+    L"V injure > hurt:hurts:hurt:hurt:hurting|wound",
+    L"V declare > announce",
+    L"V announce > declare",
+    L"V? admit:admits:admitted:admitted:admitting > confess|acknowledge",
+    L"V refuse > decline",
+    L"V intend > plan:plans:planned:planned:planning|aim",
+    L"V contain > hold:holds:held:held:holding",
+    L"V=[in,with] involve > entail",
+    L"V deserve > merit|earn",
+    L"V adapt > adjust",
+    L"V adjust > adapt|tweak",
+    L"V modify > change|alter|adjust",
+    L"V transform > change|convert",
+    L"V delete > erase|remove",
+    L"V cure > heal",
+    L"V heal > mend",
+    L"V[with,against,through,for,over] struggle > strive:strives:strove:striven:striving",
+    L"V compete > contend",
+    L"V cooperate > collaborate|work:works:worked:worked:working together",
+    L"V collaborate > cooperate|work:works:worked:worked:working together",
+    L"V warn > caution|alert",
+    L"V promise > pledge|vow",
+    L"V guarantee > ensure",
+    L"V confirm > verify",
+    L"V reject > dismiss|refuse",
+    L"V oppose > resist",
+    L"V punish > discipline",
+    L"V# climb > ascend|scale",
+    L"V# throw:throws:threw:thrown:throwing > toss|hurl",
+    L"V# toss > throw:throws:threw:thrown:throwing",
+    L"V# lift > raise",
+    L"V shine:shines:shone:shone:shining > gleam|glow",
+    L"V glow > shine:shines:shone:shone:shining|gleam",
+    L"V sparkle > glitter|twinkle",
+    L"V teach:teaches:taught:taught:teaching > instruct",
+    L"V point:points:pointed:pointed:pointing out > note|highlight",
+    L"V end up > wind:winds:wound:wound:winding up",
+    L"V take:takes:took:taken:taking care of > look:looks:looked:looked:looking after|care for",
+    L"V look:looks:looked:looked:looking after > take:takes:took:taken:taking care of",
+    L"V put:puts:put:put:putting up with > tolerate|endure",
+    L"V tolerate > put:puts:put:put:putting up with|endure",
+    L"V carry on > continue",
+    L"V think:thinks:thought:thought:thinking about > consider|reflect on",
+    L"V play:plays:played:played:playing a role in > contribute to",
+    L"V play:plays:played:played:playing a part in > contribute to",
+    L"V have:has:had:had:having to do with > relate to",
+    L"V uncover > reveal|expose",
+    L"V emerge > appear|surface",
+    L"V vanish > disappear",
+    L"V attempt > try:tries:tried:tried:trying",
+    L"V assist > help",
+    L"V purchase > buy:buys:bought:bought:buying",
+    L"V utilize > use",
+    L"V commence > begin:begins:began:begun:beginning|start",
+    L"V construct > build:builds:built:built:building",
+    L"V comprehend > understand:understands:understood:understood:understanding|grasp",
+    L"V investigate > examine|look:looks:looked:looked:looking into",
+    L"V demonstrate > show:shows:showed:shown:showing|prove",
+    L"V illustrate > show:shows:showed:shown:showing",
+    L"V obtain > get:gets:got:gotten:getting|gain",
+    L"V persuade > convince",
+    L"V conceal > hide:hides:hid:hidden:hiding",
+    L"V assess > evaluate|judge",
+    L"V evaluate > assess|judge",
+    L"V enhance > improve|boost",
+    L"V boost > increase|raise",
+    L"V generate > produce|create",
+    L"V eliminate > remove|get:gets:got:gotten:getting rid of",
+    L"V possess > have:has:had:had:having|own",
+    L"V anticipate > expect",
+    L"V encounter > meet:meets:met:met:meeting|run:runs:ran:run:running into",
+    L"V consume > use|eat:eats:ate:eaten:eating",
+    L"V resemble > look:looks:looked:looked:looking like",
+    L"V depart > leave:leaves:left:left:leaving",
+    L"V inquire > ask",
+    L"V perceive > see:sees:saw:seen:seeing|notice",
+    L"V assert > claim|state",
+    L"V reside > live",
+    L"V request > ask for",
+    L"V converse > talk",
+    L"V persist > continue|carry on",
+    L"V terminate > end",
+    L"V initiate > start|begin:begins:began:begun:beginning",
+
+    L"N increase > rise|boost",
+    L"N decrease > drop|decline",
+    L"N researcher > scientist|investigator",
+    L"N scientist > researcher",
+    L"N team > group|crew",
+    L"N guy > man:men|fellow",
+    L"N word > term",
+    L"ND urge > impulse|craving",
+    L"N fridge > refrigerator",
+    L"N situation > scenario|circumstance",
+    L"N incident > event|episode",
+    L"N accident > mishap",
+    L"N disaster > catastrophe|calamity:calamities",
+    L"N conflict > clash|dispute",
+    L"N battle > fight|clash",
+    L"N relationship > connection",
+    L"N teenager > teen|adolescent",
+    L"N expert > specialist",
+    L"N audience > crowd",
+    L"N place > location|spot",
+    L"N location > place|spot",
+    L"N vacation > holiday|getaway",
+    L"N holiday > vacation",
+    L"N career > profession",
+    L"N profession > career|occupation",
+    L"N task > job|chore",
+    L"N duty:duties > responsibility:responsibilities|obligation",
+    L"N responsibility:responsibilities > duty:duties|obligation",
+    L"N solution > answer|fix:fixes|remedy:remedies",
+    L"N technique > method|approach",
+    L"N procedure > process|method",
+    L"N freedom > liberty:liberties|independence",
+    L"N strength > power",
+    L"N talent > gift|knack",
+    L"N emotion > feeling",
+    L"N desire > craving|longing",
+    L"N option > choice|alternative",
+    L"N risk > danger|hazard",
+    L"N danger > risk|threat",
+    L"N threat > danger|menace",
+    L"N safety > security",
+    L"N money > cash",
+    L"N shape > form",
+    L"N color > shade|hue",
+    L"N noise > sound|racket",
+    L"N darkness > gloom",
+    L"N fire > blaze|flame",
+    L"N machine > device",
+    L"N device > gadget|tool",
+    L"N tool > instrument|device",
+    L"N photo > picture|photograph",
+    L"N article > piece",
+    L"N message > note",
+    L"N symbol > emblem|sign",
+    L"N victory:victories > win|triumph",
+    L"N defeat > loss:losses",
+    L"N prize > award|reward",
+    L"N award > prize",
+    L"N reward > prize|bonus:bonuses",
+    L"N punishment > penalty:penalties",
+    L"N crime > offense",
+    L"N criminal > offender|crook",
+    L"N illness:illnesses > sickness:sicknesses",
+    L"N disease > illness:illnesses|sickness:sicknesses",
+    L"N pain > discomfort",
+    L"N injury:injuries > wound",
+    L"N animal > creature",
+    L"N creature > animal|being",
+    L"N flower > bloom|blossom",
+    L"N forest > woodland",
+    L"N ocean > sea",
+    L"N sea > ocean",
+    L"N rock > stone",
+    L"N stone > rock",
+    L"N exam > test",
+    L"N assignment > task",
+    L"N product > item",
+    L"N item > object",
+    L"N equipment:equipment > gear:gear",
+    L"N gear:gear > equipment:equipment",
+    L"N era > age",
+    L"N discovery:discoveries > finding",
+    L"N mistake > error|slip",
+    L"N error > mistake",
+    L"N issue > problem|concern",
+    L"N concern > worry:worries|issue",
+    L"N speech:speeches > talk|address:addresses",
+    L"N job > position|role",
+    L"N notion > idea",
+    L"N belief > conviction",
+    L"N kid > child:children",
+    L"N mom > mother",
+    L"N dad > father",
+    L"N couch:couches > sofa",
+    L"N sofa > couch:couches",
+    L"N trash:trash > garbage:garbage",
+    L"N garbage:garbage > trash:trash",
+    L"N quantity:quantities > amount",
+    L"N aim > goal",
+    L"N objective > goal|aim",
+    L"N outcome > result",
+    L"N consequence > result|effect",
+    L"N impact > effect",
+    L"N benefit > advantage|perk",
+    L"N advantage > benefit|edge",
+    L"N drawback > downside|disadvantage",
+    L"N flaw > weakness:weaknesses|defect",
+    L"N strategy:strategies > plan|approach",
+    L"N vehicle > car",
+    L"N automobile > car",
+    L"N individual > person:people",
+    L"N pupil > student",
+    L"N learner > student",
+    L"N physician > doctor",
+    L"N supervisor > boss:bosses|manager",
+    L"N employee > worker",
+    L"N client > customer",
+    L"N nation > country:countries",
+    L"N region > area",
+    L"N journey > trip",
+    L"N response > answer|reply:replies",
+    L"N tale > story:stories",
+    L"N fury > rage",
+    L"N joy > happiness",
+    L"N sorrow > sadness",
+    L"N ability:abilities > skill|capability:capabilities",
+    L"N trait > feature|quality:qualities",
+    L"N perspective > view|viewpoint",
+    L"N choice > option|decision",
+    L"N instructor > teacher",
+    L"N educator > teacher",
+    L"N firm > company:companies",
+    L"N film > movie",
+    L"N proof > evidence",
+    L"N? hint > clue",
+    L"N foe > enemy:enemies",
+    L"N adversary:adversaries > opponent|enemy:enemies",
+    L"N opponent > rival|adversary:adversaries",
+    L"N rival > competitor|opponent",
+    L"N chat > conversation|talk",
+    L"N achievement > accomplishment|feat",
+    L"N occasion > event",
+    L"N intention > purpose|aim",
+    L"N route > path|way",
+
+    L"A groundbreaking > pioneering|revolutionary|innovative",
+    L"A innovative > inventive|creative",
+    L"A millennia > thousands of years",
+    L"A humanity > humankind|mankind",
+    L"A findings > results|discoveries",
+    L"A named > called",
+    L"A alongside > beside|next to",
+    L"A again > once more|once again",
+    L"A therefore > thus|hence",
+    L"A thus > therefore|hence",
+    L"A hence > therefore|thus",
+    L"A everyone > everybody",
+    L"A everybody > everyone",
+    L"A someone > somebody",
+    L"A somebody > someone",
+    L"A anyone > anybody",
+    L"A anybody > anyone",
+    L"A nobody > no one",
+    L"A nowadays > these days|today",
+    L"A rarely > seldom",
+    L"A seldom > rarely",
+    L"A carefully > cautiously|attentively",
+    L"A absolutely > completely|totally",
+    L"A real > genuine|actual",
+    L"A genuine > real|authentic",
+    L"A actual > real",
+    L"A false > untrue|incorrect",
+    L"A fake > phony|false",
+    L"A ancient > age-old",
+    L"A brief > short|quick",
+    L"A sudden > abrupt|unexpected",
+    L"A gradual > slow|steady",
+    L"A complicated > complex|tricky",
+    L"A probable > likely",
+    L"A significant > major|notable",
+    L"A valuable > precious|worthwhile",
+    L"A worthless > useless|pointless",
+    L"A wonderful > marvelous|delightful|fantastic",
+    L"A impressive > striking|remarkable",
+    L"A dirty > filthy|grimy",
+    L"A messy > untidy|cluttered",
+    L"A neat > tidy",
+    L"A expensive > costly|pricey",
+    L"A cheap > inexpensive|affordable",
+    L"A? sick > ill|unwell",
+    L"A wise > sensible",
+    L"A silly > foolish|goofy",
+    L"A? crazy > insane|wild",
+    L"A special > unique",
+    L"A exciting > thrilling|exhilarating",
+    L"A popular > well-liked",
+    L"A unknown > obscure|unfamiliar",
+    L"A cruel > harsh|brutal",
+    L"A gentle > soft|tender",
+    L"A numerous > countless|many",
+    L"A countless > numerous|endless",
+    L"A endless > infinite|never-ending",
+    L"A constant > continual|steady",
+    L"A frequent > regular",
+    L"A apparent > evident|clear",
+    L"A visible > noticeable",
+    L"A invisible > unseen",
+    L"A essential > vital|crucial",
+    L"A necessary > needed|required",
+    L"A precise > exact|accurate",
+    L"A exact > precise",
+    L"A enormous > huge|massive|immense",
+    L"A massive > huge|enormous",
+    L"A immense > huge|enormous|vast",
+    L"A vast > huge|immense",
+    L"A tremendous > huge|enormous",
+    L"A minor > small|slight",
+    L"A slight > small|minor",
+    L"A slightly > somewhat|a bit",
+    L"A somewhat > slightly|a bit",
+    L"A extremely > incredibly|exceptionally",
+    L"A incredibly > extremely|remarkably",
+    L"A entirely > completely|wholly",
+    L"A totally > completely|entirely",
+    L"A fully > completely|entirely",
+    L"A nearly > almost",
+    L"A practically > almost|nearly",
+    L"A roughly > about|approximately",
+    L"A approximately > roughly|about",
+    L"A primarily > mainly|mostly",
+    L"A mainly > mostly|chiefly",
+    L"A largely > mostly|mainly",
+    L"A particularly > especially",
+    L"A especially > particularly",
+    L"A frequently > often|regularly",
+    L"A regularly > often|routinely",
+    L"A typically > usually|normally",
+    L"A generally > usually|mostly",
+    L"A normally > usually|typically",
+    L"A occasionally > sometimes|now and then",
+    L"A instantly > immediately|right away",
+    L"A rapidly > quickly|swiftly",
+    L"A swiftly > quickly|rapidly",
+    L"A obviously > clearly|plainly",
+    L"A evidently > clearly|obviously",
+    L"A apparently > seemingly|evidently",
+    L"A seemingly > apparently",
+    L"A certainly > definitely|surely",
+    L"A surely > certainly",
+    L"A undoubtedly > certainly|definitely",
+    L"A precisely > exactly",
+    L"A merely > simply|just",
+    L"A basically > essentially|fundamentally",
+    L"A essentially > basically|fundamentally",
+    L"A truly > genuinely|really",
+    L"A genuinely > truly|really",
+    L"A honestly > frankly|truthfully",
+    L"A frankly > honestly",
+    L"A deliberately > intentionally|on purpose",
+    L"A intentionally > deliberately|on purpose",
+    L"A ultimately > in the end|eventually",
+    L"A initially > at first|originally",
+    L"A originally > initially|at first",
+    L"A previously > formerly|earlier",
+    L"A formerly > previously|once",
+    L"A besides > apart from",
+    L"A huge > enormous|massive|immense",
+    L"A excellent > outstanding|superb",
+    L"A outstanding > excellent|exceptional",
+    L"A superb > excellent|outstanding",
+    L"A terrific > fantastic|great",
+    L"A horrible > awful|dreadful",
+    L"A awful > terrible|dreadful",
+    L"A dreadful > terrible|awful",
+    L"A lovely > beautiful|charming",
+    L"A gorgeous > beautiful|stunning",
+    L"A stunning > beautiful|gorgeous",
+    L"A fascinating > intriguing|captivating",
+    L"A intriguing > fascinating|curious",
+    L"A tedious > boring|dull",
+    L"A dull > boring|bland",
+    L"A cheerful > happy|upbeat",
+    L"A joyful > happy|cheerful",
+    L"A unhappy > sad|miserable",
+    L"A miserable > unhappy|wretched",
+    L"A furious > enraged|livid",
+    L"A frightened > scared|afraid",
+    L"A exhausted > worn out|drained",
+    L"A weary > tired|worn out",
+    L"A clever > smart|bright",
+    L"A intelligent > smart|bright",
+    L"A foolish > silly|unwise",
+    L"A peculiar > strange|odd",
+    L"A unusual > strange|uncommon",
+    L"A uncommon > unusual|rare",
+    L"A humorous > funny|amusing",
+    L"A amusing > funny|entertaining",
+    L"A wealthy > rich|well-off",
+    L"A powerful > strong|mighty",
+    L"A feeble > weak|frail",
+    L"A plainly > clearly|obviously",
+    L"A presumably > probably",
+    L"A possibly > perhaps|maybe",
+    L"A perhaps > maybe|possibly",
+    L"A comparable > similar",
+    L"A renowned > famous|celebrated",
+    L"A celebrated > famous|renowned",
+    L"A hazardous > dangerous|risky",
+    L"A risky > dangerous|dicey",
+    L"A perilous > dangerous|risky",
+    L"A starving > famished|ravenous",
+    L"A tasty > delicious|flavorful",
+    L"A delicious > tasty|flavorful",
+    L"A silent > quiet|soundless",
+    L"A noisy > loud|rowdy",
+    L"A courageous > brave|bold",
+    L"A fearless > brave|daring",
+    L"A pleasant > nice|agreeable",
+    L"A truthful > honest",
+    L"A sincere > honest|genuine",
+    L"A cautious > careful|wary",
+    L"A helpful > useful|handy",
+    L"A handy > useful|convenient",
+    L"A pointless > useless|futile",
+    L"A contemporary > modern|current",
+    L"A flawless > perfect|impeccable",
+    L"A thrilled > delighted|ecstatic",
+    L"A anxious > nervous|uneasy",
+    L"A nervous > anxious|jittery",
+    L"A astonished > amazed|stunned",
+    L"A amazed > astonished|stunned",
+    L"A puzzled > confused|baffled",
+    L"A baffled > confused|puzzled",
+    L"A welcoming > friendly|inviting",
+    L"A incredible > amazing|unbelievable",
+    L"A remarkable > extraordinary|notable",
+    L"A fundamental > basic|core",
+    L"A intricate > complex|detailed",
+    L"A distinctive > unique|characteristic",
+    L"A diverse > varied|wide-ranging",
+    L"A courteous > polite|respectful",
+    L"A respectful > polite|courteous",
+    L"A impolite > rude",
+    L"A fortunate > lucky",
+    L"A unfortunate > unlucky",
+    L"A enormously > hugely|immensely",
+    L"A hugely > enormously|immensely",
+    L"A greatly > hugely|considerably",
+    L"A considerably > significantly|substantially",
+    L"A significantly > considerably|substantially",
+    L"A substantially > considerably|significantly",
+    L"A dramatically > sharply|drastically",
+    L"A slowly > gradually|steadily",
+    L"A gradually > slowly|steadily",
+    L"A steadily > gradually|consistently",
+    L"A barely > hardly|scarcely",
+    L"A hardly > barely|scarcely",
+    L"A entire > whole|full",
+
+    L"P as if > as though",
+    L"P as though > as if",
+    L"P rather than > instead of",
+    L"P instead of > rather than",
+    L"P at all times > always|constantly",
+    L"P from time to time > occasionally|now and then",
+    L"P now and then > occasionally|from time to time",
+    L"P every now and then > occasionally|from time to time",
+    L"P in the past > previously|before",
+    L"P these days > nowadays",
+    L"P a large number of > many|lots of",
+    L"P a huge amount of > a lot of|tons of",
+    L"P a great amount of > a lot of|plenty of",
+    L"P a variety of > various|a range of",
+    L"P a range of > a variety of",
+    L"P is made up of > consists of|is composed of",
+    L"P are made up of > consist of|are composed of",
+    L"P consists of > is made up of",
+    L"P a lot of > lots of|plenty of",
+    L"P lots of > a lot of|plenty of",
+    L"P plenty of > lots of|a lot of",
+    L"P owing to > because of|due to",
+    L"P along with > together with|as well as",
+    L"P together with > along with",
+    L"P next to > beside|alongside",
+    L"P in front of > ahead of",
+    L"P all over > throughout",
+    L"P throughout > all through",
+    L"P close to > near",
+    L"P a few times > several times",
+    L"P all the time > constantly|nonstop",
+    L"P most of the time > usually|generally",
+    L"P in a hurry > in a rush",
+    L"P in a rush > in a hurry",
+    L"P at the beginning > at the start",
+    L"P at the start > at the beginning",
+    L"P in total > altogether|overall",
+    L"P for sure > definitely|certainly",
+    L"P no doubt > undoubtedly|certainly",
+    L"P without a doubt > undoubtedly|certainly",
+    L"P each and every > every",
+    L"P first and foremost > above all|most importantly",
+    L"P above all > most importantly",
+    L"P sooner or later > eventually|at some point",
+    L"P once again > again|once more",
+    L"P once more > again|once again",
+    L"P right away > immediately|at once",
+    L"P before long > soon|shortly",
+    L"P in the meantime > meanwhile",
+    L"P as a whole > overall|in general",
+    L"P on average > typically|usually",
+    L"P in particular > especially|particularly",
+    L"P more than ever > like never before",
+    L"P isn't simply > is not merely|isn't just",
+    L"P is not simply > is not merely|isn't just",
+    NULL
+};
 /* ---------- Nano rewrite engine (portable C, no Win32) ---------- */
 
 static wchar_t *wdup(const wchar_t *s) { size_t n = wcslen(s) + 1; wchar_t *d = malloc(n * sizeof *d); memcpy(d, s, n * sizeof *d); return d; }
@@ -64,7 +603,8 @@ static const wchar_t *COMMON[] = {
     L"he's", L"she's", L"what's", L"let's", L"getting", L"going", L"having", L"making", L"being", L"trying", L"after",
     L"living", L"working", L"playing", L"reading", L"writing", L"learning", L"studying", L"running", L"walking",
     L"then", L"yet", L"tonight", L"instead", L"soon", L"please", L"thanks", L"sure", L"okay", L"ok", L"oh", L"wow", L"hello",
-    L"hi", L"hey", L"whether", L"whatever", L"whoever", L"wherever", L"besides", L"during", L"despite", L"unlike", L"like", NULL
+    L"hi", L"hey", L"throughout", L"within", L"across", L"among", L"beyond", L"near", L"around", L"until", L"under",
+    L"whether", L"whatever", L"whoever", L"wherever", L"besides", L"during", L"despite", L"unlike", L"like", NULL
 };
 
 static const wchar_t *DETS[] = { L"a", L"an", L"the", L"this", L"that", L"these", L"those", L"my", L"your", L"his", L"her",
@@ -74,6 +614,11 @@ static const wchar_t *VERBISH[] = { L"to", L"will", L"would", L"can", L"could", 
     L"i", L"you", L"we", L"they", L"he", L"she", L"it", L"not", L"don't", L"doesn't", L"didn't", L"won't", L"can't", L"never",
     L"who", L"also", L"often", L"always", L"usually", NULL };
 static const wchar_t *NOUNPREV[] = { L"much", L"little", L"less", L"more", L"enough", NULL };
+static const wchar_t *PARTICLES[] = { L"up", L"out", L"off", L"away", L"over", L"down", L"back", L"on", L"in", L"for", L"around", L"through", NULL };
+static const wchar_t *BEFORMS[] = { L"is", L"are", L"was", L"were", L"be", L"been", L"being", L"am", L"seems", L"seem", L"seemed", L"looks", L"look",
+    L"became", L"become", L"it's", L"that's", L"isn't", L"wasn't", L"not", NULL };
+static const wchar_t *PERSONAL[] = { L"i", L"we", L"you", L"he", L"she", L"they", L"would", L"could", L"might", L"can", L"may", L"to", L"will",
+    L"should", L"must", L"me", L"us", L"i'd", L"we'd", NULL };
 static const wchar_t *AFTERSET[] = { L"to", L"that", L"with", L"about", L"for", L"of", L"in", L"on", L"at", L"by", NULL };
 static const wchar_t *PPCUE[] = { L"have", L"has", L"had", L"having", L"been", L"be", L"was", L"were", L"is", L"are", L"am",
     L"being", L"get", L"got", L"gets", L"i've", L"you've", L"we've", L"they've", L"it's", L"he's", L"she's", L"never", NULL };
@@ -167,7 +712,7 @@ static const wchar_t *THES[] = {
     L"V! remember|recall",
     L"V depart > leave:leaves:left:left:leaving",
     L"V assess|evaluate",
-    L"V recommend|suggest",
+    L"V recommend > suggest",
     L"V ensure|make:makes:made:made:making sure",
     L"V establish|set:sets:set:set:setting up",
     L"V expect|anticipate",
@@ -204,7 +749,7 @@ static const wchar_t *THES[] = {
     L"N result|outcome",
     L"N goal|aim|objective",
     L"N opportunity:opportunities > chance",
-    L"N benefit|advantage",
+    L"N? benefit|advantage",
     L"N disadvantage|drawback|downside",
     L"N effect|impact",
     L"N example|instance",
@@ -458,11 +1003,11 @@ static const wchar_t *CONTR[] = {
 };
 
 typedef struct { wchar_t *f[5]; signed char src, tgt; } Mem;
-typedef struct { wchar_t type, flags; int n; Mem *m; } Grp;
+typedef struct { wchar_t type, flags[8]; wchar_t *skip; int n; Mem *m; } Grp;
 typedef struct { wchar_t *key; int g, m, f; } Ent;
 
 static Grp *grp; static int ngrp, gcap;
-#define TCAP 16384
+#define TCAP 65536
 static Ent tab[TCAP], otab[TCAP];
 
 static unsigned hashW(const wchar_t *s) { unsigned h = 2166136261u; for (; *s; s++) h = (h ^ (unsigned)*s) * 16777619u; return h; }
@@ -529,9 +1074,10 @@ static void parseMember(wchar_t type, const wchar_t *spec, Mem *m) {
 
 static int nForms(wchar_t type) { return type == L'V' ? 5 : type == L'N' ? 2 : 1; }
 
-static void addGroup(wchar_t type, wchar_t flags, const wchar_t *body) {
+static void addGroup(wchar_t type, const wchar_t *flags, const wchar_t *skip, const wchar_t *body) {
     if (ngrp == gcap) { gcap = gcap ? gcap * 2 : 512; grp = realloc(grp, gcap * sizeof(Grp)); }
-    Grp *g = &grp[ngrp]; g->type = type; g->flags = flags; g->n = 0; g->m = NULL;
+    Grp *g = &grp[ngrp]; g->type = type; wcsncpy(g->flags, flags ? flags : L"", 7); g->flags[7] = 0;
+    g->skip = skip && *skip ? wdup(skip) : NULL; g->n = 0; g->m = NULL;
     const wchar_t *gt = wcsstr(body, L" > ");
     int dir = gt != NULL;
     const wchar_t *p = body;
@@ -570,11 +1116,20 @@ static int nanoReady;
 static void nanoInit(void) {
     if (nanoReady) return;
     nanoReady = 1;
-    for (int i = 0; THES[i]; i++) {
-        const wchar_t *l = THES[i];
-        wchar_t type = l[0], flags = 0; int k = 1;
-        while (l[k] && l[k] != L' ') { flags = l[k]; k++; }
-        addGroup(type, flags, l + k + 1);
+    for (int pass = 0; pass < 2; pass++)
+    for (int i = 0; (pass ? THES2 : THES)[i]; i++) {
+        const wchar_t *l = (pass ? THES2 : THES)[i];
+        wchar_t type = l[0], flags[8] = L"", skip[160] = L""; int k = 1, nf = 0;
+        while (l[k] && l[k] != L' ' && l[k] != L'[') { if (nf < 7) flags[nf++] = l[k]; k++; }
+        flags[nf] = 0;
+        if (l[k] == L'[') {
+            int ns = 0; k++;
+            skip[ns++] = L',';
+            while (l[k] && l[k] != L']' && ns < 156) skip[ns++] = l[k++];
+            skip[ns++] = L','; skip[ns] = 0;
+            if (l[k] == L']') k++;
+        }
+        addGroup(type, flags, skip, l + k + 1);
     }
     /* contractions: C = expand (contracted -> long), K = contract (long -> contracted) */
     for (int i = 0; CONTR[i]; i++) {
@@ -582,8 +1137,8 @@ static void nanoInit(void) {
         wchar_t a[40], b[40]; int na = (int)(bar - CONTR[i]);
         wmemcpy(a, CONTR[i], na); a[na] = 0; wcscpy(b, bar + 1);
         wchar_t body[96];
-        swprintf(body, 96, L"%ls > %ls", a, b); addGroup(L'C', 0, body);
-        swprintf(body, 96, L"%ls > %ls", b, a); addGroup(L'K', 0, body);
+        swprintf(body, 96, L"%ls > %ls", a, b); addGroup(L'C', NULL, NULL, body);
+        swprintf(body, 96, L"%ls > %ls", b, a); addGroup(L'K', NULL, NULL, body);
     }
 }
 
@@ -803,7 +1358,8 @@ static void lastWordLower(const wchar_t *s, wchar_t *o, int cap) {
 }
 
 static int abbrevTok(const Tok *k) {
-    if (k->type != TK_WORD) return 0;
+    if (k->type != TK_WORD && k->type != TK_LOCK) return 0;
+    for (const wchar_t *p = k->s; *p; p++) if (!iswalpha(*p)) return 0;
     int n = (int)wcslen(k->s);
     if (n == 1) return 1;
     if (n > 6) return 0;
@@ -930,9 +1486,14 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
             p = PW[s]; break;
         default: p = PW[s];
         }
-        if (g->flags == L'!' && !wcscmp(next, L"to")) continue;
-        if (g->flags == L'?' && inList(AFTERSET, next)) continue;
-        if (g->flags == L'^' && inList(DETS, prev)) continue;
+        if (wcschr(g->flags, L'!') && !wcscmp(next, L"to")) continue;
+        if (wcschr(g->flags, L'?') && inList(AFTERSET, next)) continue;
+        if (wcschr(g->flags, L'^') && inList(DETS, prev)) continue;
+        if (wcschr(g->flags, L'#') && inList(PARTICLES, next)) continue;
+        if (wcschr(g->flags, L'=') && inList(BEFORMS, prev)) continue;
+        if (wcschr(g->flags, L'P') && inList(PERSONAL, prev)) continue;
+        if (wcschr(g->flags, L'D') && !inList(DETS, prev)) continue;
+        if (g->skip && next[0]) { wchar_t pat[48]; swprintf(pat, 48, L",%ls,", next); if (wcsstr(g->skip, pat)) continue; }
         if (nrnd() >= p) { i = endTok - 1; continue; }
         int m = pickTarget(g, e->m);
         if (m < 0) continue;
@@ -964,10 +1525,49 @@ static const wchar_t *FRONT[] = { L"even though", L"as soon as", L"because", L"s
 static const wchar_t *TRAIL[] = { L"even though", L"as soon as", L"because", L"although", L"unless", L"whenever", L"since", NULL };
 static const wchar_t *NOTBEFORE[] = { L"just", L"only", L"not", L"partly", L"simply", L"mainly", L"largely", L"and", L"or", L"but",
     L"even", L"ever", L"long", L"is", L"was", L"it's", L"that's", L"probably", NULL };
+static const wchar_t *PPSTART[] = { L"in spite of", L"thanks to", L"because of", L"for", L"in", L"during", L"over", L"throughout",
+    L"within", L"at", L"on", L"by", L"across", L"among", L"despite", L"under", L"through", L"around", L"beyond", L"until", L"without", NULL };
+static const wchar_t *TIMEPREP[] = { L"during", L"throughout", L"until", L"within", L"after", L"before", NULL };
+static const wchar_t *LOOSEPREP[] = { L"in", L"on", L"at", L"for", L"over", L"by", NULL };
+static const wchar_t *TIMEWORDS[] = { L"week", L"weeks", L"year", L"years", L"month", L"months", L"day", L"days", L"morning", L"night",
+    L"evening", L"afternoon", L"weekend", L"past", L"future", L"century", L"centuries", L"decade", L"decades", L"moment", L"summer",
+    L"winter", L"spring", L"fall", L"autumn", L"time", L"times", L"hours", L"hour", L"minutes", L"end", L"beginning", L"start",
+    L"history", L"ages", L"millennia", L"meantime", L"school", L"class", L"practice", L"lunch", L"breakfast", L"dinner", NULL };
+static const wchar_t *REPORT[] = { L"suggest", L"suggests", L"suggested", L"show", L"shows", L"showed", L"say", L"says", L"said",
+    L"believe", L"believes", L"believed", L"think", L"thinks", L"thought", L"claim", L"claims", L"claimed", L"argue", L"argues",
+    L"argued", L"found", L"find", L"finds", L"reveal", L"reveals", L"revealed", L"indicate", L"indicates", L"indicated", L"prove",
+    L"proves", L"proved", L"state", L"states", L"stated", L"report", L"reports", L"reported", L"insist", L"insists", L"insisted",
+    L"admit", L"admits", L"admitted", L"feel", L"feels", L"felt", L"realize", L"realizes", L"realized", L"assume", L"assumes",
+    L"assumed", L"predict", L"predicts", L"predicted", L"conclude", L"concludes", L"concluded", L"guess", L"bet", L"hope",
+    L"hopes", L"hoped", L"noticed", L"notice", L"notices", L"explained", L"explains", L"agree", L"agrees", L"agreed", NULL };
+static const wchar_t *SUBJ[] = { L"i", L"we", L"you", L"he", L"she", L"they", L"it", L"this", L"that", L"there", L"these", L"those", NULL };
+static const wchar_t *CLAUSEDET[] = { L"the", L"a", L"an", L"our", L"their", L"his", L"her", L"my", L"your", L"its", L"some", L"many",
+    L"most", L"all", L"every", L"no", L"each", L"both", L"people", L"nobody", L"everyone", L"someone", L"nothing", L"everything",
+    L"scientists", L"researchers", L"experts", L"studies", L"students", L"teachers", L"humans", L"kids", L"adults", NULL };
+static const wchar_t *AUXV[] = { L"is", L"are", L"was", L"were", L"has", L"have", L"had", L"will", L"would", L"can", L"could",
+    L"should", L"may", L"might", L"must", L"do", L"does", L"did", L"isn't", L"aren't", L"wasn't", L"weren't", L"hasn't",
+    L"haven't", L"won't", L"can't", L"doesn't", L"don't", L"didn't", L"it's", L"that's", L"there's", L"they're", L"we're",
+    L"he's", L"she's", L"i'm", L"you're", L"cannot", L"becomes", L"became", L"seems", L"seemed", L"needs", L"makes", L"made",
+    L"gets", L"got", L"keeps", L"kept", L"goes", L"went", L"takes", L"took", L"helps", L"causes", L"caused", NULL };
+static const wchar_t *HOISTADV[] = { L"finally", L"eventually", L"suddenly", L"recently", L"gradually", L"quickly", L"slowly",
+    L"quietly", L"carefully", L"immediately", L"ultimately", L"initially", L"originally", L"clearly", L"apparently",
+    L"obviously", L"certainly", L"probably", L"surely", L"honestly", L"actually", L"happily", L"sadly", L"luckily",
+    L"fortunately", L"unfortunately", L"secretly", L"gently", L"instantly", L"rapidly", L"soon", L"later", L"usually",
+    L"sometimes", L"often", L"frequently", L"typically", L"generally", L"basically", L"essentially", NULL };
+static const wchar_t *AUXH[] = { L"has", L"have", L"had", L"will", L"would", L"can", L"could", L"should", L"is", L"are", L"was",
+    L"were", L"did", L"do", L"does", L"might", L"must", L"may", L"i've", L"we've", L"they've", L"you've", L"i'll", L"we'll",
+    L"they'll", L"it's", L"he's", L"she's", L"they're", L"we're", L"i'm", L"you're", NULL };
 
 typedef struct { Tok *t; int n; } Span;
 
-static int spanWords(Span s) { int w = 0; for (int i = 0; i < s.n; i++) if (isWordish(&s.t[i])) w += 1 + (s.t[i].type == TK_WORD ? (int)(wcschr(s.t[i].s, L' ') != NULL) : 0); return w; }
+static int spanWords(Span s) {
+    int w = 0;
+    for (int i = 0; i < s.n; i++) if (isWordish(&s.t[i])) {
+        w++;
+        for (wchar_t *p = s.t[i].s; *p; p++) if (*p == L' ') w++;
+    }
+    return w;
+}
 static Span trimSpan(Tok *t, int a, int b) {
     while (a < b && t[a].type == TK_SPACE) a++;
     while (b > a && t[b - 1].type == TK_SPACE) b--;
@@ -995,6 +1595,7 @@ static void pushSpan(Toks *o, Span s, int caseMode) {
 static void pushW(Toks *o, const wchar_t *s, int chg) { tPush(o, TK_WORD, s, (int)wcslen(s), chg); }
 static void pushSp(Toks *o) { tPush(o, TK_SPACE, L" ", 1, 0); }
 static void pushP(Toks *o, wchar_t c) { tPush(o, TK_PUNCT, &c, 1, 0); }
+static void pushCap(Toks *o, const wchar_t *s) { wchar_t *c = wdup(s); c[0] = (wchar_t)towupper(c[0]); pushW(o, c, 1); free(c); }
 
 static const wchar_t *conjVariant(const wchar_t *c) {
     if (!wcscmp(c, L"although") || !wcscmp(c, L"even though") || !wcscmp(c, L"though"))
@@ -1002,7 +1603,6 @@ static const wchar_t *conjVariant(const wchar_t *c) {
     return c;
 }
 
-/* items = indexes of non-space tokens; returns count of tokens consumed if conj matches at token index ti */
 static int conjAt(Tok *t, int n, int ti, const wchar_t **list, const wchar_t **which) {
     for (int c = 0; list[c]; c++) {
         const wchar_t *cj = list[c]; int k = ti; const wchar_t *p = cj;
@@ -1020,105 +1620,308 @@ static int conjAt(Tok *t, int n, int ti, const wchar_t **list, const wchar_t **w
     return 0;
 }
 
-static int restructure(Tok *t, int n, Toks *o) {
-    if (n < 6) return 0;
+static void wordL(const Tok *k, wchar_t *o) { o[0] = 0; if (k->type == TK_WORD) firstWordLower(k->s, o, 40); }
+static int isWordIn(const Tok *k, const wchar_t **list) { wchar_t w[40]; wordL(k, w); return w[0] && inList(list, w); }
+
+/* single sentence, ends in . or !, only commas inside; returns comma count or -1 */
+static int sentShape(Tok *t, int n) {
+    if (n < 5) return -1;
     Tok *last = &t[n - 1];
-    if (!(last->type == TK_PUNCT && (last->s[0] == L'.' || last->s[0] == L'!'))) return 0;
-    int commas = 0, comma = -1;
+    if (!(last->type == TK_PUNCT && (last->s[0] == L'.' || last->s[0] == L'!'))) return -1;
+    int commas = 0;
     for (int i = 0; i < n - 1; i++) {
-        if (t[i].type == TK_PUNCT) {
-            if (t[i].s[0] == L',') { commas++; comma = i; }
-            else return 0;
-        }
-        if (t[i].type == TK_NL) return 0;
+        if (t[i].type == TK_NL) return -1;
+        if (t[i].type == TK_PUNCT) { if (t[i].s[0] == L',') commas++; else return -1; }
     }
-    const wchar_t *cj = NULL;
-    /* 1: fronted clause  "Because X, Y."  ->  "Y because X." */
-    int cn = conjAt(t, n, 0, FRONT, &cj);
-    if (cn && commas == 1) {
-        Span clause = trimSpan(t, cn, comma), mainS = trimSpan(t, comma + 1, n - 1);
-        if (spanWords(clause) < 2 || spanWords(mainS) < 2) return 0;
-        wchar_t fw[40]; if (mainS.t[0].type == TK_WORD) { firstWordLower(mainS.t[0].s, fw, 40); if (!wcscmp(fw, L"then")) return 0; }
-        pushSpan(o, mainS, 1); pushSp(o);
-        pushW(o, conjVariant(cj), 1); pushSp(o);
+    return commas;
+}
+static int firstComma(Tok *t, int n) { for (int i = 0; i < n; i++) if (t[i].type == TK_PUNCT && t[i].s[0] == L',') return i; return -1; }
+static int lockHasDigit(const Tok *k) { if (k->type != TK_LOCK) return 0; for (wchar_t *p = k->s; *p; p++) if (iswdigit(*p)) return 1; return 0; }
+
+/* "Because X, Y." -> "Y because X." */
+static int patFrontSub(Tok *t, int n, Toks *o) {
+    const wchar_t *cj;
+    int commas = sentShape(t, n), cn = conjAt(t, n, 0, FRONT, &cj);
+    if (commas != 1 || !cn) return 0;
+    int comma = firstComma(t, n);
+    Span clause = trimSpan(t, cn, comma), mainS = trimSpan(t, comma + 1, n - 1);
+    if (spanWords(clause) < 2 || spanWords(mainS) < 2) return 0;
+    wchar_t fw[40]; wordL(&mainS.t[0], fw); if (!wcscmp(fw, L"then")) return 0;
+    pushSpan(o, mainS, 1); pushSp(o);
+    pushW(o, conjVariant(cj), 1); pushSp(o);
+    pushSpan(o, clause, 0);
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "X because Y." -> "Because Y, x." */
+static int patTrailSub(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) != 0) return 0;
+    const wchar_t *cj, *x;
+    for (int i = 2; i < n - 3; i++) {
+        if (t[i].type != TK_WORD || t[i - 1].type != TK_SPACE) continue;
+        int k = conjAt(t, n, i, TRAIL, &cj);
+        if (!k) continue;
+        Span mainS = trimSpan(t, 0, i), clause = trimSpan(t, i + k, n - 1);
+        if (spanWords(mainS) < 3 || spanWords(clause) < 3) return 0;
+        int pk = i - 2; while (pk >= 0 && t[pk].type == TK_SPACE) pk--;
+        if (pk >= 0 && t[pk].type == TK_WORD) { wchar_t pv[40]; lastWordLower(t[pk].s, pv, 40); if (inList(NOTBEFORE, pv)) return 0; }
+        for (int q = 0; q < clause.n; q++) if (clause.t[q].type == TK_WORD && conjAt(clause.t, clause.n, q, FRONT, &x)) return 0;
+        if (!lowerable(&mainS.t[0])) return 0;
+        pushCap(o, conjVariant(cj)); pushSp(o);
         pushSpan(o, clause, 0);
-        tCopy(o, last);
-        return 1;
-    }
-    if (cn) return 0;
-    /* 2: trailing clause  "X because Y."  ->  "Because Y, x." */
-    if (commas == 0) {
-        for (int i = 2; i < n - 3; i++) {
-            if (t[i].type != TK_WORD || t[i - 1].type != TK_SPACE) continue;
-            int k = conjAt(t, n, i, TRAIL, &cj);
-            if (!k) continue;
-            Span mainS = trimSpan(t, 0, i), clause = trimSpan(t, i + k, n - 1);
-            if (spanWords(mainS) < 3 || spanWords(clause) < 3) return 0;
-            wchar_t pv[40]; int pk = i - 2; while (pk >= 0 && t[pk].type == TK_SPACE) pk--;
-            if (pk >= 0 && t[pk].type == TK_WORD) { lastWordLower(t[pk].s, pv, 40); if (inList(NOTBEFORE, pv)) return 0; }
-            for (int q = 0; q < clause.n; q++) { const wchar_t *x; if (clause.t[q].type == TK_WORD && conjAt(clause.t, clause.n, q, FRONT, &x)) return 0; }
-            if (!lowerable(&mainS.t[0])) return 0;
-            wchar_t *c2 = wdup(conjVariant(cj)); c2[0] = (wchar_t)towupper(c2[0]);
-            pushW(o, c2, 1); free(c2); pushSp(o);
-            pushSpan(o, clause, 0);
-            pushP(o, L','); pushSp(o);
-            pushSpan(o, mainS, -1);
-            tCopy(o, last);
-            return 1;
-        }
-        return 0;
-    }
-    /* 3: "X, but Y." / "X, so Y." */
-    if (commas == 1) {
-        int k = comma + 1; while (k < n && t[k].type == TK_SPACE) k++;
-        if (k >= n || t[k].type != TK_WORD) return 0;
-        wchar_t w[40]; firstWordLower(t[k].s, w, 40);
-        int isBut = !wcscmp(w, L"but"), isSo = !wcscmp(w, L"so");
-        if (!isBut && !isSo) return 0;
-        Span x = trimSpan(t, 0, comma), y = trimSpan(t, k + 1, n - 1);
-        if (spanWords(x) < 3 || spanWords(y) < 3) return 0;
-        if (y.t[0].type == TK_WORD) { wchar_t yw[40]; firstWordLower(y.t[0].s, yw, 40); if (!wcscmp(yw, L"that") || !wcscmp(yw, L"far") || !wcscmp(yw, L"much")) return 0; }
-        int canFront = lowerable(&x.t[0]);
-        int choice = nri(isSo ? 3 : 2);
-        if (choice == 0 && !canFront) choice = 1;
-        if (choice == 0) {
-            pushW(o, isBut ? (nri(2) ? L"Although" : L"Even though") : (nri(2) ? L"Because" : L"Since"), 1); pushSp(o);
-            pushSpan(o, x, -1); pushP(o, L','); pushSp(o); pushSpan(o, y, 0);
-        } else if (choice == 1) {
-            pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
-            static const wchar_t *BUTS[] = { L"However", L"Still", L"Even so" }, *SOS[] = { L"As a result", L"Because of this", L"For that reason" };
-            pushW(o, isBut ? BUTS[nri(3)] : SOS[nri(3)], 1); pushP(o, L','); pushSp(o);
-            pushSpan(o, y, 0);
-        } else {
-            pushSpan(o, x, 0); pushP(o, L','); pushSp(o); pushW(o, L"which is why", 1); pushSp(o); pushSpan(o, y, 0);
-        }
-        tCopy(o, last);
+        pushP(o, L','); pushSp(o);
+        pushSpan(o, mainS, -1);
+        tCopy(o, &t[n - 1]);
         return 1;
     }
     return 0;
 }
 
+/* "X, but Y." / "X, so Y." */
+static int patButSo(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) != 1) return 0;
+    int comma = firstComma(t, n);
+    int k = comma + 1; while (k < n && t[k].type == TK_SPACE) k++;
+    if (k >= n || t[k].type != TK_WORD) return 0;
+    wchar_t w[40]; wordL(&t[k], w);
+    int isBut = !wcscmp(w, L"but"), isSo = !wcscmp(w, L"so");
+    if (!isBut && !isSo) return 0;
+    Span x = trimSpan(t, 0, comma), y = trimSpan(t, k + 1, n - 1);
+    if (spanWords(x) < 3 || spanWords(y) < 3) return 0;
+    wchar_t yw[40]; wordL(&y.t[0], yw);
+    if (!wcscmp(yw, L"that") || !wcscmp(yw, L"far") || !wcscmp(yw, L"much") || !wcscmp(yw, L"not")) return 0;
+    int choice = nri(isSo ? 3 : 2);
+    if (choice == 0 && !lowerable(&x.t[0])) choice = 1;
+    if (choice == 0) {
+        pushW(o, isBut ? (nri(2) ? L"Although" : L"Even though") : (nri(2) ? L"Because" : L"Since"), 1); pushSp(o);
+        pushSpan(o, x, -1); pushP(o, L','); pushSp(o); pushSpan(o, y, 0);
+    } else if (choice == 1) {
+        static const wchar_t *BUTS[] = { L"However", L"Still", L"Even so" }, *SOS[] = { L"As a result", L"Because of this", L"For that reason" };
+        pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
+        pushW(o, isBut ? BUTS[nri(3)] : SOS[nri(3)], 1); pushP(o, L','); pushSp(o);
+        pushSpan(o, y, 0);
+    } else {
+        pushSpan(o, x, 0); pushP(o, L','); pushSp(o); pushW(o, L"which is why", 1); pushSp(o); pushSpan(o, y, 0);
+    }
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "For millennia, humans did X." -> "Humans did X for millennia." */
+static int patPPBack(Tok *t, int n, Toks *o) {
+    const wchar_t *cj;
+    if (sentShape(t, n) < 1 || !conjAt(t, n, 0, PPSTART, &cj)) return 0;
+    int comma = firstComma(t, n);
+    Span head = trimSpan(t, 0, comma), rest = trimSpan(t, comma + 1, n - 1);
+    int hw = spanWords(head);
+    if (hw < 2 || hw > 8 || spanWords(rest) < 3) return 0;
+    if (rest.t[0].type == TK_WORD) { wchar_t w[40]; wordL(&rest.t[0], w); if (!wcscmp(w, L"then") || !wcscmp(w, L"and") || !wcscmp(w, L"but")) return 0; }
+    static const wchar_t *SUBWORDS[] = { L"what", L"that", L"which", L"who", L"because", L"when", L"where", L"how", L"why", L"if",
+        L"while", L"whether", L"although", L"though", L"since", L"until", L"unless", NULL };
+    for (int i = 0; i < rest.n; i++) if (rest.t[i].type == TK_PUNCT || isWordIn(&rest.t[i], SUBWORDS)) return 0;
+    static const wchar_t *DISC[] = { L"for example", L"for instance", L"in my opinion", L"in my view", L"in fact", L"in general",
+        L"in addition", L"in other words", L"in short", L"in the end", L"in reality", L"by contrast", L"on the whole", L"in particular",
+        L"of course", L"at first", L"in the meantime", L"at the moment", L"for the most part", NULL };
+    wchar_t hk[80] = L""; int hp = 0;
+    for (int i = 0; i < head.n && hp < 70; i++) {
+        if (head.t[i].type == TK_SPACE) { hk[hp++] = L' '; continue; }
+        int L2 = (int)wcslen(head.t[i].s); if (hp + L2 >= 79) break;
+        lowerInto(head.t[i].s, L2, hk + hp); hp += L2;
+    }
+    hk[hp] = 0;
+    pushSpan(o, rest, 1);
+    if (inList(DISC, hk)) pushP(o, L',');
+    pushSp(o);
+    pushSpan(o, head, -1);
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
+/* "They kept working during the storm." -> "During the storm, they kept working." */
+static int patPPFront(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) != 0) return 0;
+    const wchar_t *cj;
+    for (int i = n - 3; i >= 3; i--) {
+        if (t[i].type != TK_WORD || t[i - 1].type != TK_SPACE) continue;
+        int tight = conjAt(t, n, i, TIMEPREP, &cj) != 0;
+        int loose = !tight && conjAt(t, n, i, LOOSEPREP, &cj) != 0;
+        if (!tight && !loose) continue;
+        Span pp = trimSpan(t, i, n - 1), mainS = trimSpan(t, 0, i);
+        int pw = spanWords(pp);
+        if (pw < 2 || pw > 7) return 0;
+        if (loose) {
+            int ok = 0;
+            for (int q = 1; q < pp.n && !ok; q++) {
+                if (lockHasDigit(&pp.t[q])) ok = 1;
+                else if (pp.t[q].type == TK_WORD) { wchar_t w[40]; lastWordLower(pp.t[q].s, w, 40); if (inList(TIMEWORDS, w)) ok = 1; }
+            }
+            if (!ok) continue;
+        }
+        if (spanWords(mainS) < 3 || !lowerable(&mainS.t[0])) return 0;
+        pushSpan(o, pp, 1); pushP(o, L','); pushSp(o);
+        pushSpan(o, mainS, -1);
+        tCopy(o, &t[n - 1]);
+        return 1;
+    }
+    return 0;
+}
+
+/* "Our findings suggest the Hi is X." -> "The Hi is X, our findings suggest." */
+static int patReport(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    for (int v = 1; v < n - 4; v++) {
+        if (t[v].type == TK_PUNCT) return 0;
+        if (!isWordIn(&t[v], REPORT) || t[v].chg) continue;
+        Span subj = trimSpan(t, 0, v);
+        int sw = spanWords(subj);
+        if (sw < 1 || sw > 5) return 0;
+        Tok *s0 = &subj.t[0];
+        if (!(s0->type == TK_LOCK || isWordIn(s0, SUBJ) || isWordIn(s0, CLAUSEDET))) return 0;
+        int c = v + 1; while (c < n && t[c].type == TK_SPACE) c++;
+        int hadThat = 0;
+        if (c < n && t[c].type == TK_WORD) { wchar_t w[40]; wordL(&t[c], w); if (!wcscmp(w, L"that")) { hadThat = 1; c++; } }
+        Span cl = trimSpan(t, c, n - 1);
+        if (spanWords(cl) < 4) return 0;
+        Tok *c0 = &cl.t[0];
+        if (!(c0->type == TK_LOCK || isWordIn(c0, SUBJ) || isWordIn(c0, CLAUSEDET))) return 0;
+        int aux = hadThat;
+        for (int q = 1; q < cl.n && !aux; q++) if (isWordIn(&cl.t[q], AUXV)) aux = 1;
+        if (!aux) return 0;
+        pushSpan(o, cl, 1); pushP(o, L','); pushSp(o);
+        pushSpan(o, subj, -1); pushSp(o);
+        tCopy(o, &t[v]);
+        tCopy(o, &t[n - 1]);
+        return 1;
+    }
+    return 0;
+}
+
+/* "They have finally found it." -> "Finally, they have found it." */
+static int patHoist(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 0) return 0;
+    int k = 1; while (k < n && t[k].type == TK_SPACE) k++;
+    if (k < n && t[k].type == TK_PUNCT) return 0;
+    if (!lowerable(&t[0])) return 0;
+    static const wchar_t *STOPAT[] = { L"that", L"which", L"who", L"because", L"although", L"though", L"when", L"if", L"while",
+        L"since", L"where", L"and", L"but", L"or", L"so", L"until", L"unless", NULL };
+    for (int a = 2; a < n - 2; a++) {
+        if (t[a].type == TK_PUNCT || isWordIn(&t[a], STOPAT)) return 0;
+        if (!isWordIn(&t[a], HOISTADV) || t[a].chg || t[a - 1].type != TK_SPACE || t[a + 1].type != TK_SPACE) continue;
+        int p = a - 2; while (p >= 0 && t[p].type == TK_SPACE) p--;
+        if (p < 0 || !isWordIn(&t[p], AUXH)) continue;
+        if (t[a + 2].type != TK_WORD) continue;
+        pushCap(o, t[a].s); pushP(o, L','); pushSp(o);
+        Span before = { t, a - 1 }, after = { t + a + 1, n - a - 1 };
+        pushSpan(o, before, -1);
+        pushSpan(o, after, 0);
+        return 1;
+    }
+    return 0;
+}
+
+/* "X, and they Y." -> "X. They Y." */
+static int patSplit(Tok *t, int n, Toks *o) {
+    if (sentShape(t, n) < 1) return 0;
+    for (int c = 2; c < n - 4; c++) {
+        if (!(t[c].type == TK_PUNCT && t[c].s[0] == L',')) continue;
+        int k = c + 1; while (k < n && t[k].type == TK_SPACE) k++;
+        wchar_t w[40]; if (k >= n) return 0; wordL(&t[k], w);
+        if (wcscmp(w, L"and")) continue;
+        int s = k + 1; while (s < n && t[s].type == TK_SPACE) s++;
+        if (s >= n || !(isWordIn(&t[s], SUBJ) || t[s].type == TK_LOCK)) continue;
+        Span x = trimSpan(t, 0, c), y = trimSpan(t, s, n - 1);
+        if (spanWords(x) < 3 || spanWords(y) < 3) continue;
+        pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
+        int r = nri(3);
+        if (r == 0) { pushW(o, nri(2) ? L"Also" : L"On top of that", 1); pushP(o, L','); pushSp(o); pushSpan(o, y, 0); }
+        else pushSpan(o, y, 1);
+        tCopy(o, &t[n - 1]);
+        return 1;
+    }
+    return 0;
+}
+
+typedef int (*PatFn)(Tok *, int, Toks *);
+static PatFn PATS[] = { patFrontSub, patTrailSub, patButSo, patPPBack, patPPFront, patReport, patHoist, patSplit };
+#define NPATS (int)(sizeof PATS / sizeof PATS[0])
+
+static int restructureOnce(Toks *s, int *used) {
+    int order[NPATS];
+    for (int i = 0; i < NPATS; i++) order[i] = i;
+    for (int i = NPATS - 1; i > 0; i--) { int j = nri(i + 1), x = order[i]; order[i] = order[j]; order[j] = x; }
+    for (int i = 0; i < NPATS; i++) {
+        int p = order[i];
+        if (*used & (1 << p)) continue;
+        Toks o = {0};
+        if (PATS[p](s->t, s->n, &o)) {
+            static const int INV[NPATS] = { (1 << 1) | (1 << 4), 1 << 0, 0, 1 << 4, (1 << 3) | (1 << 0), 0, 0, 0 };
+            tFree(s); *s = o; *used |= (1 << p) | INV[p]; return 1;
+        }
+        tFree(&o);
+    }
+    return 0;
+}
+
+static int sentWords(Toks *s) { Span sp = { s->t, s->n }; return spanWords(sp); }
+
 static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
-    static const double PR[3] = { 0.15, 0.5, 0.9 };
-    Toks o = {0};
-    int i = 0;
+    static const double P1[3] = { 0.3, 0.75, 1.0 }, P2[3] = { 0.0, 0.3, 0.75 }, PM[3] = { 0.0, 0.3, 0.6 };
+    int str = op->strength;
+    /* split into units: 0 = separator run, 1 = sentence */
+    Toks *units = NULL; int *kind = NULL, nu = 0, i = 0;
     while (i < v->n) {
-        while (i < v->n && (v->t[i].type == TK_SPACE || v->t[i].type == TK_NL)) tCopy(&o, &v->t[i++]);
-        int s = i;
+        units = realloc(units, (nu + 1) * sizeof(Toks)); kind = realloc(kind, (nu + 1) * sizeof(int));
+        memset(&units[nu], 0, sizeof(Toks));
+        if (v->t[i].type == TK_SPACE || v->t[i].type == TK_NL) {
+            while (i < v->n && (v->t[i].type == TK_SPACE || v->t[i].type == TK_NL)) tCopy(&units[nu], &v->t[i++]);
+            kind[nu++] = 0; continue;
+        }
         while (i < v->n && v->t[i].type != TK_NL) {
             if (isEndP(&v->t[i]) && !(v->t[i].s[0] == L'.' && i > 0 && abbrevTok(&v->t[i - 1])) &&
                 (i + 1 >= v->n || v->t[i + 1].type != TK_WORD)) {
-                while (i + 1 < v->n && isEndP(&v->t[i + 1])) i++;
-                i++; break;
+                while (i + 1 < v->n && isEndP(&v->t[i + 1])) tCopy(&units[nu], &v->t[i++]);
+                tCopy(&units[nu], &v->t[i++]);
+                break;
             }
-            i++;
+            tCopy(&units[nu], &v->t[i++]);
         }
-        if (i > s) {
-            if (nrnd() < PR[op->strength] && restructure(v->t + s, i - s, &o)) st->restructured++;
-            else for (int k = s; k < i; k++) tCopy(&o, &v->t[k]);
+        kind[nu++] = 1;
+    }
+    int *done = calloc(nu + 1, sizeof(int));
+    for (int u = 0; u < nu; u++) {
+        if (kind[u] != 1) continue;
+        int used = 0;
+        if (nrnd() < P1[str] && restructureOnce(&units[u], &used)) {
+            st->restructured++; done[u] = 1;
+            if (nrnd() < P2[str]) restructureOnce(&units[u], &used);
         }
     }
-    tFree(v); *v = o;
+    /* merge short neighbours: "X. It Y." -> "X, and it Y." */
+    for (int u = 0; u + 2 < nu; u++) {
+        if (kind[u] != 1 || kind[u + 2] != 1 || units[u + 1].n != 1 || units[u + 1].t[0].type != TK_SPACE) continue;
+        Toks *a = &units[u], *b = &units[u + 2];
+        if (a->n < 3 || b->n < 3 || sentShape(a->t, a->n) < 0 || sentShape(b->t, b->n) < 0) continue;
+        if (a->t[a->n - 1].s[0] != L'.' || sentWords(a) > 14 || sentWords(b) > 16) continue;
+        static const wchar_t *MERGE[] = { L"it", L"they", L"this", L"he", L"she", L"these", L"there", L"we", NULL };
+        if (!isWordIn(&b->t[0], MERGE) || nrnd() >= PM[str]) continue;
+        Toks m = {0};
+        Span sa = { a->t, a->n - 1 }, sb = { b->t, b->n };
+        pushSpan(&m, sa, 0); pushP(&m, L','); pushSp(&m); pushW(&m, L"and", 1); pushSp(&m);
+        pushSpan(&m, sb, -1);
+        tFree(a); *a = m;
+        tFree(&units[u + 1]); tFree(b);
+        kind[u + 1] = kind[u + 2] = 2;
+        if (!done[u]) st->restructured++;
+        u += 2;
+    }
+    Toks out = {0};
+    for (int u = 0; u < nu; u++) {
+        if (kind[u] != 2) for (int k = 0; k < units[u].n; k++) tCopy(&out, &units[u].t[k]);
+        if (kind[u] != 2) tFree(&units[u]);
+    }
+    free(units); free(kind); free(done);
+    tFree(v); *v = out;
 }
 
 static void articlePass(Toks *v) {
@@ -1174,8 +1977,8 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
         }
     }
     int contrMode = countContractions(&v) ? 1 : 2;
-    swapPass(&v, op, st, contrMode);
     restructurePass(&v, op, st);
+    swapPass(&v, op, st, contrMode);
     articlePass(&v);
     Str out = {0}; sAdd(&out, L"");
     for (int i = 0; i < v.n; i++) sAdd(&out, v.t[i].s);
@@ -1185,8 +1988,8 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.0.1"
-#define APP_VERSION_W L"1.0.1"
+#define APP_VERSION   "1.1.0"
+#define APP_VERSION_W L"1.1.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
@@ -1207,7 +2010,6 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
 #define WM_UPDRESTART (WM_APP + 7)
 
 enum { ID_IN = 101, ID_OUT, ID_GO, ID_COPY, ID_USE, ID_CLR,
-       ID_KEY = 201, ID_MODEL, ID_EXTRA,
        ID_UCHECK = 301, ID_UINSTALL, ID_UPAGE, ID_UNOTES,
        ID_ACTKEY = 401, ID_ACT };
 #define HK_CLIP 1
@@ -1488,40 +2290,6 @@ static int httpGet(const wchar_t *url, const wchar_t *hdrs, char **out, size_t *
     return 0;
 }
 
-static int httpPost(const wchar_t *host, const wchar_t *path, const wchar_t *headers,
-                    const char *body, DWORD blen, char **out, size_t *outLen, DWORD *httpSt) {
-    *out = NULL; *outLen = 0; *httpSt = 0;
-    HINTERNET in = InternetOpenW(L"FrutigerNano/" APP_VERSION_W, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
-    if (!in) return (int)GetLastError();
-    DWORD to = 120000;
-    InternetSetOptionW(in, INTERNET_OPTION_CONNECT_TIMEOUT, &to, sizeof to);
-    InternetSetOptionW(in, INTERNET_OPTION_SEND_TIMEOUT, &to, sizeof to);
-    InternetSetOptionW(in, INTERNET_OPTION_RECEIVE_TIMEOUT, &to, sizeof to);
-    HINTERNET con = InternetConnectW(in, host, INTERNET_DEFAULT_HTTPS_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
-    if (!con) { int e = (int)GetLastError(); InternetCloseHandle(in); return e ? e : -1; }
-    const wchar_t *accept[] = { L"application/json", NULL };
-    HINTERNET req = HttpOpenRequestW(con, L"POST", path, NULL, NULL, accept,
-        INTERNET_FLAG_SECURE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_NO_COOKIES | INTERNET_FLAG_NO_UI, 0);
-    if (!req) { int e = (int)GetLastError(); InternetCloseHandle(con); InternetCloseHandle(in); return e ? e : -1; }
-    BOOL ok = HttpSendRequestW(req, headers, (DWORD)-1, (void *)body, blen);
-    if (!ok) { int e = (int)GetLastError(); InternetCloseHandle(req); InternetCloseHandle(con); InternetCloseHandle(in); return e ? e : -1; }
-    DWORD st = 0, sl = sizeof st;
-    HttpQueryInfoW(req, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &st, &sl, NULL);
-    *httpSt = st;
-    size_t cap = 1 << 16, len = 0; char *b = malloc(cap + 1); DWORD got = 0; int err = 0;
-    for (;;) {
-        if (len + 65536 > cap) { cap *= 2; b = realloc(b, cap + 1); }
-        if (!InternetReadFile(req, b + len, 65536, &got)) { err = (int)GetLastError(); if (!err) err = -1; break; }
-        if (!got) break;
-        len += got;
-        if (len > (16u << 20)) break;
-    }
-    InternetCloseHandle(req); InternetCloseHandle(con); InternetCloseHandle(in);
-    if (err) { free(b); return err; }
-    b[len] = 0; *out = b; *outLen = len;
-    return 0;
-}
-
 static void putU8(char *o, size_t *n, unsigned u) {
     if (u < 0x80) o[(*n)++] = (char)u;
     else if (u < 0x800) { o[(*n)++] = (char)(0xC0 | (u >> 6)); o[(*n)++] = (char)(0x80 | (u & 63)); }
@@ -1561,31 +2329,6 @@ static char *jsonStr(const char *json, const char *key, const char *from, const 
     return o;
 }
 
-static char *jsonEsc(const wchar_t *w) {
-    int n8 = WideCharToMultiByte(CP_UTF8, 0, w, -1, NULL, 0, NULL, NULL);
-    char *s = malloc(n8); WideCharToMultiByte(CP_UTF8, 0, w, -1, s, n8, NULL, NULL);
-    size_t cap = n8 * 2 + 8, k = 0; char *o = malloc(cap);
-    for (char *p = s; *p; p++) {
-        unsigned char c = *p;
-        if (k + 8 > cap) { cap *= 2; o = realloc(o, cap); }
-        if (c == '"' || c == '\\') { o[k++] = '\\'; o[k++] = c; }
-        else if (c == '\n') { o[k++] = '\\'; o[k++] = 'n'; }
-        else if (c == '\r') { o[k++] = '\\'; o[k++] = 'r'; }
-        else if (c == '\t') { o[k++] = '\\'; o[k++] = 't'; }
-        else if (c < 0x20) { k += snprintf(o + k, 8, "\\u%04x", c); }
-        else o[k++] = c;
-    }
-    o[k] = 0; free(s);
-    return o;
-}
-
-static wchar_t *u8dup(const char *s) {
-    if (!s) return wdup(L"");
-    int n = MultiByteToWideChar(CP_UTF8, 0, s, -1, NULL, 0);
-    wchar_t *w = malloc(n * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, s, -1, w, n);
-    return w;
-}
 static void u8w(const char *s, wchar_t *out, int n) { MultiByteToWideChar(CP_UTF8, 0, s ? s : "", -1, out, n); out[n - 1] = 0; }
 
 /* ---------- updater ---------- */
@@ -1826,9 +2569,9 @@ static int keyValid(const wchar_t *in, wchar_t *norm) {
 
 /* ---------- pages, layout, painting ---------- */
 
-enum { PG_REWRITE, PG_CLAUDE, PG_UPDATE, PG_LOCK, PG_N };
-#define NTABS 3
-static const wchar_t *TABNAME[NTABS] = { L"Rewrite", L"Claude", L"Update" };
+enum { PG_REWRITE, PG_UPDATE, PG_LOCK, PG_N };
+#define NTABS 2
+static const wchar_t *TABNAME[NTABS] = { L"Rewrite", L"Update" };
 static int curPage = PG_REWRITE, tabHover = -1;
 
 static Canvas pageC[PG_N], backC;
@@ -1889,14 +2632,12 @@ static void orbLetter(HDC dc, double cx, double cy, double r) {
     DrawTextW(dc, L"N", 1, &rr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
-enum { TG_OFF, TG_CLAUDE, TG_LIGHT, TG_MED, TG_HEAVY, TG_STRICT, TG_HILITE, TG_UCHECK, TG_UAUTO, TG_N };
+enum { TG_LIGHT, TG_MED, TG_HEAVY, TG_STRICT, TG_HILITE, TG_UCHECK, TG_UAUTO, TG_N };
 typedef struct { const wchar_t *t; int page, x, y, w, radio, on; } Tog;
 static Tog tog[TG_N] = {
-    { L"Offline",                PG_REWRITE, 236,  19,  74, 1, 1 },
-    { L"Claude",                 PG_REWRITE, 312,  19,  74, 1, 0 },
-    { L"Light",                  PG_REWRITE, 410,  19,  62, 2, 0 },
-    { L"Medium",                 PG_REWRITE, 474,  19,  78, 2, 1 },
-    { L"Heavy",                  PG_REWRITE, 554,  19,  70, 2, 0 },
+    { L"Light",                  PG_REWRITE, 300,  19,  64, 2, 0 },
+    { L"Medium",                 PG_REWRITE, 368,  19,  80, 2, 0 },
+    { L"Heavy",                  PG_REWRITE, 452,  19,  72, 2, 1 },
     { L"Lock fact sentences",    PG_REWRITE, 108, 397, 168, 0, 0 },
     { L"Highlight locked parts", PG_REWRITE, 282, 397, 186, 0, 1 },
     { L"Check on launch",        PG_UPDATE,  108, 358, 180, 0, 1 },
@@ -1955,13 +2696,6 @@ static void renderOcean(Canvas *c) {
     }
 }
 
-static const wchar_t *CLAUDE_INFO =
-    L"How the Claude engine works\n"
-    L"• Your text goes to Anthropic's API with your own key. Every rewrite is billed to your API credits, even if you pay for a Claude subscription.\n"
-    L"• Quotes, (parentheses), [brackets], links and code are swapped for placeholders before sending and put back exactly, so Claude can't touch them.\n"
-    L"• Names, numbers and dates are kept by instruction, and Nano tells you if any went missing.\n"
-    L"• Strength and “Lock fact sentences” on the Rewrite page apply here too.  Keys: console.anthropic.com → API Keys.";
-
 static void renderPages(void) {
     renderOcean(&pageC[0]);
     for (int p = 1; p < PG_N; p++) memcpy(pageC[p].px, pageC[0].px, (size_t)pageC[0].w * pageC[0].h * 4);
@@ -1978,7 +2712,8 @@ static void renderPages(void) {
         if (p == PG_REWRITE) {
             glassPanel(c, 96, 10, 654, 40);
             textAt(dc, hTitle, L"Rewrite", 108, 19, 110, 22, NAVY, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
-            rrFill(c, S(397), S(22), 1.2, S(18), 0, 0x1a8fa3, 0x1a8fa3, 0.5, 0.5);
+            textAt(dc, hFont, L"Strength:", 236, 22, 62, 18, HINT, DT_LEFT | DT_SINGLELINE);
+            textAt(dc, hSmall, L"every press gives a new version", 540, 22, 200, 16, HINT, DT_RIGHT | DT_SINGLELINE);
             glassPanel(c, 96, 58, 300, 324);
             glassPanel(c, 450, 58, 300, 324);
             textAt(dc, hTitle, L"Original", 108, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
@@ -1987,16 +2722,6 @@ static void renderPages(void) {
             textAt(dc, hSmall, L"same meaning, new words", 590, 64, 150, 16, HINT, DT_RIGHT | DT_SINGLELINE);
             textAt(dc, hSmall, L"Ctrl+Enter", 392, 256, 62, 14, RGB(220, 250, 255), DT_CENTER | DT_SINGLELINE);
             glassPanel(c, 96, 390, 654, 36);
-        }
-        if (p == PG_CLAUDE) {
-            glassPanel(c, 96, 10, 654, 414);
-            textAt(dc, hTitle, L"Claude engine", 108, 20, 300, 20, NAVY, DT_LEFT | DT_SINGLELINE);
-            textAt(dc, hSmall, L"every rewrite is paid, even with a subscription", 420, 22, 318, 16, RGB(198, 112, 20), DT_RIGHT | DT_SINGLELINE);
-            textAt(dc, hFont, L"API key:", 108, 56, 64, 18, NAVY, DT_LEFT | DT_SINGLELINE);
-            textAt(dc, hFont, L"Model:", 108, 82, 64, 18, NAVY, DT_LEFT | DT_SINGLELINE);
-            textAt(dc, hFont, L"Extra instructions (optional), e.g. “keep it casual” or “sound like a 10th grader”:", 108, 110, 630, 18, NAVY, DT_LEFT | DT_SINGLELINE);
-            inset(c, 106, 256, 634, 158);
-            textAt(dc, hFont, CLAUDE_INFO, 118, 264, 612, 146, NAVY, DT_LEFT | DT_WORDBREAK);
         }
         if (p == PG_UPDATE) {
             glassPanel(c, 96, 10, 654, 414);
@@ -2104,8 +2829,8 @@ static void drawTabs(Canvas *c) {
         COLORREF col = !activated ? RGB(90, 150, 165) : active ? RGB(255, 255, 255) : RGB(200, 245, 252);
         int icol = (GetRValue(col) << 16) | (GetGValue(col) << 8) | GetBValue(col);
         RECT l = { r.left, r.top + S(38), r.right, r.bottom - S(4) };
-        if (active) drawIcon(c, i, x + w / 2, y + S(21) + 1, S(24), 0x0b5a66, 0.6);
-        drawIcon(c, i, x + w / 2, y + S(21), S(24), icol, 1);
+        if (active) drawIcon(c, i ? 2 : 0, x + w / 2, y + S(21) + 1, S(24), 0x0b5a66, 0.6);
+        drawIcon(c, i ? 2 : 0, x + w / 2, y + S(21), S(24), icol, 1);
         SetBkMode(c->dc, TRANSPARENT);
         SetTextColor(c->dc, col);
         SelectObject(c->dc, hBtnSmall);
@@ -2343,6 +3068,8 @@ static int clipSet(const wchar_t *s) {
     return 1;
 }
 
+typedef struct { wchar_t *in, *out, *err; int toClip, engine; NanoStats st; } NRes;
+
 static int missingLocks(const wchar_t *in, const wchar_t *out, int strict, wchar_t *list, int cap) {
     int n = (int)wcslen(in), miss = 0, used = 0;
     unsigned char *L = computeLocks(in, n, strict);
@@ -2366,131 +3093,6 @@ static int missingLocks(const wchar_t *in, const wchar_t *out, int strict, wchar
     return miss;
 }
 
-/* ---------- Claude engine ---------- */
-
-#define PH_OPEN  0x27E6
-#define PH_CLOSE 0x27E7
-
-typedef struct { wchar_t *text, *extra; wchar_t key[300], model[80]; int strength, strict, toClip; } CReq;
-typedef struct { wchar_t *in, *out, *err; int toClip, engine; NanoStats st; } NRes;
-
-static wchar_t *maskText(const wchar_t *t, int strict, wchar_t ***pieces, int *np) {
-    int n = (int)wcslen(t);
-    unsigned char *L = computeLocks(t, n, strict);
-    Str o = {0}; sAdd(&o, L"");
-    *pieces = NULL; *np = 0;
-    for (int i = 0; i < n;) {
-        if (L[i] == 1 || L[i] == 4) {
-            int j = i; while (j < n && (L[j] == 1 || L[j] == 4)) j++;
-            *pieces = realloc(*pieces, (*np + 1) * sizeof(wchar_t *));
-            (*pieces)[(*np)++] = wndup(t + i, j - i);
-            wchar_t ph[24]; swprintf(ph, 24, L"%lc%d%lc", (wint_t)PH_OPEN, *np, (wint_t)PH_CLOSE);
-            sAdd(&o, ph);
-            i = j;
-        } else sAddC(&o, t[i++]);
-    }
-    free(L);
-    return o.s;
-}
-
-static wchar_t *unmaskText(const wchar_t *t, wchar_t **pieces, int np, int *missing) {
-    Str o = {0}; sAdd(&o, L"");
-    char *seen = calloc(np + 1, 1);
-    for (const wchar_t *p = t; *p;) {
-        if (*p == PH_OPEN) {
-            int k = 0; const wchar_t *q = p + 1;
-            while (iswdigit(*q)) k = k * 10 + (*q++ - L'0');
-            if (*q == PH_CLOSE && k >= 1 && k <= np) { sAdd(&o, pieces[k - 1]); seen[k - 1] = 1; p = q + 1; continue; }
-        }
-        sAddC(&o, *p++);
-    }
-    *missing = 0;
-    for (int i = 0; i < np; i++) if (!seen[i]) (*missing)++;
-    free(seen);
-    return o.s;
-}
-
-static const wchar_t *STRENGTH_TXT[3] = {
-    L"Make light edits: swap in synonyms and rephrase some phrases, but keep the sentence structure mostly the same.",
-    L"Reword it thoroughly: change most of the wording and vary the sentence structure.",
-    L"Rewrite it aggressively: restructure every sentence, reorder clauses, merge or split sentences where natural, and change the vocabulary throughout so it shares as few phrases as possible with the original."
-};
-
-static DWORD WINAPI ClaudeThread(LPVOID arg) {
-    CReq *r = arg;
-    NRes *res = calloc(1, sizeof *res);
-    res->in = r->text; res->toClip = r->toClip; res->engine = 1;
-    wchar_t **pieces; int np;
-    wchar_t *masked = maskText(r->text, r->strict, &pieces, &np);
-
-    Str sys = {0};
-    sAdd(&sys, L"You rewrite text so it looks completely different while keeping exactly the same meaning, point and claims. "
-               L"Rules:\n"
-               L"- Tokens like ⟦1⟧ are locked placeholders. Keep every one exactly once, unchanged, in a position that makes sense.\n"
-               L"- Keep every name, number, date, quantity and factual claim exactly as accurate as the original. Never add or remove information.\n"
-               L"- Keep the same language, roughly the same length, paragraph breaks, and the same tone and reading level.\n"
-               L"- Output only the rewritten text: no preamble, no notes, no quotation marks around it.\n");
-    sAdd(&sys, STRENGTH_TXT[r->strength]);
-    if (r->extra && r->extra[0]) { sAdd(&sys, L"\nAlso: "); sAdd(&sys, r->extra); }
-
-    char *se = jsonEsc(sys.s), *te = jsonEsc(masked), *me = jsonEsc(r->model[0] ? r->model : L"claude-sonnet-5-5");
-    int maxTok = (int)wcslen(masked) / 2 + 1024; if (maxTok > 16000) maxTok = 16000;
-    size_t cap = strlen(se) + strlen(te) + strlen(me) + 512;
-    char *body = malloc(cap);
-    int blen = snprintf(body, cap, "{\"model\":\"%s\",\"max_tokens\":%d,\"system\":\"%s\",\"messages\":[{\"role\":\"user\",\"content\":\"%s\"}]}",
-                        me, maxTok, se, te);
-    free(se); free(te); free(me); free(sys.s); free(masked);
-
-    wchar_t hdr[512];
-    swprintf(hdr, 512, L"x-api-key: %ls\r\nanthropic-version: 2023-06-01\r\ncontent-type: application/json\r\n", r->key);
-    char *resp; size_t rlen; DWORD st;
-    int e = httpPost(L"api.anthropic.com", L"/v1/messages", hdr, body, (DWORD)blen, &resp, &rlen, &st);
-    free(body);
-
-    if (e) {
-        wchar_t m[256]; swprintf(m, 256, L"Couldn't reach Claude (network error %d). Check your internet, or switch to Offline.", e);
-        res->err = wdup(m);
-    } else if (st == 200) {
-        char *tp = strstr(resp, "\"type\":\"text\"");
-        char *txt = jsonStr(resp, "text", tp ? tp : resp, NULL);
-        if (txt && txt[0]) {
-            wchar_t *w = u8dup(txt);
-            wchar_t *a = w; while (iswspace(*a)) a++;
-            int L2 = (int)wcslen(a); while (L2 && iswspace(a[L2 - 1])) a[--L2] = 0;
-            int missing;
-            res->out = unmaskText(a, pieces, np, &missing);
-            if (missing) {
-                wchar_t m[200]; swprintf(m, 200, L"Claude dropped %d locked part%ls, so the result was thrown out. Hit rewrite to try again.", missing, missing == 1 ? L"" : L"s");
-                free(res->out); res->out = NULL; res->err = wdup(m);
-            }
-            free(w);
-        } else res->err = wdup(L"Claude returned no text.");
-        free(txt);
-    } else {
-        char *msg = jsonStr(resp, "message", NULL, NULL);
-        wchar_t *wm = u8dup(msg ? msg : "");
-        wchar_t m[400];
-        if (st == 401) swprintf(m, 400, L"Claude rejected the API key (HTTP 401). Check it on the Claude page.");
-        else swprintf(m, 400, L"Claude API error (HTTP %lu): %ls", (unsigned long)st, wm);
-        res->err = wdup(m);
-        free(msg); free(wm);
-    }
-    free(resp);
-    for (int i = 0; i < np; i++) free(pieces[i]);
-    free(pieces);
-    free(r->extra); free(r);
-    PostMessageW(hMain, WM_NANODONE, 0, (LPARAM)res);
-    return 0;
-}
-
-static wchar_t *getEditText(int id) {
-    HWND h = GetDlgItem(hMain, id);
-    int n = GetWindowTextLengthW(h);
-    wchar_t *t = calloc(n + 2, sizeof(wchar_t));
-    GetWindowTextW(h, t, n + 1);
-    return t;
-}
-
 static void setGoLabel(void) { InvalidateRect(GetDlgItem(hMain, ID_GO), NULL, FALSE); }
 
 static void finishRewrite(NRes *r) {
@@ -2504,11 +3106,9 @@ static void finishRewrite(NRes *r) {
         wchar_t tail[100] = L"";
         if (r->toClip && clipSet(r->out)) wcscpy(tail, L"  Copied, paste it anywhere.");
         if (m) status(L"Heads up: %d locked bit%ls changed or moved: %ls", m, m == 1 ? L"" : L"s", miss);
-        else if (r->engine == 0)
-            status(L"Done. %d of %d words reworded, %d sentence%ls restructured, %d part%ls locked.%ls",
+        else status(L"Done. %d of %d words reworded, %d sentence%ls rearranged, %d part%ls locked.%ls",
                    r->st.changed, r->st.words, r->st.restructured, r->st.restructured == 1 ? L"" : L"s",
                    r->st.locks, r->st.locks == 1 ? L"" : L"s", tail);
-        else status(L"Done. Rewritten by Claude, every locked part checked and intact.%ls", tail);
     }
     free(r->in); free(r->out); free(r->err); free(r);
     InterlockedExchange(&nanoBusy, 0);
@@ -2529,26 +3129,6 @@ static void doRewrite(int fromClip) {
     if (!any) { free(text); status(L"Type or paste some text in the Original box first."); return; }
     InterlockedExchange(&nanoBusy, 1);
     setGoLabel();
-    if (tog[TG_CLAUDE].on) {
-        CReq *r = calloc(1, sizeof *r);
-        GetDlgItemTextW(hMain, ID_KEY, r->key, 300);
-        GetDlgItemTextW(hMain, ID_MODEL, r->model, 80);
-        r->extra = getEditText(ID_EXTRA);
-        for (wchar_t *p = r->extra; *p; p++) if (*p == L'\r' || *p == L'\n') *p = L' ';
-        wchar_t *k = r->key; while (*k == L' ') k++;
-        if (!*k) {
-            free(r->extra); free(r); free(text);
-            InterlockedExchange(&nanoBusy, 0); setGoLabel();
-            status(L"The Claude engine needs an API key. Paste it on the Claude page, or switch to Offline.");
-            return;
-        }
-        if (k != r->key) memmove(r->key, k, (wcslen(k) + 1) * sizeof(wchar_t));
-        int L2 = (int)wcslen(r->key); while (L2 && iswspace(r->key[L2 - 1])) r->key[--L2] = 0;
-        r->text = text; r->strength = strength(); r->strict = tog[TG_STRICT].on; r->toClip = fromClip;
-        status(L"Asking Claude…");
-        CloseHandle(CreateThread(NULL, 0, ClaudeThread, r, 0, NULL));
-        return;
-    }
     NanoOpts o = { strength(), tog[TG_STRICT].on };
     NRes *res = calloc(1, sizeof *res);
     LARGE_INTEGER c; QueryPerformanceCounter(&c);
@@ -2635,7 +3215,7 @@ static LRESULT CALLBACK FrameProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             else { capHover = -1; ShowWindow(h, SW_MINIMIZE); }
         }
     } return 0;
-    case WM_SETFOCUS: SetFocus(GetDlgItem(hMain, curPage == PG_LOCK ? ID_ACTKEY : curPage == PG_CLAUDE ? ID_KEY : curPage == PG_UPDATE ? ID_UCHECK : ID_IN)); return 0;
+    case WM_SETFOCUS: SetFocus(GetDlgItem(hMain, curPage == PG_LOCK ? ID_ACTKEY : curPage == PG_UPDATE ? ID_UCHECK : ID_IN)); return 0;
     case WM_ERASEBKGND: return 1;
     case WM_PAINT: {
         PAINTSTRUCT ps; HDC dc = BeginPaint(h, &ps);
@@ -2672,7 +3252,7 @@ static void showPage(int p) {
     hoverBtn = NULL;
     for (int i = 0; i < nctl; i++) ShowWindow(ctls[i].h, ctls[i].page == p ? SW_SHOWNA : SW_HIDE);
     InvalidateRect(hMain, NULL, FALSE);
-    SetFocus(GetDlgItem(hMain, p == PG_LOCK ? ID_ACTKEY : p == PG_CLAUDE ? ID_KEY : p == PG_UPDATE ? ID_UCHECK : ID_IN));
+    SetFocus(GetDlgItem(hMain, p == PG_LOCK ? ID_ACTKEY : p == PG_UPDATE ? ID_UCHECK : ID_IN));
 }
 
 static HWND mkRich(int x, int y, int w, int h, int id) {
@@ -2696,11 +3276,6 @@ static void buildUI(void) {
     BTN(L"Copy", 480, 393, 76, 30, ID_COPY);
     BTN(L"Use as input", 560, 393, 106, 30, ID_USE);
     BTN(L"Clear", 670, 393, 70, 30, ID_CLR);
-
-    buildPage = PG_CLAUDE;
-    mk(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_TABSTOP | ES_AUTOHSCROLL | ES_PASSWORD, 176, 53, 360, 22, ID_KEY);
-    mk(WS_EX_CLIENTEDGE, L"EDIT", L"claude-sonnet-5-5", WS_TABSTOP | ES_AUTOHSCROLL, 176, 79, 200, 22, ID_MODEL);
-    mk(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_TABSTOP | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL, 108, 132, 632, 112, ID_EXTRA);
 
     buildPage = PG_UPDATE;
     mk(0, L"EDIT", L"", WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL, 114, 150, 618, 192, ID_UNOTES);
@@ -2765,28 +3340,18 @@ static void rescaleAll(void) {
     WritePrivateProfileStringW(L"Settings", L"Scale", b, iniPath);
 }
 
-static const wchar_t *TOGKEY[TG_N] = { L"EngineOffline", L"EngineClaude", L"Light", L"Medium", L"Heavy", L"LockFacts", L"Highlight", L"UpdateCheck", L"UpdateAuto" };
+static const wchar_t *TOGKEY[TG_N] = { L"Light", L"Medium", L"Heavy", L"LockFacts", L"Highlight", L"UpdateCheck", L"UpdateAuto" };
 
 static void loadSettings(void) {
     for (int i = 0; i < TG_N; i++) tog[i].on = GetPrivateProfileIntW(L"Settings", TOGKEY[i], tog[i].on, iniPath) != 0;
-    if (tog[TG_OFF].on == tog[TG_CLAUDE].on) { tog[TG_OFF].on = 1; tog[TG_CLAUDE].on = 0; }
     if (tog[TG_LIGHT].on + tog[TG_MED].on + tog[TG_HEAVY].on != 1) { tog[TG_LIGHT].on = tog[TG_HEAVY].on = 0; tog[TG_MED].on = 1; }
     wchar_t b[400];
-    if (GetPrivateProfileStringW(L"Claude", L"ApiKey", L"", b, 400, iniPath) && b[0]) SetDlgItemTextW(hMain, ID_KEY, b);
-    if (GetPrivateProfileStringW(L"Claude", L"Model", L"", b, 400, iniPath) && b[0]) SetDlgItemTextW(hMain, ID_MODEL, b);
-    if (GetPrivateProfileStringW(L"Claude", L"Extra", L"", b, 400, iniPath) && b[0]) SetDlgItemTextW(hMain, ID_EXTRA, b);
     GetPrivateProfileStringW(L"Activation", L"Key", L"", b, 400, iniPath);
     activated = keyValid(b, NULL);
 }
 
 static void saveSettings(void) {
     for (int i = 0; i < TG_N; i++) WritePrivateProfileStringW(L"Settings", TOGKEY[i], tog[i].on ? L"1" : L"0", iniPath);
-    wchar_t b[400];
-    GetDlgItemTextW(hMain, ID_KEY, b, 400); WritePrivateProfileStringW(L"Claude", L"ApiKey", b, iniPath);
-    GetDlgItemTextW(hMain, ID_MODEL, b, 400); WritePrivateProfileStringW(L"Claude", L"Model", b, iniPath);
-    GetDlgItemTextW(hMain, ID_EXTRA, b, 400);
-    for (wchar_t *p = b; *p; p++) if (*p == L'\r' || *p == L'\n') *p = L' ';
-    WritePrivateProfileStringW(L"Claude", L"Extra", b, iniPath);
 }
 
 static void idleStatus(void) {
@@ -2829,11 +3394,6 @@ static void clickToggle(int mx, int my) {
         else tog[i].on = !tog[i].on;
         InvalidateRect(hMain, NULL, FALSE);
         if (i == TG_HILITE || i == TG_STRICT) hiliteAll();
-        if (i == TG_CLAUDE) {
-            wchar_t k[8]; GetDlgItemTextW(hMain, ID_KEY, k, 8);
-            status(k[0] ? L"Claude engine on. Rewrites use your API credits." : L"Claude engine on. Paste your API key on the Claude page first.");
-        }
-        if (i == TG_OFF) status(L"Offline engine on. Free, instant, works without internet.");
         return;
     }
 }

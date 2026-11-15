@@ -13,13 +13,11 @@ Nano never touches:
 
 Turn on **Highlight locked parts** to see exactly what's protected (blue = locked bits, green = locked fact sentences).
 
-## Engines
+## How it rewrites
 
-**Offline** (free, instant, no internet): swaps words and phrases from a built-in thesaurus (with verb tenses and plurals handled), flips contractions, swaps sentence openers, and restructures sentences ("X because Y." → "Because Y, X." / "X, but Y." → "Although X, Y."). Each press gives a different version.
+Everything runs offline, instantly. Nano rearranges sentences (moves "because/although" clauses, time phrases and adverbs to the other end, flips "X says Y" into "Y, X says", splits long sentences and merges short ones), then swaps words and phrases from a built-in thesaurus with verb tenses and plurals handled, flips contractions and swaps sentence openers. Each press gives a different version.
 
-**Claude** (your own Anthropic API key, paid per use even with a Claude subscription): full rewrites. Locked parts are swapped for placeholders before the text is sent and restored exactly afterward, so Claude can't change them. If any placeholder goes missing, the result is thrown out.
-
-**Strength**: Light / Medium / Heavy controls how much changes in both engines.
+**Strength**: Light / Medium / Heavy controls how much changes.
 
 ## Shortcuts
 

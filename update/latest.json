@@ -1,6 +1,6 @@
 {
-  "version": "1.0.1",
+  "version": "1.1.0",
   "url": "https://raw.githubusercontent.com/binjin-maker/FrutigerNano/main/update/FrutigerNano.exe",
-  "sha256": "0eb1c42f0e85dd01c9ef70ac2355967a46e899945c0b9bb699ed8167afd79a1c",
-  "notes": "1.0.1\n- Added Windows version info to the EXE (helps with antivirus false positives)\n- Removed brand text from the app"
+  "sha256": "63dd76afaa39bc6edea0c0570b15ef4e3e165ebe6d91f0c9932d990d6ac546fd",
+  "notes": "1.1.0\n- Much stronger rewrites: ~1000 more synonyms and phrases\n- Rearranges sentences: moves clauses and time phrases, flips \"X says Y\" around, splits and merges sentences, moves adverbs\n- Removed the Claude engine; everything runs offline"
 }

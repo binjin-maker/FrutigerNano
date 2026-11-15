@@ -2,8 +2,8 @@
 1 ICON "icon.ico"
 1 24 "app.manifest"
 1 VERSIONINFO
-FILEVERSION 1,0,1,0
-PRODUCTVERSION 1,0,1,0
+FILEVERSION 1,1,0,0
+PRODUCTVERSION 1,1,0,0
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0x0L
 FILEOS VOS_NT_WINDOWS32
@@ -15,11 +15,11 @@ BEGIN
     BLOCK "040904b0"
     BEGIN
       VALUE "FileDescription", "Frutiger Nano text rewriter"
-      VALUE "FileVersion", "1.0.1.0"
+      VALUE "FileVersion", "1.1.0.0"
       VALUE "InternalName", "FrutigerNano"
       VALUE "OriginalFilename", "FrutigerNano.exe"
       VALUE "ProductName", "Frutiger Nano"
-      VALUE "ProductVersion", "1.0.1.0"
+      VALUE "ProductVersion", "1.1.0.0"
       VALUE "LegalCopyright", "Frutiger Nano"
     END
   END
