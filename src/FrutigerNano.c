@@ -150,7 +150,6 @@ static const wchar_t *THES2[] = {
     L"N scientist > researcher",
     L"N team > group|crew",
     L"N guy > man:men|fellow",
-    L"N word > term",
     L"ND urge > impulse|craving",
     L"N fridge > refrigerator",
     L"N situation > scenario|circumstance",
@@ -36452,6 +36451,22 @@ static const char *VERBFORMS = "be:is:was:been\n"
   "throng:throngs:thronged:thronged\n"
   "wallow:wallows:wallowed:wallowed\n"
   "";
+static const char *ZIPF[] = {
+    "ab:41\nabbrev:17\nabhorrent:30\nabilities:42\nability:50\nable:54\nabnormal:37\nabout:64\nabove:52\nabroad:44\nabrupt:34\nabruptly:36\nabsence:43\nabsolute:45\nabsolutely:50\nabstract:41\nabsurd:40\nabundant:38\naccessibility:35\naccessible:42\naccident:47\naccidental:38\naccidentally:42\naccomplish:40\naccomplished:42\naccomplishment:37\naccomplishments:38\naccording:53\naccordingly:40\naccountable:39\naccretion:28\naccretions:16\naccumulation:36\naccumulations:25\naccurate:46\naccurately:40\nachievable:32\nachieve:46\nachievement:44\nachievements:41\nack:29\nacknowledge:42\nacknowledgement:33\nacknowledgements:24\nacknowledgment:31\nacknowledgments:23\nacquire:41\nacres:42\nacross:52\nactive:49\nactual:48\nactually:55\nad:48\nadage:30\nadages:17\nadapt:40\nadd:51\naddition:50\nadditional:50\nadditionally:42\nadditive:33\naddress:49\naddresses:41\nadept:33\nadequate:40\nadj:26\nadjust:41\nadjustment:39\nadjustments:38\nadmirable:35\nadmirer:32\nadmirers:32\nadmit:46\nadmits:39\nadmitted:45\nadmitting:38\nadolescent:36\nadolescents:35\nadoptive:32\nadorable:41\nadore:37\nadorned:34\nadult:48\nadulthood:36\nadults:46\nadv:30\nadvance:46\nadvantage:48\nadvantageous:33\nadversaries:32\nadversary:33\nadverse:39\nadversities:22\nadversity:34\nadvice:49\nadviser:39\nadvisers:36\nadvisor:40\nadvisors:36\nadvisory:42\nadvocate:42\nadvocates:40\naeiou:12\naf:40\naffair:43\naffairs:47\naffect:46\naffectionate:34\naffluent:34\naffordable:42\nafraid:47\nafresh:28\nafter:61\naftermath:39\nafternoon:47\nafterward:38\nafterwards:44\nag:40\nagain:57\nagainst:57\nage:53\naged:45\nagencies:45\nagency:49\nages:45\naggressive:43\naggressively:36\nagile:34\nagitated:34\nago:54\nagonizing:30\nagree:50\nagreeable:32\nagreed:48\nagrees:41\nahead:50\naid:48\naids:42\naim:45\naims:42\nairplane:39\nairplanes:35\nal:52\nalarm:43\nalarming:35\nalarms:36\nalert:43\nalertness:28\nalien:43\nalive:48\nall:65\nallegories:24\nallegory:31\nallow:50\nalluring:30\nalmost:54\nalone:52\nalong:54\nalongside:44\nalpha:42\nalready:56\nalso:62\nalter:40\nalteration:33\nalterations:35\nalternative:47\nalthough:53\naltogether:41\naltruistic:30\nalumni:39\nalumnus:29\nalways:58\nam:58\namaze:32\namazed:39\namazement:30\namazing:51\namazingly:36\nambience:29\nambiguous:36\nambition:39\namble:23\namid:40\nammo:35\nammunition:39\nammunitions:21\namong:53\namount:51\namounts:44\namusing:38\nan:65\nanarchy:35\nancestries:17\nancestry:35\nancient:47\nand:74\nanemic:28\nanew:32\nange:30\nanger:44\nangered:33\nangrily:33\nangry:47\nanimal:48\nanimals:48\nannounce:43\nannoy:35\nannoyance:33\nannoyances:25\nannoyed:40\nannoying:44\nannually:42\nano:30\nanomalous:29\nanonymous:42\nanother:57\nanswer:52\nanswers:46\nantagonism:28\nantagonisms:20\nanterior:35\nanticipate:37\nantipathies:13\nantipathy:27\nantiquated:31\nantonym:20\nanxious:41\nany:61\nanybody:46\nanyhow:35\nanyone:54\nanything:56\nanyway:49\nap:44\napart:48\napocalyptic:34\napos:25\nappalled:32\nappalling:35\napparent:43\napparently:48\nappealing:40\nappear:48\napplicable:41\nappraisal:34\nappreciative:32\napprehension:31\napprehensions:24\napproach:49\nappropriately:37\napprox:35\napproximately:46\napril:52\narcane:30\narchaic:34\nardent:33\narduous:32\nare:67\narea:55\naren:28\naren't:50\nargue:45\nargued:44\nargues:40\nargument:46\narguments:43\narid:34\naristocracies:15\naristocracy:32\naristocratic:32\narmistice:32\naroma:32\naromas:26\naround:58\narr:30\narrange:40\narrangement:42\narrive:44\narrogant:37\narticle:51\narticulate:35\nartificial:42\nartist:48\nartistry:31\narts:47\nas:68\nascend:32\nase:26\nashamed:41\naside:46\nask:53\naspect:44\naspects:45\nass:50\nassailant:31\nassailants:29\nassemble:36\nassert:36\nassertive:32\nassess:41\nassessment:45\nassessments:38\nassignment:42\nassist:44\nassistance:46\nassortment:33\nassortments:20\nassume:46\nassumed:44\nassumes:38\nassumption:41\nassumptions:40\nassurance:38\nassurances:33\nassured:41\nast:31\nastonish:25\nastonished:33\nastonishing:37\nastonishingly:29\nastonishment:29\nastounding:34\nastute:31\nat:67\nate:43\nathletics:38\natmosphere:45\natmospheres:29\natrocious:31\nattack:51\nattacker:36\nattackers:35\nattacks:47\nattain:36\nattempt:48\nattempted:44\nattempts:45\nattention:51\nattentive:33\nattentively:25\nattire:35\nattitude:46\nattorney:47\nattorneys:40\nattractive:45\naudacious:30\naudience:47\naugust:51\nause:15\nauthentic:40\nauthor:50\nauthoritarian:36\nauthoritarianism:30\nauthoritative:34\nauthorities:46\nauthorization:37\nauthorizations:25\nauthors:45\nauthorship:32\nauto:45\nautomobile:39\nautomobiles:35\nautos:31\nautumn:43\nautumns:20\naux:34\navailabilities:18\navailability:41\navailable:53\naverage:52\naversion:32\naversions:19\navoid:49\nawake:41\nawaken:34\naward:49\naway:56\nawesome:49\nawful:45\nawfully:34\nawkward:43\nba:41\nbabies:44\nbaby:53\nback:60\nbad:55\nbadly:44\nbaffle:27\nbaffled:34\nballot:41\nballots:36\nban:46\nbankrupt:37\nbanned:44\nbanning:38\nbans:37\nbar:49\nbare:42\nbarely:45\nbarrage:34\n",
+    "barrages:23\nbarren:34\nbarter:30\nbase:50\nbaseless:31\nbasement:42\nbasements:29\nbasic:49\nbasically:46\nbasketball:46\nbasketballs:22\nbathtub:34\nbathtubs:23\nbattle:49\nbattles:42\nbb:38\nbc:45\nbce:31\nbe:68\nbear:47\nbearable:29\nbearing:42\nbearish:28\nbears:43\nbeast:43\nbeasts:37\nbeautiful:52\nbecame:52\nbecause:60\nbecome:54\nbecomes:48\nbecoming:48\nbeen:63\nbefore:59\nbeforehand:36\nbeg:40\nbegan:51\nbegin:48\nbeginning:50\nbegins:46\nbegun:44\nbehavior:47\nbehaviors:39\nbehemoth:30\nbehemoths:23\nbeing:60\nbelief:45\nbelieve:55\nbelieved:48\nbelieves:44\nbelligerent:30\nbelong:44\nbeloved:42\nbeneficial:41\nbenefit:48\nberserk:30\nbeside:42\nbesides:46\nbest:58\nbet:48\nbetter:58\nbetween:58\nbeyond:50\nbias:42\nbiases:33\nbiblical:39\nbig:57\nbigoted:30\nbigram:12\nbike:45\nbikes:39\nbilingual:35\nbillion:48\nbillions:40\nbirds:46\nbit:54\nbits:42\nbitterness:34\nbittersweet:32\nbizarre:40\nbj:33\nblackboard:30\nblackboards:19\nblameless:28\nbland:35\nblank:41\nblaze:37\nblazes:28\nblazing:35\nbleeding:41\nbleedings:13\nblend:40\nblizzard:35\nblizzards:26\nblock:49\nbloom:39\nblossom:36\nblunder:31\nblurry:33\nbo:40\nboast:35\nbody:54\nbogus:34\nboiling:38\nboisterous:29\nbold:43\nbombardment:33\nbombardments:24\nbond:46\nbonus:44\nbonuses:38\nbooklet:35\nbooklets:28\nbooks:52\nboost:44\nbore:39\nbored:42\nboring:44\nborn:51\nborne:37\nboss:48\nbosses:39\nboth:58\nbother:44\nbothered:40\nbought:49\nboy:52\nbrackets:36\nbrag:35\nbrash:30\nbrave:43\nbravery:36\nbrazen:31\nbreadth:35\nbreadths:11\nbreak:52\nbreakable:24\nbreakaway:32\nbreakfast:46\nbreaking:47\nbreaks:45\nbreathtaking:36\nbreezy:31\nbridge:48\nbrief:45\nbriefly:42\nbright:46\nbrightly:34\nbrilliant:46\nbrilliantly:35\nbroad:45\nbrochure:34\nbrochures:31\nbroke:48\nbroken:49\nbrutal:41\nbrutally:36\nbs:40\nbsp:28\nbuddies:38\nbuddy:44\nbudget:48\nbuf:24\nbuild:50\nbuilding:53\nbuilds:40\nbuilt:51\nbulk:42\nbullish:31\nbullying:40\nbumpy:32\nbunch:46\nbunches:30\nbungalow:33\nbungalows:28\nbureau:44\nbureaus:29\nburial:39\nburials:30\nburst:42\nbursting:35\nbursts:35\nbushy:30\nbusiness:56\nbusy:48\nbut:66\nbuy:53\nbuyer:40\nbuyers:42\nbuying:48\nbuys:39\nbw:32\nby:67\nc':53\ncalamities:27\ncalamity:32\ncalculate:39\ncalculation:38\ncalculations:39\ncalled:56\ncalm:45\ncalmness:29\ncame:55\ncan:65\ncan't:58\ncancerous:32\ncand:21\ncandid:34\ncandidate:47\ncandidates:46\ncandidly:28\ncannot:51\ncanny:29\ncap:45\ncapabilities:41\ncapability:41\ncapable:46\ncapital:50\ncapitals:36\ncapricious:28\ncaps:42\ncapt:37\ncaptivating:32\ncaptive:37\ncaptives:32\ncar:54\ncare:56\ncareer:51\ncareers:41\ncareful:46\ncarefully:45\ncargo:42\ncargoes:26\ncaring:42\ncarnage:33\ncarnal:30\ncarpet:42\ncarpets:34\ncarry:49\ncars:49\ncase:56\ncased:26\ncases:50\ncash:49\ncasket:33\ncaskets:25\ncastle:44\ncastles:35\ncatastrophe:36\ncatastrophes:28\ncategorically:30\ncategories:43\ncategorized:33\ncategory:46\ncats:45\ncause:54\ncaused:49\ncauses:46\ncaution:40\ncautious:38\ncautiously:33\ncc:42\nce:38\ncease:40\ncelebrated:42\ncelebration:43\ncellar:36\ncellars:30\ncentered:40\ncentral:51\ncentrist:32\ncentrists:24\ncents:44\ncenturies:43\ncentury:50\ncertain:52\ncertainly:50\ncertificate:43\ncertificates:38\nchalkboard:28\nchalkboards:18\nchallenger:37\nchallengers:32\nchallenging:43\nchance:53\nchances:45\nchange:55\nchanged:51\nchaotic:37\nchar:35\ncharacteristic:40\ncharacterization:35\ncharacterizations:26\ncharge:50\ncharitable:39\ncharming:41\nchase:44\nchat:46\ncheap:47\ncheck:53\nchecks:43\ncheeky:35\ncheerful:36\ncheerfully:30\ncherish:35\nchg:20\nchic:37\nchief:51\nchiefly:34\nchild:53\nchildren:55\nchilly:35\nchoice:51\nchoices:45\nchoose:49\nchooses:38\nchoosing:43\nchore:32\nchose:46\nchosen:46\nchronic:42\nchubby:34\nchuckle:35\nchunk:36\nchunks:35\ncircumstance:37\ncitation:38\ncitations:36\ncitizen:44\ncitizens:47\ncj:35\ncl:38\nclad:36\nclaim:50\nclaimed:46\nclaims:49\nclandestine:32\nclarify:38\nclash:40\nclashes:35\nclass:54\nclasses:48\nclassical:43\nclassified:43\nclassy:37\nclause:40\nclean:50\ncleanly:30\nclear:52\nclearly:49\nclefts:19\nclever:42\ncleverly:32\ncliche:32\nclient:45\nclimb:42\nclose:54\ncloset:41\nclosets:31\ncloth:40\ncloths:31\nclue:42\nclueless:35\nclumsy:34\ncluttered:29\ncm:43\ncn:34\ncnt:27\nco:52\ncoach:50\ncoaches:43\ncoarse:34\ncocky:34\ncode:51\ncoffin:38\ncoffins:30\ncogent:27\ncoherent:36\ncol:40\ncold:50\ncollaborate:35\ncollaborative:38\ncollage:34\ncollages:27\ncollect:44\ncollectively:38\ncolloquial:29\ncolor:49\ncolossal:34\ncolossi:19\ncolossus:31\ncombine:41\ncombustible:29\ncome:58\ncomes:54\ncomfort:44\ncomfortable:47\ncomfy:36\ncomic:44\ncomical:32\n",
+    "coming:54\ncomma:33\ncommas:29\ncommence:36\ncommendation:30\ncommendations:25\ncomment:49\ncomments:49\ncommon:52\ncommonly:44\ncommonplace:34\ncommonplaces:14\ncommunity:53\ncompanies:52\ncompany:56\ncomparable:41\ncomparatively:35\ncompassionate:36\ncompete:44\ncompetent:39\ncompetitor:38\ncompetitors:41\ncomplain:42\ncomplainant:31\ncomplainants:28\ncomplete:51\ncompletely:50\ncomplex:49\ncompliance:42\ncompliances:17\ncomplicated:45\ncomply:40\ncomponent:43\ncomponents:44\ncomposed:43\ncomposure:32\ncomprehend:37\ncomprehensible:27\ncomprehensive:44\ncompression:38\ncomprise:36\ncompulsive:33\ncompulsory:37\ncomputation:34\ncomputations:28\ncompute:34\nconceal:35\nconcealed:37\nconceited:29\nconceivable:32\nconcentrate:41\nconcept:48\nconceptual:36\nconcern:47\nconcerning:43\nconcise:35\nconclude:39\nconcluded:44\nconcludes:38\nconclusion:44\nconcomitant:28\ncondition:49\nconduct:45\nconfess:38\nconfidence:46\nconfidences:22\nconfident:44\nconfirm:44\nconflict:46\nconflicts:41\nconformities:12\nconformity:32\nconfuse:37\nconfused:45\ncongratulations:44\nconj:16\nconn:34\nconnect:44\nconnection:48\nconnectors:32\nconsensus:41\nconsequence:41\nconsequences:45\nconsequent:30\nconsequently:39\nconsider:50\nconsiderable:42\nconsiderably:40\nconsignment:30\nconsignments:23\nconsist:39\nconsistently:42\nconsists:44\nconst:28\nconstant:45\nconstantly:45\nconstruct:40\nconsultant:41\nconsultants:37\nconsultative:31\nconsume:39\nconsummate:30\nconsumption:44\nconsumptions:16\ncontagious:36\ncontain:45\ncontemplation:32\ncontemplations:19\ncontemporary:45\ncontempt:37\ncontend:36\ncontender:36\ncontenders:34\ncontented:30\ncontinual:34\ncontinually:39\ncontinue:51\ncontinuous:42\ncontr:22\ncontract:49\ncontracted:39\ncontractions:32\ncontrast:45\ncontribute:43\ncontrollable:29\ncontroversies:34\ncontroversy:43\nconvenient:42\nconversation:48\nconversational:31\nconverse:35\nconversely:35\nconvert:41\nconviction:41\nconvince:43\ncool:52\ncooperate:38\ncooperative:39\ncoordination:39\ncopious:31\ncordial:31\ncore:47\ncornerstone:34\ncornerstones:25\ncorrect:48\ncorrectly:42\ncorrosive:31\ncost:52\ncostly:39\ncottage:40\ncottages:34\ncouch:42\ncouches:30\ncould:61\ncouldn't:51\ncounseling:39\ncount:48\ncounterfeit:34\ncounterproductive:30\ncountless:40\ncountries:51\ncountry:55\ncouple:52\ncourage:43\ncourageous:36\ncourse:54\ncourt:54\ncourteous:32\ncourts:45\ncovert:35\ncowardly:34\ncozy:36\ncraftsmanship:31\ncrafty:32\ncrappy:35\ncraving:36\ncraze:34\ncrazes:20\ncrazy:51\ncreate:50\ncreative:46\ncreature:42\ncreatures:42\ncredential:28\ncredentials:37\ncreepy:40\ncrew:47\ncries:39\ncrime:49\ncriminal:48\ncritic:40\ncritical:48\ncriticize:36\ncritics:44\ncrook:34\ncrowd:47\ncrowded:40\ncrucial:43\ncruel:41\ncry:46\ncs:39\ncuddle:34\ncuddly:31\ncue:38\nculpable:29\nculprit:34\nculprits:30\ncultural:48\ncumbersome:32\ncupboard:34\ncupboards:29\ncur:29\ncurate:30\ncurates:24\ncure:43\ncurious:44\ncuriously:32\ncurly:36\ncurrent:53\ncurrently:51\ncurriculum:41\ncurriculums:24\ncurved:38\ncustody:42\ncustom:44\ncustomary:35\ncustomer:46\ncustomers:48\ncut:52\ncute:46\nd':55\ndad:50\ndaily:51\ndamage:49\ndamages:41\ndamaging:39\ndamp:36\ndanger:46\ndangerous:48\ndaring:37\ndark:50\ndarkness:43\ndash:40\ndawn:43\ndawns:26\nday:60\ndaybreak:30\ndays:56\ndd:37\ndead:52\ndeadlock:30\ndeadlocks:20\ndeadly:42\ndeafening:30\ndeal:53\ndealer:42\ndealers:40\ndealing:46\ndeals:46\ndealt:42\ndear:48\ndebacle:32\ndebacles:18\ndebatable:31\ndecade:45\ndecadent:30\ndecades:46\ndecayed:28\ndeceased:40\ndeceitful:30\ndecember:51\ndecent:44\ndeception:36\ndeceptions:25\ndecide:48\ndecision:51\ndeclare:40\ndecline:44\ndecoration:38\ndecorations:38\ndecorative:38\ndecrease:42\ndecrepit:28\ndeep:50\ndeeply:44\ndefault:43\ndefeat:45\ndefect:37\ndefective:36\ndefend:45\ndefenseless:30\ndeficient:33\ndeficit:41\ndeficits:35\ndefine:43\ndefinite:38\ndefinitely:50\ndegenerative:30\ndegree:49\ndegrees:45\ndelay:44\ndelays:40\ndelectable:27\ndelete:42\ndeleterious:27\ndeliberate:38\ndeliberately:40\ndelicate:40\ndelicately:30\ndelicious:43\ndelight:40\ndelighted:41\ndelightful:38\ndelusional:35\ndemented:30\ndemolish:32\ndemolition:36\ndemolitions:25\ndemon:41\ndemonic:33\ndemons:40\ndemonstrate:42\ndepart:37\ndepend:42\ndependable:32\ndependent:43\ndepict:34\ndepiction:34\ndepictions:31\ndepressing:38\ndept:37\ndepth:46\nderanged:32\nderelict:31\ndescribe:46\ndeserve:46\ndeserving:36\ndesign:52\ndesirable:38\ndesire:46\ndesk:44\ndesolate:32\ndesperate:43\ndesperately:40\ndespicable:35\ndespise:35\ndespite:50\ndestiny:42\ndestitute:31\ndestroy:45\ndestroyed:46\ndestruction:44\ndestructions:20\ndestructive:39\ndetailed:45\ndetector:37\ndetention:40\ndetentions:25\ndetermine:46\ndetermined:46\ndeterminer:21\ndeterminers:19\ndetonation:31\ndetonations:22\ndetrimental:36\ndevastated:37\ndevice:47\ndevil:43\ndevils:38\ndevise:32\ndevoted:42\ndi:43\ndiagonal:34\ndialect:35\ndialects:33\ndicey:27\ndichotomies:22\ndichotomy:31\ndictatorship:36\ndictatorships:28\ndid:60\ndidn't:57\ndie:51\ndied:52\ndies:44\ndifferent:56\ndifferently:42\ndifficult:51\ndifficulties:42\ndifficulty:43\ndigit:38\ndin:36\ndinner:48\ndir:36\ndirection:49\ndirector:52\ndirectors:44\ndirty:46\ndisadvantage:37\ndisadvantaged:35\n",
+    "disagreeable:27\ndisagreement:37\ndisagreements:34\ndisappear:41\ndisaster:44\ndisasters:38\ndisastrous:37\ndisbelief:34\ndiscard:34\ndiscipline:42\ndisclose:38\ndiscomfort:36\ndiscord:34\ndiscords:21\ndiscover:44\ndiscovered:47\ndiscoveries:37\ndiscovery:44\ndiscrepancies:32\ndiscrepancy:33\ndiscuss:47\ndiscussion:47\ndisdain:33\ndisease:49\ndisgrace:37\ndisgraceful:33\ndisgusting:42\ndishonest:35\ndisinterested:29\ndisjointed:29\ndismal:33\ndismantle:32\ndismay:33\ndismiss:38\ndisparate:33\ndisplay:46\ndispute:43\ndisqualified:34\ndisregard:37\ndisrespectful:36\ndisruption:37\ndisruptions:31\ndistaste:29\ndistinct:43\ndistinctive:40\ndistraught:32\ndivergent:34\ndiverse:42\ndivide:41\ndivorced:40\ndj:42\ndo:64\ndoable:30\ndoctor:49\ndoctors:46\ndoctrine:40\ndoctrines:33\ndocument:45\ndocuments:46\ndoes:57\ndoesn't:55\ndogs:48\ndollar:46\ndollars:48\ndon't:62\ndone:56\ndot:40\ndouble:50\ndoubt:49\ndoubtful:35\ndoubtless:31\ndoubts:40\ndown:59\ndownside:35\ndozen:44\ndr:52\ndrab:30\ndrained:37\ndramatic:44\ndramatically:40\ndramatist:28\ndramatists:26\ndrastically:36\ndrawback:32\ndrawn:45\ndread:36\ndreadful:37\ndreadfully:27\ndreads:28\ndream:49\ndreary:31\ndrench:24\ndried:40\ndrive:51\ndrop:50\ndropped:47\ndropping:43\ndrops:43\ndrugged:32\ndrunk:46\ndrunken:37\ndry:47\ndt:36\ndual:43\ndualities:18\nduality:31\ndue:54\ndull:39\ndumb:45\nduo:41\nduos:28\ndup:30\nduring:57\ndusk:34\nduties:43\nduty:47\ndv:31\ndx:32\ndying:46\ne':53\neach:57\neady:21\neager:40\near:44\nearlier:50\nearly:54\nearn:45\nearnings:43\nearthquake:42\nearthquakes:36\nease:43\neasily:49\neasy:53\neasygoing:26\neat:51\neaten:41\neateries:27\neatery:28\neating:48\neats:40\necause:16\neccentric:36\neconomical:36\necstatic:34\ned:48\nedge:47\nedgy:34\neducator:36\neducators:38\neen:29\neerie:33\neffect:50\neffective:49\neffects:49\nefficient:44\neffort:49\neffortlessly:32\nefforts:48\nefore:11\negotistical:28\negregious:31\neither:53\nelaborate:41\nelderly:42\neldest:37\nelected:46\nelective:33\nelegant:40\nelement:45\nelements:47\neliminate:42\neloquence:28\neloquent:32\nelse:54\nem:46\nembarrassed:40\nembarrassing:42\nember:30\nemblem:36\nemember:12\nemerge:39\nemission:37\nemit:32\nemotion:42\nemphasize:37\nempirical:36\nemploy:40\nemployee:45\nemployees:48\nempty:46\nencounter:43\nencounters:40\nencourage:44\nencroachment:29\nencroachments:23\nend:57\nendangered:39\nendearing:31\nendeavor:36\nendeavors:33\nending:47\nendless:42\nends:48\nendure:38\nenduring:37\nenemies:44\nenemy:47\nenergetic:37\nengine:48\nengineering:48\nenhance:40\nenigmatic:31\nenjoy:51\nenjoyable:39\nenlightening:31\nenmities:19\nenmity:30\nenormous:42\nenormously:34\nenough:55\nenraged:33\nensure:47\nent:33\nentail:32\nenter:48\nentertaining:41\nenthusiastic:38\nenticing:31\nentire:51\nentirely:47\nentries:41\nentry:47\nents:25\nenum:21\nenvious:32\nenvision:32\neo:31\neoy:18\nepic:44\nepisode:50\neq:33\nequal:46\nequipment:49\nequivalent:45\nera:47\nerase:37\nerb:24\nere:31\nerotic:37\nerr:34\nerratic:33\nerroneous:32\nerroneously:31\nerror:46\nerrors:42\nerudite:28\nes:39\nesc:29\nescalation:33\nescape:46\nesoteric:32\nespecially:52\nessence:40\nessential:46\nessentially:44\nest:41\nestablish:45\nestablished:49\nestate:48\net:47\net's:19\netc:50\neternal:41\neternally:33\nethics:42\nethnic:43\neu:46\neucharist:30\neuros:38\nevaluate:40\nevasive:30\nevel:23\neven:60\nevening:49\nevent:52\neventual:37\neventually:49\never:57\neverlasting:34\nevery:58\neverybody:48\neveryday:45\neveryone:55\neverything:55\nevidence:51\nevidences:29\nevident:40\nevidently:36\nevil:47\nevocative:30\new:36\nexact:45\nexactly:52\nexaggeration:33\nexaggerations:24\nexalted:32\nexam:43\nexamine:42\nexample:53\nexceedingly:34\nexcellent:47\nexceptional:40\nexceptionally:37\nexcess:42\nexcesses:31\nexcessively:34\nexcited:47\nexciting:45\nexclusive:46\nexclusively:42\nexcruciating:31\nexercise:47\nexercises:41\nexhausted:41\nexhaustive:33\nexhibit:42\nexhibition:44\nexhibitions:37\nexhilarating:31\nexotic:39\nexpand:44\nexpanded:43\nexpect:50\nexpectation:40\nexpectations:44\nexpensive:47\nexpert:46\nexperts:45\nexplain:49\nexplained:46\nexplains:44\nexplanation:44\nexplore:43\nexplosion:42\nexplosions:37\nexpo:36\nexpos:26\nexpose:40\nexpressway:31\nexpressways:22\nexquisitely:29\nextended:46\nextension:45\nextensive:45\nextent:45\nextra:50\nextraneous:28\nextraordinary:44\nextreme:46\nextremely:48\nextremist:35\ney:33\nfabric:41\nfabrics:36\nface:54\nfacet:32\nfacets:33\nfacilities:47\nfacility:46\nfact:54\nfactories:40\nfactory:46\nfad:33\nfailure:47\nfaint:38\nfair:50\nfairly:45\nfaith:48\nfaithful:41\nfaithfully:33\nfaiths:32\nfake:46\nfall:51\nfalls:46\nfalse:46\nfame:43\nfamed:36\nfamilies:49\nfamily:57\nfamine:36\nfamines:26\nfamished:24\nfamous:48\nfanatical:30\nfancy:44\nfantastic:47\nfar:55\nfarce:33\nfarces:21\nfascinating:41\n",
+    "fashion:48\nfashionable:36\nfashioned:39\nfashions:32\nfast:51\nfatal:41\nfate:44\nfates:32\nfather:53\nfatigue:39\nfault:46\nfaults:37\nfaulty:36\nfavor:46\nfb:38\nfbp:15\nfear:50\nfearful:36\nfearless:36\nfeasible:37\nfeat:40\nfeature:48\nfebruary:50\nfeeble:32\nfeel:57\nfeeling:51\nfeels:49\nfeet:50\nfeisty:31\nfellow:48\nfelt:51\nferocious:32\nfervent:30\nfestive:36\nfestivities:34\nfestivity:25\nfeverish:28\nfew:56\nff:38\nfiasco:33\nfiascoes:11\nfiddle:34\nfiddles:23\nfierce:39\nfiery:36\nfig:41\nfight:52\nfights:42\nfigurative:31\nfigure:51\nfill:46\nfilm:52\nfilms:46\nfilthy:38\nfin:37\nfinal:53\nfinally:52\nfinances:39\nfinancial:51\nfind:58\nfinding:48\nfindings:44\nfinds:46\nfinish:49\nfinite:38\nfire:53\nfireplace:35\nfireplaces:29\nfirm:48\nfirmly:40\nfirst:61\nfirstborn:29\nfirstly:37\nfiscal:43\nfit:50\nfix:48\nfixes:36\nflagrant:30\nflags:41\nflame:41\nflammable:32\nflashy:32\nflatly:29\nflaunt:29\nflavorful:27\nflavorless:20\nflaw:36\nflawed:37\nflawless:36\nflawlessly:29\nflaws:38\nfled:40\nflee:38\nfleeing:36\nflees:29\nfleeting:33\nflop:36\nflora:37\nflower:44\nflu:40\nfluency:30\nfluffy:36\nfocus:50\nfoe:35\nfolder:37\nfolders:32\nfolks:46\nfollies:29\nfollow:51\nfollowing:55\nfollows:48\nfolly:33\nfond:39\nfondly:32\nfont:38\nfonts:32\nfood:54\nfoolish:39\nfoolishness:31\nfoolproof:29\nfoot:49\nfor:70\nforbade:30\nforbid:37\nforbidden:40\nforbidding:31\nforbids:31\nforceful:32\nforecast:41\nforecasting:35\nforecasts:36\nforeign:51\nforemost:38\nforest:47\nforested:30\nforever:47\nforeword:31\nforewords:15\nforlorn:28\nform:53\nformer:53\nformerly:42\nformidable:36\nforms:47\nfort:44\nforth:44\nforthright:28\nforts:32\nfortunate:40\nfortunately:40\nfortune:43\nfortunes:36\nforward:51\nfound:57\nfounded:45\nfour:55\nfoyer:31\nfoyers:20\nfr:41\nfragile:39\nfragrance:35\nfragrances:28\nfragrant:32\nfrail:33\nframework:43\nframing:36\nfrank:48\nfrankly:40\nfraudulent:36\nfree:56\nfreedom:49\nfreeway:36\nfreeways:29\nfreezing:40\nfreight:40\nfrenzies:18\nfrenzy:34\nfrequent:43\nfrequently:46\nfriday:50\nfridge:40\nfriend:54\nfriendly:46\nfriends:54\nfriendship:44\nfrighten:31\nfrightened:37\nfrightening:37\nfrightful:28\nfrigid:30\nfrisky:27\nfrom:66\nfront:53\nfrontal:35\nfrosty:32\nfrown:33\nfrugal:31\nfruitless:30\nfruity:33\nft:45\nfter:18\nful:27\nfull:55\nfully:49\nfun:53\nfunction:48\nfundamental:43\nfundamentally:38\nfunds:47\nfunky:36\nfunny:50\nfuries:25\nfurious:40\nfuriously:32\nfurry:36\nfurther:53\nfurthermore:42\nfury:39\nfussy:30\nfutile:34\nfuture:53\nfuzzy:36\nfw:32\ngadget:34\ngain:48\ngains:42\ngallant:32\ngallantry:29\ngallons:36\ngambit:31\ngambits:19\ngangster:36\ngangsters:32\ngarb:30\ngarbage:42\ngardening:37\ngarrison:37\ngarrisons:27\ngather:42\ngathering:42\ngaudy:28\ngave:52\ngaze:37\ngb:39\ngcap:11\ngear:45\ngem:39\ngems:38\ngen:43\ngeneral:55\ngenerally:50\ngenerate:42\ngenerated:43\ngeneric:41\ngenerous:42\ngenius:43\ngentle:42\ngently:41\ngenuine:44\ngenuinely:41\nget:63\ngetaway:35\ngets:52\ngetting:56\nghastly:31\nghz:33\ngi:37\ngiant:46\ngift:48\ngifted:39\ngigantic:36\ngiggle:34\ngirl:54\ngive:57\ngiven:54\ngives:50\ngiving:52\ngladly:37\nglamorous:35\nglance:39\ngleam:30\nglistening:29\nglitter:36\nglobal:50\nglobe:43\ngloom:33\ngloomy:34\nglorious:41\nglow:39\ngo:60\ngoal:51\ngoes:52\ngoing:59\ngone:52\ngood:61\ngoofy:36\ngorgeous:44\ngot:59\ngotten:45\ngov:40\ngovernment:56\ngovernmental:38\ngovernments:44\ngrab:45\ngrabbed:41\ngrabbing:38\ngrabs:37\ngraceful:34\ngradual:37\ngradually:42\ngraduate:45\ngraduates:40\ngrammatical:34\ngrams:38\ngrandeur:32\ngrasp:40\ngrateful:44\ngratifying:31\ngrave:43\ngraves:39\ngreasy:34\ngreat:59\ngreatly:43\ngrief:41\ngriefs:20\ngrim:37\ngrimy:28\ngrin:36\ngrinned:29\ngrinning:32\ngrins:28\ngrisly:27\ngross:44\ngrotesque:33\ngroundbreaking:35\ngrounds:44\ngroundwork:32\ngroup:56\ngrove:39\ngroves:34\ngrowth:50\ngrp:27\ngrueling:29\ngruesome:33\ngrumble:28\ngrumpy:35\ngt:38\nguarantee:44\nguess:52\nguidance:43\nguidances:13\nguide:48\nguideline:32\nguilty:46\ngullible:31\ngunfight:29\ngunfights:22\ngunfire:35\ngunshot:35\ngunshots:32\nguy:54\nh':51\nhabit:42\nhad:63\nhadn't:44\nhairy:38\nhalfway:41\nhalt:39\nhalted:35\nhalting:30\nhalts:29\nhand:54\nhandgun:34\nhandguns:30\nhandle:48\nhandles:38\nhandsome:42\nhandy:40\nhape:19\nhappen:52\nhappens:50\nhappily:41\nhappiness:44\nhappy:54\nhard:55\nhardly:45\nhardship:36\nhardships:33\nhardworking:33\nharm:45\nharmful:40\nharrowing:31\nharsh:41\nhas:64\nhash:36\nhasn't:47\nhastily:33\nhat:45\nhate:51\nhateful:35\n",
+    "haunting:35\nhave:67\nhaven't:51\nhaving:56\nhazard:40\nhazardous:37\nhazards:36\nhazy:31\nhd:43\nhe:67\nhe's:56\nhead:55\nheadings:29\nheadmaster:32\nheadmasters:22\nheadstrong:27\nheal:41\nheap:36\nheaps:33\nheartache:32\nheartaches:23\nheartbreaking:36\nheartbroken:34\nheartfelt:34\nhearth:31\nhearths:22\nheathen:31\nhectic:33\nheight:45\nheir:39\nheld:52\nhellish:29\nhello:47\nhelp:58\nhelpful:44\nhelpless:37\nhelps:47\nhemorrhage:31\nhemorrhages:22\nhence:44\nher:63\nhere:60\nheroic:38\nheroism:33\nhesitant:34\nhey:51\nhi:50\nhid:38\nhidden:45\nhide:45\nhideous:34\nhides:37\nhiding:43\nhigh:58\nhighlight:42\nhighly:49\nhilarious:43\nhilly:32\nhim:61\nhind:35\nhindrance:30\nhindrances:22\nhint:41\nhippie:34\nhippies:30\nhipster:34\nhis:65\nhistory:54\nhit:54\nhits:46\nhitter:35\nhitters:32\nhitting:45\nhk:35\nhn:27\nhoard:32\nhoards:26\nhold:52\nholding:49\nholds:46\nholiday:47\nholidays:42\nhome:58\nhomely:29\nhomemaker:28\nhomemakers:22\nhomicidal:27\nhomosexual:37\nhonest:47\nhonestly:47\nhonor:47\nhonorable:38\nhoops:34\nhope:54\nhoped:43\nhopeful:38\nhopeless:37\nhopes:44\nhorrendous:34\nhorrible:44\nhorribly:35\nhorrific:38\nhorrified:34\nhorrifying:35\nhorticulture:32\nhostile:41\nhour:52\nhours:54\nhousehold:45\nhouseholds:41\nhousewife:34\nhousewives:34\nhow:62\nhowever:56\nhp:41\nhttp:48\nhttps:44\nhue:35\nhuge:51\nhugely:36\nhuman:54\nhumanities:36\nhumanity:43\nhumankind:31\nhumans:46\nhumble:41\nhumid:35\nhumor:42\nhumorous:36\nhumors:22\nhundred:47\nhundreds:46\nhungry:44\nhurl:29\nhurriedly:28\nhurry:41\nhurt:49\nhurtful:33\nhurting:41\nhurts:43\nhushed:29\nhv:28\nhw:32\nhygienic:29\nhyperbole:29\nhyperboles:14\nhypotheses:32\nhypothesis:39\nhysteria:34\nhysterical:35\nhz:33\ni':71\ni'd:54\ni'll:54\ni'm:62\ni've:57\nicy:35\nidea:54\nideal:44\nideas:48\nidentifiable:34\nidiom:30\nidioms:28\nidle:37\nidx:23\nie:38\nied:29\nies:26\nif:65\nignorant:40\nignore:45\nill:47\niller:16\nilliterate:34\nillness:44\nillnesses:37\nillogical:31\nilluminating:32\nillustrate:37\nimage:49\nimaginable:33\nimaginative:34\nimagine:49\nime:26\nimmediate:45\nimmediately:50\nimmense:39\nimmensely:36\nimminent:37\nimmoral:35\nimpact:49\nimpartial:34\nimpasse:30\nimpasses:15\nimpassioned:29\nimpatient:36\nimpeccable:32\nimpediment:30\nimpediments:27\nimpending:35\nimperfect:34\nimplicit:34\nimply:38\nimpolite:26\nimportant:54\nimportantly:41\nimpoverished:34\nimpression:44\nimpressions:37\nimpressive:45\nimprobable:33\nimprove:48\nimpulse:37\nimpulsive:33\nin:73\ninaccurate:36\ninadequate:38\ninadvertent:28\ninadvertently:34\ninc:48\nince:27\nincensed:28\nincessant:30\ninch:45\ninches:44\nincident:45\nincisive:28\ninclination:34\ninclinations:27\ninclude:52\nincluding:55\nincoherent:31\nincomparable:30\nincomplete:38\nincomprehensible:32\ninconceivable:31\ninconsequential:29\nincorrect:39\nincrease:51\nincreases:45\nincredible:46\nincredibly:44\nincredulous:28\nind:36\nindecisive:28\nindeed:48\nindefensible:28\nindependence:46\nindescribable:29\nindex:46\nindicate:44\nindicated:43\nindicates:42\nindifferent:34\nindigenous:42\nindignant:29\nindignation:31\nindiscriminately:30\nindispensable:33\nindisputable:28\nindistinct:30\nindividual:50\nindividually:39\nindividuals:48\nindivisible:28\nindoors:36\ninduction:37\ninductions:22\nindulgent:31\nindustrious:28\ninefficient:35\nineligible:33\nines:26\ninescapable:30\ninevitable:41\ninexcusable:30\ninexpensive:36\ninexperienced:35\ninexplicable:31\ninfallible:30\ninfamous:38\ninfant:40\ninfants:38\ninfectious:38\ninfertile:29\ninfinite:42\ninflammation:37\ninflammations:20\ninflected:26\ninflection:29\ninfluence:48\ninfluential:41\ninfluenza:35\ninfluenzae:18\ninform:42\ninformal:39\ninformative:36\ninfraction:29\ninfractions:29\ninfrequent:30\ninfuriating:30\ning:40\ningle:24\ninherent:38\ninhospitable:28\ninhumane:31\ninit:27\ninitial:47\ninitially:45\ninitiate:37\ninitiation:35\ninitiations:22\ninjure:33\ninjuries:44\ninjury:47\ninlaid:27\ninner:45\ninnocent:44\ninnovation:43\ninnovations:37\ninnovative:41\ninnumerable:30\ninquire:34\ninquiries:38\ninquiry:42\ninquisitive:30\ninsane:44\ninseparable:31\ninside:52\ninsidious:32\ninsignificant:35\ninsist:40\ninsisted:41\ninsists:37\ninsolent:27\ninsolvent:29\ninspect:36\ninspire:40\ninstall:41\ninstallation:42\ninstallations:38\ninstalled:44\ninstalling:37\ninstalls:30\ninstance:46\ninstances:41\ninstant:43\ninstantly:42\ninstead:52\ninstructor:40\ninstructors:36\ninstrument:43\ninsufferable:28\ninsufficient:38\ninsulting:37\ninsurrection:32\ninsurrections:21\nint:38\nintake:40\nintakes:28\nintegrity:42\nintelligent:43\nintend:41\nintended:47\nintense:44\nintent:43\nintention:43\nintentionally:38\nintentions:41\nintents:30\ninteresting:50\ninterment:28\ninterments:18\nintermittent:34\ninternational:54\ninterruption:34\ninterruptions:31\nintimidation:34\nintimidations:13\ninto:61\nintolerable:32\nintolerant:32\nintoxicated:33\nintricate:36\nintriguing:37\nintrinsic:35\nintroduce:44\nintroduction:45\nintroductions:33\nintrusion:34\nintrusions:28\ninvalid:38\ninvaluable:35\ninvent:36\ninvented:42\ninvention:40\ninventions:36\ninventive:33\ninvestigate:43\ninvestigation:48\n",
+    "investigations:42\ninvestigator:38\ninvisible:41\ninviting:39\ninvolve:43\ninvolvement:43\ninvolvements:23\nirate:28\nire:32\nironic:38\nironies:24\nirony:39\nirrational:36\nirrefutable:27\nirrelevant:40\nirritate:31\nirritated:35\nirritating:36\nirritation:34\nirritations:23\nis:71\nism:31\nisn't:54\nisolate:36\nissue:52\nist:34\nit:70\nit's:63\nitem:46\nitems:48\nith:26\nits:61\nity:22\nive:40\njanuary:51\njargon:32\njargons:14\njealous:42\njeopardy:35\njittery:27\njob:55\njobless:31\njoin:50\njoint:47\njointly:38\njolly:36\njourney:46\njoy:46\njoyful:34\njoyous:33\njr:46\njudge:50\njuicy:37\njuly:52\njump:47\njune:52\njust:64\njustly:28\nkb:35\nkeen:41\nkeep:57\nkeeping:48\nkeeps:47\nkel:28\nkept:50\nkey:51\nkeys:44\nkg:41\nkid:50\nkids:53\nkilograms:32\nkilometers:38\nkilometres:38\nkind:54\nkingdom:46\nkingdoms:36\nkk:32\nkm:44\nknack:33\nknock:44\nknow:61\nknown:54\nkudos:34\nlaborious:28\nlack:49\nlackluster:30\nladder:40\nlag:37\nlags:30\nlaid:46\nlanky:27\nlarcenies:16\nlarceny:29\nlarge:54\nlargely:46\nlarger:48\nlast:59\nlasting:41\nlastly:37\nlately:44\nlater:55\nlatest:49\nlaugh:47\nlaughable:32\nlause:12\nlavatories:24\nlavatory:29\nlavish:34\nlawbreaker:18\nlawfully:31\nlawlessness:29\nlawyer:47\nlawyers:44\nlayout:41\nlaziness:32\nlazy:42\nlbs:41\nlead:52\nleading:50\nleads:46\nlean:41\nleap:39\nleaping:32\nleaps:34\nleapt:30\nlearn:52\nlearner:34\nlearners:35\nlearning:49\nlease:42\nleases:34\nleast:54\nleave:53\nleaves:48\nleaving:50\nled:51\nleft:56\nlefts:24\nlegible:28\nlegitimate:42\nlegitimately:34\nlength:48\nlengthy:38\nlenient:31\nlesbian:42\nless:55\nlet:56\nlet's:52\nlethal:39\nletters:47\nlevel:54\nlevels:50\nlexicon:31\nlexicons:18\nliberties:37\nliberty:43\nlicense:45\nlicenses:38\nlife:59\nlifelike:28\nlift:45\nlighthearted:29\nlightly:40\nlike:64\nliked:48\nlikely:52\nlikewise:40\nlim:33\nlimbo:33\nlimelight:31\nlimitation:37\nlimitations:40\nlimiting:40\nlineage:35\nlineages:28\nlines:50\nlingo:30\nlink:50\nlinks:47\nlip:41\nlist:53\nlists:44\nliters:32\nlitres:32\nlittle:58\nliturgies:23\nliturgy:32\nlive:55\nlively:39\nlivid:30\nliving:53\nlk:29\nll:47\nlo:41\nloathe:31\nlocated:49\nlocation:49\nlock:45\nlocked:44\nlocks:39\nlofty:33\nlog:44\nlone:39\nlonely:42\nlonesome:31\nlong:58\nlonger:52\nlonging:35\nlongings:23\nlook:58\nlooked:51\nlooking:56\nlooks:54\nloose:45\nloot:35\nlose:51\nlosing:48\nloss:51\nlosses:44\nlot:56\nlots:49\nloud:45\nloudly:38\nlousy:33\nlovable:32\nlove:58\nloveable:28\nlovely:47\nloving:45\nlovingly:31\nlower:51\nlowercase:28\nloyal:42\nls:37\nlso:23\nlt:42\nltd:45\nlthough:13\nluck:49\nluckily:39\nlucky:48\nlucrative:36\nlukewarm:31\nluminous:32\nlump:37\nlumps:32\nlunacy:29\nlunatic:34\nlunch:47\nlurch:28\nlurches:20\nlurid:27\nlw:29\nly:34\nlyrical:34\nmacabre:29\nmachine:49\nmachinist:28\nmachinists:26\nmad:47\nmaddening:28\nmade:59\nmadness:40\nmagic:48\nmagical:42\nmagnate:30\nmagnates:25\nmagnificent:40\nmain:52\nmainly:46\nmaintain:46\nmaintains:40\nmaintenance:46\nmajor:53\nmajority:49\nmake:61\nmakes:55\nmakeshift:32\nmaking:55\nmalignant:33\nmalloc:16\nmammoth:34\nman:58\nmanageable:34\nmanaged:48\nmanager:50\nmanagers:45\nmandate:40\nmandates:34\nmandatory:41\nmankind:39\nmanner:46\nmanners:38\nmanpower:35\nmany:59\nmarch:53\nmarketer:30\nmarketers:34\nmarry:44\nmarvellous:34\nmarvelous:35\nmassacre:39\nmassacres:31\nmassive:47\nmasterful:31\nmatch:51\nmatching:41\nmaterialistic:30\nmaternity:37\nmatter:54\nmatters:47\nmaturities:24\nmaturity:39\nmax:47\nmay:60\nmaybe:54\nmb:38\nmd:42\nme:65\nmean:55\nmeaningless:37\nmeantime:40\nmeanwhile:45\nmeasure:46\nmeasures:47\nmechanic:38\nmechanics:41\nmeet:53\nmeeting:52\nmeets:44\nmelancholy:34\nmelodic:32\nmelodies:35\nmelody:38\nmember:52\nmembers:54\nmemcpy:12\nmemorable:40\nmemories:45\nmemory:48\nmen:55\nmenace:35\nmenaces:22\nmend:33\nmenial:28\nment:31\nmental:48\nmentalities:22\nmentality:38\nmention:47\nmentions:41\nmerciless:30\nmercurial:28\nmerely:44\nmerge:38\nmerit:41\nmerits:37\nmerry:38\nmessage:50\nmessy:39\nmet:51\nmetaphorical:31\nmeter:41\nmeters:42\nmethod:48\nmetre:38\nmetres:42\nmetro:42\nmetros:25\nmg:41\nmid:48\nmidday:34\nmiddle:52\nmidway:37\nmidwifery:29\nmight:57\nmighty:41\nmild:41\nmile:46\nmiles:50\nmill:44\nmillennia:32\nmillion:53\nmillions:46\nmills:42\nmind:54\nmindset:39\nminiature:37\nminimal:41\nminor:46\nminuscule:30\nminute:50\nminutes:53\nmirrored:33\nmiscellaneous:34\nmischievous:32\nmisdemeanor:34\nmisdemeanors:28\nmiserable:41\nmisguided:34\n",
+    "mishap:30\nmisleading:39\nmisrepresentation:30\nmisrepresentations:25\nmistake:47\nmistaken:40\nmistakenly:34\nmistakes:44\nmisty:34\nmix:47\nmixes:35\nmixture:42\nmk:36\nml:38\nmm:46\nmobster:28\nmobsters:27\nmock:38\nmodal:31\nmode:46\nmoderate:43\nmoderately:36\nmoderates:31\nmodern:51\nmodest:40\nmodification:38\nmodifications:38\nmodify:38\nmoist:37\nmoisture:39\nmom:51\nmoment:52\nmomentary:31\nmonday:48\nmoney:56\nmoniker:31\nmonikers:20\nmonotonous:30\nmonstrous:34\nmontage:33\nmontages:24\nmonth:52\nmonthly:45\nmonths:54\nmood:44\nmoot:32\nmoralities:17\nmorality:39\nmorals:36\nmore:64\nmoreover:42\nmorgue:31\nmorgues:20\nmorning:53\nmortuaries:19\nmortuary:30\nmost:60\nmostly:48\nmother:52\nmotivate:36\nmotivation:42\nmotive:39\nmotorcycle:41\nmotorcycles:35\nmotorway:35\nmotorways:28\nmotto:37\nmottoes:17\nmountainous:34\nmove:54\nmovie:52\nmovies:48\nmp:43\nmph:40\nmr:57\nmrs:49\nms:47\nmt:41\nmuch:60\nmuddy:36\nmultilingual:30\nmultiple:49\nmumble:29\nmundane:34\nmurderous:34\nmurky:31\nmurmur:29\nmust:57\nmustn't:29\nmusty:28\nmutter:28\nmy:66\nmyriad:35\nmyself:53\nmysterious:42\nn':52\nn't:36\nna:44\nnaive:38\nnaked:44\nname:56\nnamed:50\nnames:49\nnano:35\nnarcissistic:32\nnarrative:44\nnarratives:36\nnarrow:44\nnasty:42\nnation:49\nnationalism:38\nnationalistic:30\nnations:48\nnative:47\nnaturally:45\nnaughty:38\nnb:34\nnc:40\nnce:22\nnd:37\nne:40\nnear:53\nnearly:50\nneat:40\nnecessary:49\nneed:60\nneeded:52\nneeding:40\nneedless:37\nneeds:54\nneedy:36\nnefarious:30\nneg:28\nnegation:28\nnegative:48\nneglect:38\nnegligible:34\nneighbor:41\nneighbours:39\nneither:48\nneoclassical:28\nnervous:44\nness:36\nneurotic:31\nneutral:42\nnever:59\nnevertheless:42\nnew:62\nnewest:40\nnext:57\nnf:32\nng:39\nni:39\nnice:54\nnickname:39\nnicknames:32\nnight:56\nnightfall:31\nnimble:31\nnit:31\nnk:35\nnl:35\nnly:19\nnm:38\nno:64\nnobilities:12\nnobility:35\nnoble:42\nnobody:50\nnoise:46\nnoisily:25\nnoisy:37\nnomenclature:32\nnomenclatures:14\nnominee:40\nnominees:37\nnon:53\nnone:49\nnonetheless:40\nnonsensical:30\nnonstop:34\nnoon:41\nnor:48\nnormal:50\nnormally:46\nnot:67\nnotable:41\nnote:50\nnoted:47\nnoteworthy:35\nnothing:56\nnotice:49\nnoticeable:38\nnoticed:46\nnotices:39\nnotify:37\nnoting:40\nnotion:42\nnotions:35\nnotorious:38\nnoun:36\nnourishing:28\nnovember:51\nnow:62\nnowadays:41\nnowhere:44\nnown:11\nnp:36\nnq:23\nnri:25\nnrs:26\nns:35\nnt:38\nnto:21\nntw:15\nnu:36\nnuance:31\nnuances:32\nnude:40\nnull:37\nnumber:56\nnumbers:50\nnumerical:36\nnumerous:46\nnutritious:32\nnutty:32\nnw:37\nnx:29\no':51\nob:34\nobey:38\nobj:29\nobject:46\nobjectionable:31\nobjective:44\nobligation:41\nobligations:40\nobligatory:34\noblique:32\noblivion:33\noblivious:33\nobnoxious:34\nobscure:38\nobservant:30\nobservational:31\nobserve:41\nobsessive:34\nobsolete:36\nobstetrics:30\nobstinate:27\nobtain:44\nobvious:46\nobviously:48\noccasion:44\noccasional:41\noccasionally:44\noccupation:42\noccupied:43\noccur:45\noccurred:46\noccurring:40\noccurs:43\nocean:47\nocks:10\noctober:51\noday:18\nodd:44\noddly:36\node:33\nodious:28\nodor:35\nodors:30\nodour:30\nodours:25\nof:74\noff:59\noffbeat:28\noffender:37\noffense:43\noffering:46\nofficer:50\noffspring:38\noffsprings:20\noften:54\nog:37\noh:54\nohn:20\noily:34\noist:12\nok:51\nokay:51\noks:22\nold:58\nolder:49\nome:26\nominous:34\nomma:14\nomnipresent:28\non:69\nonce:55\none:65\nongoing:43\nonly:61\nonslaught:32\nonslaughts:17\nop:44\nopaque:34\nopen:55\nopener:39\nopeners:30\nopening:49\nopenly:41\nopinion:49\nopinions:44\nopponent:42\nopportunities:46\nopportunity:50\noppose:39\nopposition:46\noppositions:25\noptimistic:39\noption:48\noptional:39\nopulent:29\nor:65\norchard:36\norchards:32\nord:30\norder:55\norderly:34\nordinarily:33\nordinary:44\nords:20\nore:41\norganize:40\norganized:45\norigin:46\noriginally:47\nork:25\norm:25\norms:17\nornament:33\nornamental:33\nornaments:34\norphan:36\note:22\nother:62\nothers:54\notherwise:49\nou:38\nour:61\nous:22\nout:64\noutcast:31\noutcasts:28\noutcome:44\noutdated:37\noutdoors:37\noutgoing:36\noutlandish:31\noutlook:41\noutlooks:26\noutrage:38\noutrageous:38\noutrages:24\noutset:34\noutside:52\noutstanding:45\nover:61\noverall:49\noverblown:28\novercame:33\novercome:43\novercomes:29\novercoming:36\noverlook:35\noverlooked:38\noverlooking:37\noverlooks:31\noverly:38\noverpriced:31\noverseas:43\nower:18\nowing:37\nown:57\nowner:48\nowners:46\noxford:44\npace:44\npacked:43\npact:37\npacts:26\npagan:36\npage:51\npaid:51\npain:50\npainful:43\npainstaking:29\npair:47\npairs:41\n",
+    "pal:40\npalace:44\npalaces:33\npalsies:13\npalsy:32\npamphlet:33\npamphlets:32\npan:44\npapers:46\nparable:31\nparables:27\nparadoxical:29\nparalyses:18\nparalysis:35\nparanoid:37\nparent:46\nparents:52\npariah:28\npariahs:21\nparodies:29\nparody:38\nparse:30\npart:58\npartial:42\nparticipate:44\nparticipation:43\nparticipations:22\nparticiple:27\nparticle:39\nparticular:50\nparticularly:50\nparties:49\npartly:43\nparts:51\nparty:55\npass:50\npassed:49\npasses:44\npassing:46\npassionate:41\npassive:40\npassives:20\npast:54\npastor:41\npastors:33\npat:42\npatently:29\npath:47\npathetic:41\npatio:34\npatios:24\npatriotic:38\npatriotism:36\npattern:46\npatterns:44\npause:40\npay:54\npaying:48\npayload:34\npayloads:28\npayoff:32\npays:43\npeaceful:43\npeculiar:37\npeek:37\npenalties:41\npenalty:44\npenance:31\npenetrating:33\npeople:62\nper:54\nperceive:37\npercent:50\nperfect:52\nperfectly:46\nperform:47\nperfume:38\nperfumes:30\nperhaps:51\nperil:34\nperilous:32\nperils:31\nperiod:52\nperiodic:36\nperiodical:31\nperiodically:36\nperk:32\nperky:30\nperm:31\npermanent:46\npermanently:41\npermeable:28\npermit:42\npermits:39\npermitted:41\npermitting:35\nperpetrator:33\nperpetrators:34\nperpetual:36\nperplexed:30\nperseverance:33\npersist:35\npersistence:35\npersistent:39\nperson:56\npersonally:46\npersons:44\nperspective:46\nperspectives:39\npersuade:38\npersuasive:34\npertinent:34\npesky:31\npessimistic:32\npetition:43\npetitions:34\npetrified:30\nphase:46\nphases:38\nphilosophies:32\nphilosophy:45\nphone:53\nphones:44\nphony:34\nphoto:50\nphotograph:42\nphrase:43\nphysician:42\nphysicians:40\npick:51\npicked:47\npicks:42\npicture:51\npicturesque:35\npiece:50\npier:38\npiercing:36\npiers:35\npile:41\npiles:36\npillage:28\npioneering:35\npistol:39\npistols:35\npivotal:35\npk:34\npl:39\nplacard:27\nplacards:27\nplace:57\nplacid:30\nplain:44\nplainly:34\nplaintiff:36\nplaintiffs:36\nplan:53\nplane:47\nplanes:42\nplanned:47\nplanning:49\nplans:50\nplay:56\nplayed:52\nplayer:52\nplayers:53\nplayful:35\nplaying:54\nplays:48\nplaywright:34\nplaywrights:29\nplead:36\npleasant:42\nplease:57\npleased:44\npleasing:38\npleasurable:31\npledge:40\nplentiful:34\nplenty:47\nplight:35\nplights:19\nploy:32\nploys:22\nplump:32\nplunder:31\nplural:36\npm:47\npoem:42\npoet:42\npoetry:44\npoignant:33\npoint:55\npointed:45\npointer:36\npointing:42\npointless:39\npoints:52\npoisonous:36\npoke:36\npoked:32\npokes:29\npoking:34\npolite:39\npolitical:53\npompous:31\npontiff:28\npontiffs:20\npoor:51\npoorly:41\npope:44\npopes:31\npopular:51\npopulation:50\nporous:34\nportable:40\nportion:45\nportions:40\nportray:36\npos:37\nposh:34\nposition:52\npositive:50\nposs:25\npossess:40\npossessive:32\npossible:54\npossibly:48\nposter:42\nposterior:34\nposters:40\npostpone:35\npostponement:30\npostponements:21\npotent:37\npound:43\npounds:45\npower:55\npowerful:48\npowerless:35\npp:44\npr:42\npracticable:28\npractical:45\npractically:42\npractice:51\npragmatic:35\npraise:43\nprecarious:33\nprecautionary:30\nprecious:43\nprecise:41\nprecisely:42\npredicament:33\npredicaments:21\npredict:41\npredictable:38\npredicted:41\npredicts:34\npredisposed:28\npredominant:33\npreface:34\nprefaces:22\nprefer:46\npreferable:34\npreferred:44\npreferring:33\nprefers:37\npregnancies:33\npregnancy:43\nprejudice:38\nprejudices:32\nprejudicial:27\npremier:46\npremise:38\npremises:40\nprepare:46\nprepared:47\npreparedness:33\nprepositional:22\npreposterous:31\nprerogative:31\nprerogatives:24\npres:36\npresent:52\npresently:37\npress:52\npresses:35\npressure:50\npresumably:41\npresume:36\npretentious:32\npretty:54\nprev:29\nprevailing:36\nprevalent:38\nprevent:48\npreventative:31\nprevious:50\npreviously:48\nprice:52\npriceless:36\npricey:33\nprimarily:45\nprimary:49\nprime:48\nprincipal:45\nprincipally:34\nprinciple:43\nprior:48\nprisoner:42\nprisoners:44\nprivately:40\nprivilege:42\nprivileges:38\nprize:46\nprobable:38\nprobably:54\nprobe:40\nprobes:34\nproblem:54\nproblematic:39\nprocedure:44\nprocess:53\nprod:32\nprods:23\nproduce:48\nproduct:50\nproductive:42\nprof:41\nprofession:41\nproficient:33\nprofit:47\nprofitable:40\nprofits:44\nprofound:39\nprofoundly:35\nprogenies:14\nprogeny:30\nprogram:53\nprograms:49\nprogress:48\nprohibit:35\nprohibition:38\nprohibitions:29\nproject:52\nprojects:48\nprolonged:38\npromise:47\npromising:41\npromotion:44\npromotions:38\nprompt:39\npron:22\npronoun:32\npronouns:34\nproof:47\npropensities:20\npropensity:32\nproper:47\nproperly:46\nprophetic:32\nproponent:32\nproponents:34\nproprietor:33\nproprietors:30\nprosperous:36\nprotect:49\nprotracted:33\nproud:48\nprove:48\nproved:45\nproverb:31\nproverbs:33\nproves:41\nprovide:52\nprovider:41\nproviders:41\nprowess:34\npsychological:43\npsychopath:33\npsychopaths:29\npsychotic:34\npts:35\npu:34\npub:42\npublicity:40\npublicly:43\npull:48\npulled:47\npulling:44\npulls:40\npunctually:22\npunctuation:33\npungent:29\npunish:40\npunishment:43\npunishments:34\npunitive:34\npupil:38\npupils:42\n",
+    "purchase:47\npurchaser:34\npurchasers:32\npurely:41\npurportedly:30\npurpose:49\npurposely:34\npurposes:45\npursue:43\npursuit:41\npursuits:34\npush:48\nput:57\nputs:45\nputting:49\npuzzle:40\npuzzled:33\npuzzling:31\npv:34\npw:31\nqe:28\nqq:27\nquake:34\nquakes:27\nqualities:41\nquality:51\nquantitative:37\nquantities:39\nquantity:41\nquarrel:33\nqueries:34\nquery:36\nquest:43\nquestion:54\nquestionable:38\nquestions:52\nquests:31\nquick:50\nquickly:50\nquiet:46\nquietly:42\nquirky:35\nquit:45\nquite:53\nquits:34\nquitting:37\nquote:45\nquotes:42\nr':54\nrace:51\nracket:33\nradiant:35\nradical:43\nrage:41\nrages:31\nrail:44\nrainy:37\nraise:48\nram:42\nran:49\nrancid:28\nrandomly:40\nrange:51\nranges:40\nranging:42\nrapid:44\nrapidly:43\nrare:48\nrarely:44\nrate:51\nrather:53\nrational:41\nravenous:28\nraw:45\nreach:49\nreaches:42\nread:55\nreadable:33\nreader:43\nreaders:44\nreadily:39\nreadiness:36\nreading:51\nready:53\nreal:56\nrealise:43\nrealistic:42\nreality:49\nrealize:48\nrealized:46\nrealizes:38\nreally:60\nrealm:41\nrealms:34\nrearrangement:27\nreason:53\nreasonable:46\nreasonably:40\nrebellion:39\nrebellions:28\nrebuild:39\nrebuilds:25\nrebuilt:36\nrecall:44\nreceipts:37\nreceived:52\nrecent:50\nrecently:50\nreckoning:33\nreckonings:16\nrecognisable:30\nrecognition:45\nrecognitions:24\nrecognizable:34\nrecognize:45\nrecollection:33\nrecommend:46\nreconstructions:28\nrecreates:26\nrector:33\nrectors:21\nrecurrent:32\nredemption:38\nredevelopment:34\nredness:30\nredone:29\nredress:32\nreduce:47\nredundant:36\nree:28\nreference:47\nreferences:44\nreflect:44\nreflected:41\nreflection:42\nreflective:36\nrefrigerator:36\nrefuse:44\nrefused:45\nregard:44\nregarding:47\nregardless:45\nregime:43\nregimes:35\nregion:50\nregrettably:29\nregular:50\nregularly:45\nregulation:44\nreissue:30\nreissues:24\nreject:40\nrelate:42\nrelationship:52\nrelatively:47\nrelax:43\nrelaxed:40\nrelentless:35\nrelevant:46\nreliable:43\nreliably:34\nreliant:34\nrelied:38\nrelies:38\nreligion:47\nreligions:39\nreligious:48\nrelish:33\nrelishes:24\nrelocation:36\nrelocations:24\nreluctant:38\nrely:43\nrelying:38\nremain:48\nremainder:40\nremainders:22\nremaining:46\nremark:37\nremarkable:43\nremarkably:38\nremarks:42\nremedies:38\nremedy:38\nremember:54\nreminiscent:36\nremote:44\nremove:47\nremuneration:33\nremunerations:14\nrenovation:37\nrenovations:34\nrenown:31\nrenowned:40\nrental:41\nrentals:34\nreorder:24\nrep:44\nrepair:44\nrepeatedly:42\nrepentance:32\nrephrasing:19\nreplace:46\nreplies:40\nreply:45\nreport:53\nreported:50\nreports:49\nrepressive:31\nreprieve:29\nreprieves:18\nreprint:34\nreprints:30\nrepulsive:32\nrequest:48\nrequests:43\nrequire:48\nrequired:50\nrescue:45\nresearcher:39\nresearchers:44\nresemble:37\nresentment:36\nresentments:25\nreserved:42\nresettlement:31\nreside:37\nresist:42\nresistance:46\nresistances:27\nresolute:31\nresolve:42\nresolved:41\nrespect:50\nrespectable:37\nrespectful:37\nrespects:39\nrespite:32\nrespites:14\nrespond:45\nresponse:50\nresponsibilities:42\nresponsibility:48\nresponsible:49\nrest:52\nrestaurant:47\nrestaurants:43\nrestitution:32\nrestitutions:13\nrestriction:38\nrestrictions:43\nrestrictive:35\nrestructure:30\nrestructured:30\nrestructuring:36\nrests:36\nresult:52\nresultant:31\nresults:52\nresurgence:33\nretaliation:36\nretaliations:17\nretaliatory:28\nretire:40\nretired:44\nreturn:52\nreturns:46\nrev:41\nreveal:44\nrevealed:46\nreveals:43\nrevenge:43\nrevenue:46\nrevenues:41\nreverence:32\nreverences:12\nrevival:39\nrevivals:27\nrevolt:37\nrevolting:30\nrevolts:28\nrevolutionary:42\nreward:43\nrewrite:35\nrich:49\nrid:45\nridiculous:45\nrife:32\nright:60\nrightly:37\nrigorous:37\nrise:48\nrisen:39\nrises:41\nrising:45\nrisk:50\nrisks:44\nrisky:39\nrite:36\nrites:34\nritual:40\nrituals:37\nrival:42\nrivals:40\nroam:35\nroar:37\nroars:29\nrock:50\nrocky:42\nrole:52\nron:42\nront:12\nroom:54\nrooms:46\nrose:48\nrosy:33\nrotten:38\nrough:45\nroughly:44\nroup:12\nroute:47\nroutine:44\nroutinely:37\nrowdy:32\nrp:37\nrude:42\nrug:37\nrugs:32\nruin:43\nrule:49\nrun:55\nrunning:52\nruns:48\nrush:45\nruth:40\nruthless:36\ns':59\nsa:43\nsacred:42\nsad:48\nsadly:42\nsadness:39\nsafeguard:36\nsafety:50\nsaid:60\nsalaries:39\nsalary:44\nsaloon:34\nsaloons:27\nsalvation:40\nsame:58\nsample:45\nsandwich:41\nsanguine:27\nsanitary:34\nsarcasm:36\nsarcastic:36\nsat:46\nsatire:36\nsatires:24\nsatirical:34\nsatisfying:39\nsaturday:49\nsavage:40\nsavagely:28\nsave:51\nsaw:53\nsay:59\nsaying:54\nsays:55\nsb:37\nsc:42\nscale:48\nscandalous:33\nscant:31\nscarcely:33\nscare:41\nscared:46\nscary:44\nscenario:42\nscene:50\nscent:38\nscented:33\nscents:31\nschedule:47\nscheme:46\nschemes:40\nschizophrenic:31\nscholar:40\nscholarly:36\nscholars:41\nschool:57\nschoolmaster:28\nschoolmasters:18\nscientific:47\nscientist:42\nscientists:45\nscope:43\nscopes:29\nscorching:31\n",
+    "scores:44\nscorn:31\nscorns:20\nscowl:25\nscrawny:27\nscream:41\nscriptural:28\nsea:51\nsearch:50\nsecond:56\nsecondly:38\nseconds:49\nsecret:49\nsecretly:40\nsection:50\nsecure:46\nsecurity:52\nsed:29\nseductive:32\nsee:61\nseed:44\nseeing:50\nseek:46\nseeking:46\nseeks:41\nseem:51\nseemed:48\nseemingly:41\nseems:52\nseen:55\nsees:46\nseg:24\nseize:38\nseldom:36\nselect:44\nself:52\nselfish:41\nselfless:33\nseller:40\nsellers:38\nsen:40\nsensational:35\nsense:52\nsensible:40\nsensitive:45\nsensor:39\nsensors:39\nsensual:34\nsent:52\nsentence:46\nsentences:41\nsentiment:40\nsentiments:36\nseparate:48\nseparately:41\nseparatist:31\nseparator:29\nseptember:52\nserene:33\nserenity:33\nserious:51\nseriousness:36\nserpentine:31\nsession:47\nset:56\nsets:47\nsetting:48\nsettle:44\nseveral:54\nsevere:46\nseverely:41\nsexy:44\nsfx:25\nsg:35\nsgt:36\nshade:42\nshaggy:32\nshaky:34\nshall:50\nshame:46\nshape:47\nshare:52\nshared:47\nshareholder:36\nshareholders:39\nsharp:45\nsharply:39\nshe:63\nshe's:53\nshield:43\nshine:42\nshines:36\nshining:40\nshiny:39\nshipment:38\nshipments:36\nshitty:40\nshiver:30\nshocked:43\nshocking:41\nshone:32\nshooting:48\nshootings:37\nshootout:35\nshootouts:25\nshop:49\nshops:43\nshort:53\nshortage:39\nshortages:35\nshortcoming:26\nshortfall:30\nshortfalls:26\nshortly:45\nshot:52\nshots:46\nshould:60\nshouldn't:48\nshout:41\nshouts:35\nshow:57\nshowed:49\nshowing:49\nshown:49\nshows:52\nshrewd:31\nshriek:28\nshut:48\nshuts:35\nshutting:37\nshy:42\nsick:49\nsickness:38\nsicknesses:21\nside:55\nsight:45\nsign:51\nsigned:48\nsignificant:50\nsignificantly:45\nsilent:44\nsilently:36\nsilly:44\nsimilar:52\nsimilarity:36\nsimilarly:43\nsimple:51\nsimply:51\nsince:58\nsincere:38\nsincerity:33\nsing:45\nsinger:45\nsingers:38\nsingle:54\nsingled:33\nsingles:44\nsingling:27\nsinister:36\nsion:30\nsitting:49\nsituation:51\nsizable:34\nsize:51\nsizeable:32\nsizeof:18\nsk:35\nskeptical:37\nskepticism:34\nsketchy:32\nskilful:29\nskill:44\nskilled:41\nskillful:31\nskinny:40\nskip:42\nskirmish:31\nskirmishes:29\nsl:36\nsleek:33\nsleepless:32\nslender:36\nslew:33\nslick:37\nslight:42\nslightly:48\nslim:40\nslip:43\nslipped:40\nslippery:36\nslipping:37\nslips:36\nslogan:37\nslogans:33\nslow:48\nslowdown:31\nslowdowns:22\nslowly:46\nslugger:28\nsluggers:20\nsluggish:32\nsm:37\nsmall:55\nsmart:48\nsmartly:29\nsmell:45\nsmells:40\nsmelly:33\nsmile:46\nsmiles:39\nsmooth:44\nsmug:33\nsnowstorm:29\nsnowstorms:22\nsnuggle:30\nso:65\nsoak:36\nsob:33\nsobbed:28\nsobbing:35\nsobs:32\nsociable:30\nsociopath:31\nsociopaths:26\nsofa:38\nsofas:29\nsoft:47\nsoftly:38\nsoggy:31\nsole:43\nsolely:42\nsolid:47\nsolidly:32\nsolution:48\nsolve:44\nsome:62\nsomebody:48\nsomeone:56\nsomething:58\nsometimes:53\nsomewhat:46\nsomewhere:47\nsoon:53\nsooner:42\nsoothe:32\nsophisticated:40\nsore:40\nsorrow:37\nsorrowful:27\nsorrowfully:17\nsort:50\nsorted:38\nsorting:36\nsorts:42\nsought:45\nsound:52\nsoundless:21\nsource:52\nsp:40\nspace:52\nspan:41\nsparkle:34\nspate:28\nspeak:50\nspeaking:49\nspeaks:44\nspec:36\nspecial:53\nspecialist:43\nspecific:50\nspecimen:37\nspectacular:41\nspectacularly:30\nspeech:48\nspeeches:39\nspeed:50\nspeeds:40\nspent:50\nspicy:38\nspire:31\nspires:28\nspirited:36\nspiritual:44\nspite:40\nsplendid:38\nsplendor:30\nsplendors:18\nsplit:46\nsplits:35\nsplitting:38\nspoil:38\nspoiled:38\nspoke:46\nspoken:44\nspontaneous:37\nspoof:31\nspoofs:23\nspooky:35\nsporadic:33\nsporadically:29\nsport:47\nsports:49\nspot:49\nspotless:31\nspotlight:39\nspotlights:27\nspots:43\nspotted:42\nspotting:34\nspring:49\nsprint:40\nspur:37\nspurious:30\nspurs:40\nsquad:47\nsquads:35\nsquint:28\nsr:40\nsrc:30\nss:41\nst:52\nstable:45\nstack:40\nstaff:51\nstage:51\nstages:44\nstale:34\nstalemate:30\nstalemates:16\nstamina:34\nstance:40\nstandard:50\nstandpoint:36\nstandpoints:20\nstandstill:30\nstare:39\nstared:36\nstart:56\nstarted:54\nstarting:51\nstartle:27\nstartling:34\nstarts:48\nstarving:38\nstash:35\nstate:58\nstated:47\nstates:55\nstatic:40\nstay:53\nstayed:45\nstaying:46\nstays:43\nsteadfast:31\nsteadily:38\nsteady:43\nsteeple:27\nsteeples:21\nsteer:37\nsteered:31\nsteering:39\nsteers:29\nstep:51\nsteps:47\nsterile:34\nsticky:38\nstill:59\nstinky:31\nstockholder:26\nstockholders:31\nstone:48\nstony:33\nstop:55\nstopped:48\nstopping:43\nstops:44\nstore:50\nstores:46\nstories:50\nstorm:47\nstormy:35\nstory:54\nstr:33\nstraight:50\nstraightforward:38\nstrained:35\nstrange:46\nstranger:43\nstrategies:43\nstrategy:47\nstreamlined:33\nstreetcar:30\nstreetcars:25\nstrength:48\nstress:47\nstressed:42\nstretch:44\nstricken:35\nstrict:42\nstrictly:42\n",
+    "strife:34\nstrike:47\nstrikes:42\nstriking:42\nstrive:37\nstriven:21\nstrives:31\nstriving:35\nstroll:35\nstrong:52\nstrove:27\nstruck:44\nstruct:25\nstructure:48\nstruggle:46\nstruggles:41\nstubborn:38\nstudent:50\nstudents:52\nstudents':52\nstudies:50\nstudy:53\nstudying:44\nstumble:34\nstumbles:30\nstun:34\nstunned:37\nstunning:43\nstunningly:28\nstuns:29\nstupendous:28\nstupid:49\nsturdy:34\nstyle:51\nstyles:44\nstylish:37\nsub:47\nsubj:19\nsubject:50\nsublime:35\nsubmit:43\nsubmits:30\nsubmitted:43\nsubmitting:36\nsubsequent:44\nsubsequently:42\nsubstantial:43\nsubstantially:40\nsubtleties:28\nsubtlety:31\nsubway:40\nsubways:29\nsuccess:51\nsuccinct:29\nsucculent:30\nsuch:58\nsudden:44\nsuddenly:47\nsuf:19\nsufficient:43\nsugary:31\nsuggest:48\nsuggested:47\nsuggests:45\nsuicidal:36\nsuit:47\nsuitably:31\nsuite:42\nsuites:35\nsum:43\nsummary:44\nsummer:52\nsumptuous:30\nsums:39\nsunday:49\nsundown:30\nsundry:28\nsunny:41\nsunrise:38\nsunrises:24\nsunset:40\nsunsets:30\nsuperb:40\nsuperbly:30\nsuperfluous:30\nsupernatural:39\nsuperstitious:31\nsupervisor:40\nsupple:29\nsupplier:38\nsuppliers:39\nsupply:48\nsupport:55\nsupporter:41\nsupporters:45\nsuppose:46\nsupposedly:40\nsure:57\nsurely:46\nsurface:48\nsurplus:39\nsurpluses:28\nsurprise:48\nsurprised:47\nsurprising:43\nsurprisingly:41\nsurrogate:34\nsurvey:47\nsurveys:40\nsurvive:45\nsusceptible:37\nsustained:42\nsw:37\nswamped:30\nswampy:28\nswap:39\nswaps:32\nsweetened:30\nsweltering:26\nswift:42\nswiftly:35\nswitch:46\nsyllabus:33\nsyllabuses:19\nsymbol:43\nsynonyms:32\nsynthetic:40\nsystem:56\nt':54\ntab:40\ntable:50\ntaboo:35\ntacit:29\ntag:44\ntagger:21\ntags:38\ntail:43\ntake:59\ntaken:53\ntakes:52\ntaking:54\ntale:43\ntalent:46\ntalented:43\ntales:41\ntalk:54\ntall:45\ntarget:48\ntart:34\ntask:46\ntasks:42\ntasty:38\ntats:27\ntaught:47\nteacher:49\nteachers:47\nteam:57\nteams:50\ntear:44\ntearing:38\ntears:45\ntease:36\ntechnique:45\ntechnological:41\ntechnologies:43\ntechnology:51\ntedious:35\nteen:43\nteenage:41\nteenager:41\nteenagers:40\nteens:42\ntelephone:44\ntelephones:32\ntell:55\ntelling:49\ntells:48\ntemporary:45\ntenacity:31\ntendencies:36\ntendency:40\ntender:41\ntense:40\ntepid:27\nterm:52\nterminate:36\nterminologies:20\nterminology:37\nterms:51\nterrace:39\nterraces:33\nterrible:47\nterribly:39\nterrific:39\nterrified:39\nterrifying:40\ntest:52\ntext:50\ntg:32\ntgt:23\nth:42\nthan:61\nthank:55\nthankful:39\nthankfully:38\nthanks:54\nthat:70\nthat's:59\nthe:77\ntheft:41\nthefts:29\ntheir:63\nthem:62\ntheme:46\nthemes:42\nthen:61\ntheories:42\ntheory:49\nthere:63\nthere's:55\ntherefore:49\nthers:18\nthesaurus:29\nthese:60\nthey:65\nthey'll:47\nthey're:55\nthey've:48\nthin:45\nthing:57\nthings:57\nthink:61\nthinking:52\nthinks:48\nthis:68\nthorough:40\nthose:59\nthough:55\nthought:56\nthoughtful:38\nthoughts:48\nthousand:46\nthousands:48\nthreat:46\nthreats:43\nthree:58\nthrew:45\nthrifty:29\nthrilled:39\nthrilling:36\nthrong:28\nthrough:59\nthroughout:50\nthrow:48\nthrowing:44\nthrown:44\nthrows:41\nthunder:41\nthunderous:28\nthunders:26\nthursday:46\nthus:49\nti:38\ntidy:35\ntie:45\ntight:46\ntill:48\ntime:63\ntimes:56\ntimid:32\ntiny:46\ntion:28\ntip:46\ntips:46\ntired:47\ntiredness:29\ntireless:30\ntiresome:31\ntk:32\ntmp:27\nto:74\ntoday:56\ntogether:55\ntoilet:43\ntoilets:37\ntok:29\ntoken:38\ntokenize:12\ntokens:35\ntold:55\ntolerable:31\ntolerate:38\ntomb:39\ntombs:33\ntomorrow:50\ntone:45\ntonight:50\ntons:45\ntoo:60\ntook:55\ntool:46\ntop:56\ntopic:45\ntopics:43\ntore:37\ntorn:41\ntornado:38\ntornadoes:33\ntoss:39\ntotal:52\ntotalitarian:32\ntotalitarianism:28\ntotally:48\ntouch:49\ntouchy:31\ntough:48\ntoughness:33\ntown:52\ntoxic:42\ntr:37\ntrack:50\ntrader:38\ntraders:40\ntradition:45\ntragedies:33\ntragedy:41\ntragic:41\ntrail:44\ntrailing:36\ntrait:37\ntranquil:31\ntranquility:30\ntransform:40\ntransgender:39\ntransparent:40\ntranssexual:30\ntrash:44\ntrauma:41\ntraumas:28\ntravesties:19\ntravesty:30\ntreacherous:33\ntreasure:42\ntreasured:31\ntreasures:37\ntreaties:37\ntreaty:43\ntremble:30\ntremendous:41\ntremendously:34\ntrend:45\ntrendy:35\ntribunal:39\ntribunals:31\ntricky:40\ntried:52\ntries:45\ntrillion:38\ntrim:39\ntrip:49\ntriumph:40\ntriumphs:32\ntrivial:37\ntrolley:34\ntrolleys:27\ntrouble:48\ntroublesome:34\ntruce:35\ntruces:19\ntruly:49\ntruth:50\ntruthful:34\ntruthfully:32\ntry:55\ntrying:55\ntsx:27\ntub:38\ntubs:31\ntuesday:46\ntumult:27\ntumults:13\ntumultuous:31\ntune:43\ntunes:38\nturbulent:35\nturn:53\nturned:51\nturning:47\nturns:48\ntv:52\ntw:31\ntweak:33\ntwinkle:32\ntwister:30\ntwisters:25\ntwo:61\ntx:40\ntycoon:32\ntycoons:23\ntype:53\n",
+    "typedef:16\ntypeface:28\ntypefaces:24\ntypical:46\ntypically:46\ntyrannies:19\ntyranny:35\nu':51\nub:29\nubiquitous:34\nuck:21\nugly:44\nultimate:45\nultimately:46\nultra:42\nump:30\nun:46\nunacceptable:39\nunambiguously:27\nunanticipated:27\nunattractive:34\nunauthorized:36\nunavoidable:34\nunaware:39\nunbearable:35\nunbeatable:32\nunbeaten:34\nunbelievable:41\nunbelievably:34\nunbiased:33\nunbroken:32\nuncertain:40\nuncertainties:34\nuncertainty:40\nunchecked:32\nunclean:31\nunclear:39\nuncomfortable:42\nuncommon:39\nunconventional:34\nuncover:35\nundefeated:36\nundemocratic:28\nundeniable:33\nunder:57\nundercover:38\nunderline:30\nunderprivileged:29\nunderstand:54\nunderstandable:37\nunderstanding:48\nunderstands:41\nunderstood:46\nundertaking:37\nundertakings:29\nundetermined:29\nundo:36\nundone:34\nundoubtedly:39\nuneasy:34\nuneducated:32\nunemployed:39\nunending:30\nunequivocally:31\nunexpected:42\nunexpectedly:37\nunexplained:33\nunfair:42\nunfamiliar:36\nunfavorable:32\nunfavourable:28\nunfit:35\nunforeseen:32\nunforgettable:35\nunfortunate:41\nunfortunately:46\nunfounded:32\nunfriendly:31\nunhappily:26\nunhappiness:32\nunhappy:41\nunharmed:31\nunhinged:30\nuni:37\nunidentified:36\nuniformed:32\nunimaginable:32\nunimportant:32\nuninformed:30\nunintended:33\nuninterested:30\nuninteresting:29\nuninterrupted:32\nunique:48\nunities:17\nunits:48\nunity:42\nunjust:34\nunjustified:30\nunkind:30\nunknowingly:31\nunknown:45\nunless:50\nunlicensed:31\nunlike:46\nunlikely:43\nunluckily:22\nunlucky:36\nunmarried:35\nunnamed:36\nunnecessary:42\nunoccupied:29\nunofficial:37\nunorthodox:32\nunparalleled:32\nunpleasant:38\nunpredictable:37\nunreasonable:38\nunrelenting:29\nunremarkable:28\nunrestrained:27\nunruly:31\nunsatisfactory:30\nunscathed:30\nunseen:36\nunsigned:32\nunskilled:30\nunspeakable:31\nunstoppable:35\nunsuccessful:37\nunsuitable:33\nunsupported:30\nunsure:38\nuntamed:28\nuntenable:30\nuntested:28\nunthinkable:33\nuntidy:26\nuntil:56\nuntrue:34\nunusable:30\nunusual:44\nunusually:38\nunwarranted:31\nunwavering:30\nunwell:31\nunwieldy:28\nunwilling:37\nunwind:31\nunwise:31\nunwittingly:31\nup:64\nupbeat:35\nupcoming:43\nupkeep:32\nupright:37\nuprising:37\nuprisings:30\nuproar:32\nuptight:29\nur:39\nurge:41\nurgently:35\nuring:13\nus:60\nusable:35\nuse:58\nused:58\nuseful:47\nuseless:42\nuser:47\nusers:48\nush:20\nusu:24\nusual:46\nusually:52\nut:37\nutilize:38\nutterly:40\nux:32\nvacant:38\nvacation:44\nvacations:35\nvague:39\nvain:37\nval:37\nvaliant:33\nvalid:44\nvalidation:37\nvalor:32\nvalour:29\nvaluable:45\nvanish:34\nvariance:34\nvariances:26\nvaried:40\nvarieties:40\nvariety:48\nvarious:51\nvast:45\nvastly:36\nvb:31\nvegetation:38\nvegetations:14\nvehicle:48\nvelocities:29\nvelocity:39\nven:30\nvendor:38\nvendors:38\nveneration:29\nvengeful:30\nverb:37\nverbs:34\nverify:39\nverse:42\nverses:38\nvertical:42\nvery:60\nvestibule:27\nvestibules:18\nvf:29\nvfm:14\nviable:40\nvicious:38\nviciously:29\nvictories:38\nvictory:47\nview:52\nviewpoint:36\nviewpoints:33\nviews:48\nvigilance:32\nvigilant:33\nvigorous:35\nvile:36\nvillainous:28\nvindictive:30\nviolation:42\nviolations:40\nviolent:45\nviolin:37\nviolins:29\nvirtually:43\nvirtue:39\nvirtues:35\nvisible:44\nvisit:50\nvital:44\nvivid:38\nvocabularies:25\nvocabulary:38\nvocalist:34\nvocalists:28\nvoid:40\nvol:44\nvolts:32\nvoluntary:40\nvote:51\nvotes:46\nvow:36\nvs:48\nvt:35\nvulnerable:42\nw':52\nwacky:33\nwage:44\nwages:42\nwake:48\nwaked:21\nwakes:37\nwaking:40\nwalking:49\nwander:37\nwanders:30\nwant:60\nwarhead:30\nwarm:47\nwarn:40\nwarning:46\nwary:36\nwas:68\nwasn't:53\nwasteful:33\nwatchful:31\nwater:55\nwatts:38\nwavy:32\nway:60\nwd:32\nwe:65\nwe'd:44\nwe'll:49\nwe're:54\nwe've:50\nweak:47\nweakness:42\nweaknesses:38\nwealthy:42\nweary:36\nwednesday:46\nweek:56\nweekend:49\nweekly:46\nweeks:52\nweep:34\nweeping:34\nweeps:28\nweigh:40\nweird:48\nwelcoming:38\nwell:60\nwent:55\nwept:32\nwere:63\nweren't:47\nwet:45\nwharf:35\nwharves:25\nwhat:64\nwhat's:52\nwhatever:51\nwhen:64\nwhenever:46\nwhere:60\nwhereas:44\nwherever:43\nwhether:53\nwhich:63\nwhile:59\nwhisper:37\nwhitish:30\nwho:63\nwhoever:44\nwhole:55\nwholesome:35\nwholly:38\nwhom:48\nwhose:51\nwhy:59\nwicked:40\nwide:50\nwidowed:32\nwidth:40\nwidths:28\nwild:48\nwill:64\nwily:28\nwin:54\nwind:48\nwinding:37\nwinds:42\nwindy:36\nwinter:49\nwise:45\nwish:52\nwistful:27\nwit:40\nwith:68\nwithin:54\nwithout:57\nwithstand:36\nwithstanding:26\nwithstands:21\nwithstood:28\nwitness:45\nwits:33\nwitty:36\nwl:30\nwobbly:30\nwoke:42\nwoken:34\nwoman:54\nwomen:56\nwon't:53\nwonderful:48\nwonderfully:36\nwooded:34\nwoodland:36\nword:53\nwords:52\nwork:60\nworkable:31\nworked:52\nworker:44\nworkers:50\nworkforce:39\nworkforces:22\nworking:54\nworkmanship:31\nworkout:40\nworkouts:35\nworks:53\nworld:59\nworldly:33\nworn:43\nworried:46\nworries:42\nworry:48\nworth:52\n",
+    "worthless:38\nworthwhile:37\nworthy:43\nwould:63\nwouldn't:52\nwound:42\nwow:50\nwrap:42\nwrapped:42\nwrapping:36\nwraps:36\nwreck:40\nwrenching:31\nwretched:34\nwrite:50\nwriter:47\nwriters:46\nwrites:44\nwriting:51\nwritings:40\nwritten:51\nwrong:54\nwrote:50\nwry:29\nwww:34\nx':52\ny':50\nye:42\nyear:60\nyearly:39\nyearning:32\nyearnings:22\nyears:60\nyell:38\nyells:34\nyes:55\nyesterday:49\nyet:55\nying:33\nyou:70\nyou'll:52\nyou're:59\nyou've:51\nyoung:54\nyour:65\nyouthful:36\nyummy:35\nyv:18\nyw:21\nz':45\nzealous:30\nzest:32\n",
+    NULL };
 /* ---------- Nano rewrite engine (portable C, no Win32) ---------- */
 
 static wchar_t *wdup(const wchar_t *s) { size_t n = wcslen(s) + 1; wchar_t *d = malloc(n * sizeof *d); memcpy(d, s, n * sizeof *d); return d; }
@@ -36853,13 +36868,15 @@ static const wchar_t *THES[] = {
     L"O however|that said|even so|still",
     L"O nevertheless|nonetheless|all the same",
     L"O therefore|thus|as a result|consequently|for this reason|because of this|hence",
-    L"O also|additionally|in addition|on top of that|furthermore|moreover|what's more",
+    L"O also|in addition|on top of that|plus",
+    L"O additionally|furthermore|moreover|what's more > also|plus|on top of that",
     L"O for example|for instance|as an example|to illustrate",
     L"O in conclusion|to conclude|in summary|to sum up|all in all|overall|in short",
     L"O first|first of all|to begin with|to start with|firstly",
     L"O second|secondly",
     L"O finally|lastly",
-    L"O in fact|actually|as a matter of fact|in reality",
+    L"O in fact|actually",
+    L"O as a matter of fact|in reality > in fact|actually",
     L"O meanwhile|at the same time|in the meantime",
     L"O similarly|likewise|in the same way|by the same token",
     L"O unfortunately|sadly|regrettably|unluckily",
@@ -37344,7 +37361,20 @@ static void replaceRange(Toks *v, int i, int j, wchar_t *s) {
     v->n -= j - i - 1;
 }
 
-typedef struct { int strength, strict; } NanoOpts;
+typedef struct { int strength, strict, tone, type; } NanoOpts;
+/* tones: 0 natural, 1 casual, 2 formal, 3 academic, 4 simple, 5 friendly
+   types: 0 any, 1 essay, 2 email, 3 story, 4 report, 5 social post */
+enum { TN_NATURAL, TN_CASUAL, TN_FORMAL, TN_ACADEMIC, TN_SIMPLE, TN_FRIENDLY };
+enum { WT_ANY, WT_ESSAY, WT_EMAIL, WT_STORY, WT_REPORT, WT_SOCIAL };
+static int gTone, gType;
+/* effective register: -1 plain/casual, 0 neutral, +1 formal */
+static int toneReg(void) {
+    if (gTone == TN_CASUAL || gTone == TN_SIMPLE || gTone == TN_FRIENDLY) return -1;
+    if (gTone == TN_FORMAL || gTone == TN_ACADEMIC) return 1;
+    if (gType == WT_SOCIAL || gType == WT_STORY || gType == WT_EMAIL) return -1;
+    if (gType == WT_ESSAY || gType == WT_REPORT) return 1;
+    return 0;
+}
 
 /* memory shared by all passes of one run, so nothing gets undone or redone */
 typedef struct { wchar_t **k; int cap, n; } StrSet;
@@ -37551,9 +37581,60 @@ static void pickBump(const wchar_t *src, const wchar_t *tgt) {
     if (r >= 0) pickHist.val[r]++; else smSet(&pickHist, k, 1);
 }
 
+static StrMap zipfMap;
+/* how common a word or phrase is (zipf x10, ~30 = rare, ~60 = very common); a phrase counts as its rarest word */
+static int zipfOf(const wchar_t *s) {
+    static int loaded;
+    if (!loaded) {
+        loaded = 1;
+    for (int b = 0; ZIPF[b]; b++)
+        for (const char *p = ZIPF[b]; *p;) {
+            const char *c = strchr(p, ':'), *nl = strchr(p, '\n'); if (!c || !nl) break;
+            wchar_t w[40]; int L2 = (int)(c - p); if (L2 > 38) L2 = 38;
+            for (int i = 0; i < L2; i++) w[i] = (wchar_t)p[i]; w[L2] = 0;
+            smSet(&zipfMap, w, atoi(c + 1));
+            p = nl + 1;
+        }
+    }
+    int mn = 99, any = 0;
+    const wchar_t *p = s;
+    while (*p) {
+        while (*p == L' ') p++;
+        const wchar_t *e = p; while (*e && *e != L' ') e++;
+        if (e > p) {
+            wchar_t w[40]; int L2 = (int)(e - p); if (L2 > 38) L2 = 38;
+            for (int i = 0; i < L2; i++) w[i] = isApos(p[i]) ? L'\'' : (wchar_t)towlower(p[i]); w[L2] = 0;
+            int z = smGet(&zipfMap, w); if (z < 0) z = L2 <= 2 ? 70 : 25;
+            if (z < mn) mn = z; any = 1;
+        }
+        p = e;
+    }
+    return any ? mn : 0;
+}
+static const wchar_t *AIVOCAB[] = { L"delve", L"tapestry", L"testament", L"intricate", L"multifaceted", L"pivotal", L"crucial", L"foster",
+    L"leverage", L"seamless", L"robust", L"realm", L"navigate", L"underscore", L"showcase", L"vibrant", L"nuanced", L"comprehensive",
+    L"embark", L"elevate", L"harness", L"resonate", L"profound", L"meticulous", L"paramount", L"holistic", L"synergy", L"enhance",
+    L"invaluable", L"commendable", L"endeavor", L"captivating", L"bustling", L"beacon", L"interplay", L"transformative", L"utilize",
+    L"facilitate", L"optimize", L"cornerstone", L"myriad", L"plethora", L"bolster", L"encompass", L"furthermore", L"moreover",
+    L"additionally", L"notably", L"ultimately", L"essentially", L"innovative", L"dynamic", L"illuminate", L"poignant", NULL };
+static int aiVocab(const wchar_t *s) {
+    wchar_t w[48]; int k = 0; while (s[k] && s[k] != L' ' && k < 47) { w[k] = towlower(s[k]); k++; } w[k] = 0;
+    for (int i = 0; AIVOCAB[i]; i++) { int L2 = (int)wcslen(AIVOCAB[i]); if (!wcsncmp(w, AIVOCAB[i], L2) && (int)wcslen(w) <= L2 + 3) return 1; }
+    return 0;
+}
 static int pickTarget(Grp *g, int not, int f) {
     int c[64], nc = 0, ff = f < nForms(g->type) ? f : 0;
-    for (int i = 0; i < g->n && nc < 64; i++) if (g->m[i].tgt && i != not && !isRetired(g->m[i].f[ff])) c[nc++] = i;
+    int zs = not >= 0 ? zipfOf(g->m[not].f[ff] ? g->m[not].f[ff] : g->m[not].f[0]) : 45;
+    for (int i = 0; i < g->n && nc < 64; i++) {
+        if (!g->m[i].tgt || i == not || isRetired(g->m[i].f[ff])) continue;
+        const wchar_t *tw = g->m[i].f[ff] ? g->m[i].f[ff] : g->m[i].f[0];
+        if (aiVocab(tw)) continue;
+        int zt = zipfOf(tw);
+        if (zt < 30 || zt + 5 < zs) continue;
+        if (toneReg() < 0 && zt + 1 < zs) continue;
+        if (gTone == TN_SIMPLE && zt < 45) continue;
+        c[nc++] = i;
+    }
     if (!nc) return -1;
     if (not < 0 || nrnd() < 0.15) return c[nri(nc)];
     const wchar_t *src = g->m[not].f[0];
@@ -37570,7 +37651,7 @@ static int pickTarget(Grp *g, int not, int f) {
 
 static int maxMode, escLevel;
 /* text-level budget for "decorations" (framing openers, clefts, rare connectors) so many passes can't pile them up */
-static int gSents, gOpeners, gClefts, gLconn, gWords, gFillUsed, gPrevOpener;
+static int gSents, gOpeners, gClefts, gLconn, gWords, gFillUsed, gPrevOpener, gWhat, gThere, gAccord, gLets, gAfter, gPassBy;
 static const wchar_t *OPENLIST[] = { L"in fact", L"indeed", L"as it turns out", L"in truth", L"as it happens", L"truth be told", L"in addition",
     L"additionally", L"moreover", L"furthermore", L"as a matter of fact", L"in reality", L"actually", L"also", L"besides", L"what's more",
     L"on top of that", L"in short", L"in other words", L"that said", L"still", L"even so", L"of course", L"naturally", NULL };
@@ -37583,7 +37664,7 @@ static int startsWithList(const wchar_t *p, const wchar_t **L) {
     return 0;
 }
 static void textBudget(const wchar_t *t) {
-    gSents = gOpeners = gClefts = gLconn = gWords = gFillUsed = 0;
+    gSents = gOpeners = gClefts = gLconn = gWords = gFillUsed = gWhat = gThere = gAccord = gLets = gAfter = gPassBy = 0;
     int n = (int)wcslen(t), atStart = 1;
     for (int i = 0; i < n; i++) {
         if (atStart && iswalpha(t[i])) {
@@ -37591,6 +37672,11 @@ static void textBudget(const wchar_t *t) {
             int e = i; while (e < n && t[e] != L'\n' && t[e] != L'.' && t[e] != L'!' && t[e] != L'?') e++;
             if (e < n && t[e] != L'\n') gSents++;
             if (startsWithList(t + i, OPENLIST)) gOpeners++;
+            if (!wcsncmp(t + i, L"What ", 5)) gWhat++;
+            if (!wcsncmp(t + i, L"There was ", 10) || !wcsncmp(t + i, L"There were ", 11) || !wcsncmp(t + i, L"There is ", 9) || !wcsncmp(t + i, L"There are ", 10)) gThere++;
+            if (!wcsncmp(t + i, L"According to", 12)) gAccord++;
+            if (!wcsncmp(t + i, L"Let's", 5) || !wcsncmp(t + i, L"Let\x2019s", 5)) gLets++;
+            if (!wcsncmp(t + i, L"After ", 6)) gAfter++;
             { static const wchar_t *FL[] = { L"in fact", L"indeed", L"as it turns out", L"in truth", L"as it happens", L"truth be told", NULL };
               for (int q = 0; FL[q]; q++) { const wchar_t *one[2] = { FL[q], NULL }; if (startsWithList(t + i, one)) gFillUsed |= 1 << q; } }
 
@@ -37603,6 +37689,7 @@ static void textBudget(const wchar_t *t) {
         if (t[i] == L'.' || t[i] == L'!' || t[i] == L'?' || t[i] == L'\n') atStart = 1;
         else if (!iswspace(t[i]) && t[i] != L'"' && t[i] != 0x201C && t[i] != L'(' && !iswalpha(t[i])) {}
         if ((i == 0 || !iswalpha(t[i - 1])) && !wcsncmp(t + i, L"as well as", 10)) gLconn++;
+        if (i > 1 && !wcsncmp(t + i, L" by ", 4) && (!wcsncmp(t + i - 2, L"ed", 2) || !wcsncmp(t + i - 2, L"en", 2) || !wcsncmp(t + i - 2, L"wn", 2) || !wcsncmp(t + i - 2, L"ht", 2))) gPassBy++;
     }
 }
 
@@ -38122,8 +38209,7 @@ static int patSplit(Tok *t, int n, Toks *o) {
         if (spanWords(x) < 3 || spanWords(y) < 3) continue;
         pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
         int r = nri(3);
-        if (r == 0 && gOpeners * 12 < gSents) { gOpeners++; pushW(o, L"Also", 1); pushP(o, L','); pushSp(o); pushSpan(o, y, 0); }
-        else pushSpan(o, y, 1);
+        (void)r; pushSpan(o, y, 1);
         tCopy(o, &t[n - 1]);
         return 1;
     }
@@ -38207,6 +38293,7 @@ static int nextNS(Tok *t, int n, int i) { while (i < n && t[i].type == TK_SPACE)
 
 /* "The factory built 500 cars in 2019." -> "500 cars were built by the factory in 2019." */
 static int patPassive(Tok *t, int n, Toks *o) {
+    if (maxMode && gPassBy >= 1 + gSents / 12) return 0;
     if (sentShape(t, n) != 0) return 0;
     int p1, q1, e1 = npEnd(t, n, 0, &p1, &q1);
     if (e1 < 0) return 0;
@@ -38231,6 +38318,7 @@ static int patPassive(Tok *t, int n, Toks *o) {
     if (spanWords(np1) > 7 || spanWords(np2) > 8) return 0;
     wchar_t pp[64]; mbstowcs(pp, vfm->f[3], 63); pp[63] = 0;
     pushNP(o, np2, 0, 1); pushSp(o);
+    gPassBy++;
     pushW(o, vt == T_VBD ? (p2 ? L"were" : L"was") : (p2 ? L"are" : L"is"), 1); pushSp(o);
     if (adv >= 0) { tCopy(o, &t[adv]); pushSp(o); }
     pushW(o, pp, 1); pushSp(o); pushW(o, L"by", 1); pushSp(o);
@@ -38372,7 +38460,7 @@ static int patAdvEnd(Tok *t, int n, Toks *o) {
 
 /* escalation 1: "X, which made it Y." -> "X. This made it Y." ; "X; Y." -> "X. Y." ; "X, and the Y." -> "X. The Y." */
 static int patSplitMore(Tok *t, int n, Toks *o) {
-    if (escLevel < 1 || n < 6) return 0;
+    if ((escLevel < 1 && !(gType == WT_SOCIAL || gTone == TN_SIMPLE)) || n < 6) return 0;
     Tok *last = &t[n - 1];
     if (!(last->type == TK_PUNCT && (last->s[0] == L'.' || last->s[0] == L'!'))) return 0;
     for (int i = 0; i < n - 1; i++) {
@@ -38418,7 +38506,7 @@ static int patSplitMore(Tok *t, int n, Toks *o) {
 /* escalation 2: one neutral framing opener per sentence */
 static int patFiller(Tok *t, int n, Toks *o) {
     if (escLevel < 2 || sentShape(t, n) < 0 || !lowerable(&t[0])) return 0;
-    if (gOpeners * 12 >= gSents || t[0].tag == T_VB || gPrevOpener) return 0;
+    return 0;
     static const wchar_t *FW[] = { L"indeed", L"truth", L"fact", L"happens", L"turns", L"occurs", NULL };
     for (int q = 0, seen = 0; q < n && seen < 6; q++) {
         if (t[q].type == TK_SPACE) continue;
@@ -38440,9 +38528,9 @@ static int patFiller(Tok *t, int n, Toks *o) {
         int nq = nextNS(t, n, q);
         if (c == w && tFind(otab, key) && nq < n && t[nq].type == TK_PUNCT) return 0;
     }
-    static const wchar_t *FILL[] = { L"In fact", L"Indeed", L"As it turns out", L"In truth", L"As it happens", L"Truth be told" };
+    static const wchar_t *FILL[] = { L"In fact", L"Indeed", L"In fact", L"Indeed", L"In fact", L"Indeed" };
     int pick = -1, cnt = 0;
-    for (int q = 0; q < 6; q++) if (!(gFillUsed & (1 << q)) && nri(++cnt) == 0) pick = q;
+    for (int q = 0; q < 2; q++) if (!(gFillUsed & (1 << q)) && nri(++cnt) == 0) pick = q;
     if (pick < 0) return 0;
     gFillUsed |= 1 << pick;
     pushW(o, FILL[pick], 1); pushP(o, L','); pushSp(o);
@@ -38526,7 +38614,9 @@ static void mkIngB(const char *base, wchar_t *out) {
 static int startsClause(Tok *k) { return k->type == TK_LOCK || isWordIn(k, SUBJ) || isWordIn(k, CLAUSEDET) || k->tag == T_NP; }
 
 /* "Note the absence." -> "Let's note the absence." / "It is worth noting the absence." */
+static int budgetOK(int used, int per) { return used < 1 + gSents / per; }
 static int patImperative(Tok *t, int n, Toks *o) {
+    if (!budgetOK(gLets, 15)) return 0;
     if (sentShape(t, n) != 0 || t[0].type != TK_WORD || wcschr(t[0].s, L' ') || !lowerable(&t[0])) return 0;
     VForm *vf = verbOf(t[0].s); if (!vf) return 0;
     wchar_t b[64], w[40]; mbstowcs(b, vf->f[0], 63); b[63] = 0; wordL(&t[0], w);
@@ -38535,18 +38625,14 @@ static int patImperative(Tok *t, int n, Toks *o) {
     if (inList(NO, w)) return 0;
     int k = nextNS(t, n, 1); if (k >= n - 1 || isWordIn(&t[k], SUBJ) || t[k].tag == T_VBD || t[k].tag == T_VBZ) return 0;
     Span all = { t, n - 1 };
-    if (!wcscmp(w, L"try") || !wcscmp(w, L"imagine") || !wcscmp(w, L"remember") || nri(2)) { pushW(o, L"Let's", 1); pushSp(o); pushSpan(o, all, -1); }
-    else {
-        wchar_t ing[64]; mkIngB(vf->f[0], ing);
-        pushWs(o, L"It is worth", 1); pushSp(o); pushW(o, ing, 1);
-        Span rest = trimSpan(t, 1, n - 1); pushSp(o); pushSpan(o, rest, 0);
-    }
+    pushW(o, L"Let's", 1); pushSp(o); pushSpan(o, all, -1); gLets++;
     tCopy(o, &t[n - 1]);
     return 1;
 }
 
 /* "I would like an extension." -> "What I would like is an extension." ; "Some say he wept." -> "What some say is that he wept." */
 static int patPseudoCleft(Tok *t, int n, Toks *o) {
+    if (!budgetOK(gWhat, 40)) return 0;
     if (sentShape(t, n) < 0 || !lowerable(&t[0])) return 0;
     static const wchar_t *OBJV[] = { L"like", L"want", L"need", L"love", L"hate", L"prefer", L"enjoy", NULL };
     static const wchar_t *CLV[] = { L"believe", L"think", L"say", L"know", L"suggest", L"mean", L"argue", L"claim", L"feel", L"hope", L"expect", L"remember", L"realize", NULL };
@@ -38573,7 +38659,7 @@ static int patPseudoCleft(Tok *t, int n, Toks *o) {
     if (ob && (wordIs(&t[r], L"it") || wordIs(&t[r], L"them") || wordIs(&t[r], L"him") || wordIs(&t[r], L"her"))) return 0;
     for (int q = 0; q < rest.n; q++) if (rest.t[q].type == TK_PUNCT && rest.t[q].s[0] != L',') return 0;
     int past = t[k].tag == T_VBD || (md >= 0 && wordIs(&t[md], L"did"));
-    pushW(o, L"What", 1); pushSp(o); pushSpan(o, subj, -1); pushSp(o);
+    pushW(o, L"What", 1); pushSp(o); pushSpan(o, subj, -1); pushSp(o); gWhat++;
     if (md >= 0) { tCopy(o, &t[md]); pushSp(o); }
     tCopy(o, &t[k]); pushSp(o);
     pushW(o, past ? L"was" : L"is", 1); pushSp(o);
@@ -38585,6 +38671,7 @@ static int patPseudoCleft(Tok *t, int n, Toks *o) {
 
 /* "A critic in New York wrote that ..." -> "There was a critic in New York who wrote that ..." */
 static int patThereWas(Tok *t, int n, Toks *o) {
+    if (!budgetOK(gThere, 15)) return 0;
     if (sentShape(t, n) < 0) return 0;
     static const wchar_t *INDEF[] = { L"a", L"an", L"some", L"several", L"many", L"two", L"three", L"four", L"few", NULL };
     if (!isWordIn(&t[0], INDEF)) return 0;
@@ -38601,6 +38688,7 @@ static int patThereWas(Tok *t, int n, Toks *o) {
     for (int q = 0; q < np.n; q++) if (np.t[q].type == TK_PUNCT) return 0;
     int person = 0; for (int q = 0; q < np.n; q++) if (isWordIn(&np.t[q], PERSONN)) person = 1;
     const wchar_t *be = t[k].tag == T_VBD ? (p1 ? L"were" : L"was") : (p1 ? L"are" : L"is");
+    gThere++;
     pushW(o, L"There", 1); pushSp(o); pushW(o, be, 1); pushSp(o); pushSpan(o, np, -1); pushSp(o);
     pushW(o, person ? L"who" : L"that", 1); pushSp(o); pushSpan(o, rest, 0);
     tCopy(o, &t[n - 1]);
@@ -38630,6 +38718,7 @@ static int patAlsoEnd(Tok *t, int n, Toks *o) {
 /* perfect / modal passives: "Some scholars have spent careers on this." -> "Careers have been spent on this by some scholars."
    "You will feel it." -> "It will be felt." */
 static int patAuxPassive(Tok *t, int n, Toks *o) {
+    if (!budgetOK(gPassBy, 12)) return 0;
     if (sentShape(t, n) < 0) return 0;
     int p1, q1, e1 = npEnd(t, n, 0, &p1, &q1);
     if (e1 < 0 || !lowerable(&t[0])) return 0;
@@ -38665,7 +38754,7 @@ static int patAuxPassive(Tok *t, int n, Toks *o) {
         wchar_t hv[40]; wordL(&t[k], hv);
         pushW(o, !wcscmp(hv, L"had") ? L"had" : (p2 || (q2 && !wcscmp(np2.t[0].s, L"them"))) ? L"have" : L"has", 1); pushSp(o); pushW(o, L"been", 1);
     }
-    pushSp(o); pushW(o, pp, 1);
+    pushSp(o); pushW(o, pp, 1); gPassBy++;
     if (rest.n) { pushSp(o); pushSpan(o, rest, 0); }
     if (!generic) { pushSp(o); pushW(o, L"by", 1); pushSp(o); pushNP(o, np1, 1, -1); }
     tCopy(o, &t[n - 1]);
@@ -38717,6 +38806,7 @@ static int patNegation(Tok *t, int n, Toks *o) {
 
 /* "That poem was 40,000 lines long." -> "That poem had a length of 40,000 lines." */
 static int patMeasure(Tok *t, int n, Toks *o) {
+    return 0;
     if (sentShape(t, n) < 0) return 0;
     static const wchar_t *DIM[] = { L"long", L"tall", L"wide", L"deep", L"high", NULL };
     static const wchar_t *NOUN[] = { L"length", L"height", L"width", L"depth", L"height" };
@@ -38803,6 +38893,7 @@ static int patAdjTuck(Tok *t, int n, Toks *o) {
 
 /* "He sat down at his desk, stared at the page, and wrote one word." -> "After sitting down at his desk, he stared at the page and wrote one word." */
 static int patAfterSeq(Tok *t, int n, Toks *o) {
+    if (!budgetOK(gAfter, 15)) return 0;
     if (sentShape(t, n) < 0) return 0;
     int p1, q1, e = npEnd(t, n, 0, &p1, &q1);
     if (e < 0 || !lowerable(&t[0])) return 0;
@@ -38829,6 +38920,7 @@ static int patAfterSeq(Tok *t, int n, Toks *o) {
     Span x = trimSpan(t, v1 + 1, cut), subj = trimSpan(t, 0, e);
     if (spanWords(x) < 1 || spanWords(subj) > 6) return 0;
     wchar_t ing[64]; mkIngB(vf->f[0], ing);
+    gAfter++;
     pushW(o, L"After", 1); pushSp(o); pushW(o, ing, 1); pushSp(o); pushSpan(o, x, 0); pushP(o, L','); pushSp(o);
     pushNP(o, subj, 0, -1); pushSp(o);
     /* remaining verbs: if it was "A, B, and C" with three, drop the now-orphan comma before "and" */
@@ -38844,6 +38936,7 @@ static int patAfterSeq(Tok *t, int n, Toks *o) {
 /* "Others say he went to get a sandwich." -> "According to others, he went to get a sandwich."
    "The prevailing theory is that X." -> "According to the prevailing theory, X." */
 static int patAccording(Tok *t, int n, Toks *o) {
+    if (!budgetOK(gAccord, 15)) return 0;
     if (sentShape(t, n) < 0 || !lowerable(&t[0])) return 0;
     static const wchar_t *SAYV[] = { L"say", L"says", L"said", L"claim", L"claims", L"claimed", L"report", L"reports", L"reported", L"argue",
         L"argues", L"argued", L"believe", L"believes", L"believed", L"suggest", L"suggests", L"suggested", L"write", L"writes", L"wrote",
@@ -38871,6 +38964,7 @@ static int patAccording(Tok *t, int n, Toks *o) {
     int fin = 0; for (int q = 0; q < cl.n; q++) if (isFiniteTok(cl.t, q)) fin = 1;
     if (!fin || spanWords(cl) < 3) return 0;
     for (int q = 0; q + 2 < cl.n; q++) if (wordIs(&cl.t[q], L"and") && wordIs(&cl.t[nextNS(cl.t, cl.n, q + 1)], L"that")) return 0;
+    gAccord++;
     pushWs(o, L"According to", 1); pushSp(o); pushSpan(o, subj, -1); pushP(o, L','); pushSp(o);
     pushSpan(o, cl, wordIs(&cl.t[0], L"i") ? 0 : -1);
     tCopy(o, &t[n - 1]);
@@ -39043,11 +39137,18 @@ static int restructureOnce(Toks *s, unsigned *used) {
     int order[NPATS];
     for (int i = 0; i < NPATS; i++) order[i] = i;
     for (int i = NPATS - 1; i > 0; i--) { int j = nri(i + 1), x = order[i]; order[i] = order[j]; order[j] = x; }
+    if (gType == WT_SOCIAL || gTone == TN_SIMPLE) {
+        static const int SPL[] = { 31, 14, 7 };
+        for (int a = 0; a < 3; a++) for (int i = 0; i < NPATS; i++) if (order[i] == SPL[a]) { int x = order[a]; order[a] = order[i]; order[i] = x; break; }
+    }
     Toks fb = {0}; int fbp = -1;
     for (int i = 0; i < NPATS; i++) {
         int p = order[i];
         if (*used & (1u << p)) continue;
-        if (p >= FIRST_MAXPAT && !maxMode) continue;
+        if (p >= FIRST_MAXPAT && !maxMode && !(p == 31 && (gType == WT_SOCIAL || gTone == TN_SIMPLE))) continue;
+        if (toneReg() < 0 && (p == 8 || p == 21 || p == 28 || p == 19 || p == 18 || p == 12)) continue;
+        if (toneReg() > 0 && (p == 17)) continue;
+        if (gType == WT_STORY && (p == 28 || p == 18 || p == 5)) continue;
         Toks o = {0};
         int made = PATS[p](s->t, s->n, &o);
         if (!made && maxMode && p >= 8 && p != 15 && p != 12) {
@@ -39071,7 +39172,7 @@ static int restructureOnce(Toks *s, unsigned *used) {
             }
         }
         if (made && p != 0) fixCataphora(&o);
-        if (made && !sentSeen(&o) && (!maxMode || rebuildOK(s, &o))) {
+        if (made && !sentSeen(&o) && ((!maxMode && p < FIRST_MAXPAT) || rebuildOK(s, &o))) {
             wchar_t *sk = sentKey(o.t, o.n);
             int recent = ssHas(&recentSkel, sk);
             if (recent && fbp < 0) { fb = o; fbp = p; free(sk); continue; }
@@ -39237,6 +39338,144 @@ static void openerCasePass(Toks *v) {
     }
 }
 
+/* register swaps applied after the normal rewrite: word -> word, exact forms */
+static const wchar_t *CASUALMAP[] = {
+    L"however", L"but", L"therefore", L"so", L"thus", L"so", L"purchase", L"buy", L"purchases", L"buys", L"purchased", L"bought", L"purchasing", L"buying",
+    L"obtain", L"get", L"obtains", L"gets", L"obtained", L"got", L"assist", L"help", L"assists", L"helps", L"assisted", L"helped", L"assisting", L"helping",
+    L"numerous", L"lots of", L"approximately", L"about", L"individuals", L"people", L"utilize", L"use", L"utilizes", L"uses", L"utilized", L"used",
+    L"commence", L"start", L"commenced", L"started", L"terminate", L"end", L"sufficient", L"enough", L"require", L"need", L"requires", L"needs",
+    L"required", L"needed", L"attempt", L"try", L"attempted", L"tried", L"demonstrate", L"show", L"demonstrates", L"shows", L"demonstrated", L"showed",
+    L"regarding", L"about", L"prior to", L"before", L"in order to", L"to", L"reside", L"live", L"resides", L"lives", L"inquire", L"ask",
+    L"extremely", L"really", L"children", L"kids", L"perhaps", L"maybe", L"additionally", L"also", L"furthermore", L"plus", L"nevertheless", L"still",
+    L"consequently", L"so", L"subsequently", L"later", L"currently", L"right now", L"frequently", L"often", L"possess", L"have", L"possesses", L"has",
+    L"remain", L"stay", L"remains", L"stays", L"remained", L"stayed", L"commenced", L"started", L"desire", L"want", L"desires", L"wants", NULL, NULL };
+static const wchar_t *FORMALMAP[] = {
+    L"kids", L"children", L"kid", L"child", L"buy", L"purchase", L"buys", L"purchases", L"bought", L"purchased", L"lots of", L"many",
+    L"a lot of", L"many", L"gonna", L"going to", L"wanna", L"want to", L"kinda", L"somewhat", L"sorta", L"somewhat", L"really", L"truly",
+    L"maybe", L"perhaps", L"pretty", L"fairly", L"okay", L"acceptable", L"ok", L"acceptable", L"stuff", L"material", L"guys", L"people",
+    L"start", L"begin", L"starts", L"begins", L"started", L"began", L"show", L"demonstrate", L"shows", L"demonstrates", L"showed", L"demonstrated",
+    L"need", L"require", L"needs", L"requires", L"needed", L"required", L"try", L"attempt", L"tried", L"attempted",
+    L"enough", L"sufficient", L"about", L"approximately", L"anyway", L"regardless", L"also", L"additionally", L"plus", L"in addition", L"right now", L"currently",
+    L"often", L"frequently", L"big", L"large", L"huge", L"substantial", NULL, NULL };
+static const wchar_t *CASUALOPEN[] = { L"that said", L"but", L"as a result", L"so", L"for that reason", L"so", L"nevertheless", L"still",
+    L"nonetheless", L"still", L"in addition", L"also", L"on top of that", L"also", L"additionally", L"also", L"moreover", L"also",
+    L"furthermore", L"also", L"however", L"but", L"therefore", L"so", L"thus", L"so", L"consequently", L"so", L"in conclusion", L"so",
+    L"as a matter of fact", L"actually", L"in reality", L"actually", L"subsequently", L"then", NULL, NULL };
+static const wchar_t *FORMALOPEN[] = { L"also", L"in addition", L"plus", L"in addition", L"on top of that", L"in addition", L"still", L"nevertheless",
+    L"actually", L"in fact", L"anyway", L"regardless", L"so", L"therefore", L"but", L"however", L"then", L"subsequently", NULL, NULL };
+static const wchar_t *FORMALCONTR[] = { L"it'll", L"it will", L"we'll", L"we will", L"they'll", L"they will", L"I'll", L"I will", L"you'll", L"you will",
+    L"didn't", L"did not", L"don't", L"do not", L"doesn't", L"does not", L"can't", L"cannot", L"won't", L"will not", L"isn't", L"is not",
+    L"aren't", L"are not", L"wasn't", L"was not", L"weren't", L"were not", L"it's", L"it is", L"we're", L"we are", L"they're", L"they are",
+    L"I'm", L"I am", L"you're", L"you are", L"couldn't", L"could not", L"wouldn't", L"would not", L"shouldn't", L"should not",
+    L"haven't", L"have not", L"hasn't", L"has not", L"that's", L"that is", L"there's", L"there is", L"let's", L"let us",
+    L"gotta", L"have to", L"gonna", L"going to", L"wanna", L"want to", NULL, NULL };
+static const wchar_t *ACADMAP[] = { L"i think", L"it can be argued that", L"i believe", L"it can be argued that", L"shows", L"indicates",
+    L"showed", L"indicated", L"a lot of", L"a considerable amount of", L"lots of", L"a considerable number of", L"big", L"substantial",
+    L"very", L"highly", L"really", L"genuinely", NULL, NULL };
+static const wchar_t *MULTIMAP[] = { L"a lot of", L"many", L"lots of", L"many", L"in order to", L"to", L"prior to", L"before", L"right now", L"currently", NULL, NULL };
+
+static int matchWords(Toks *v, int i, const wchar_t *phrase, int *endTok) {
+    /* compare a lowercase phrase against consecutive word tokens starting at i */
+    const wchar_t *p = phrase; int k = i;
+    while (*p) {
+        while (k < v->n && v->t[k].type == TK_SPACE) k++;
+        if (k >= v->n || v->t[k].type != TK_WORD) return 0;
+        wchar_t w[64]; int L2 = (int)wcslen(v->t[k].s); if (L2 > 63) return 0; lowerInto(v->t[k].s, L2, w);
+        int pl = (int)wcslen(p); if (pl < L2 || wcsncmp(p, w, L2) || (p[L2] && p[L2] != L' ')) return 0;
+        p += L2; if (*p == L' ') p++;
+        k++;
+    }
+    *endTok = k; return 1;
+}
+static void toneReplace(Toks *v, int i, int end, const wchar_t *rep, NanoStats *st) {
+    wchar_t *nw = casedCopy(v->t[i].s, rep);
+    if (iswupper(rep[0])) nw[0] = rep[0];
+    free(v->t[i].s); v->t[i].s = nw; v->t[i].chg = 1;
+    for (int q = i + 1; q < end; q++) { free(v->t[q].s); v->t[q].s = wdup(L""); v->t[q].type = TK_SPACE; }
+    st->changed++;
+}
+static void tonePass(Toks *v, NanoStats *st) {
+    int reg = toneReg();
+    if (!reg) return;
+    tagAll(v);
+    for (int i = 0; i < v->n; i++) {
+        Tok *k = &v->t[i];
+        if (k->type != TK_WORD) continue;
+        int q = i - 1; while (q >= 0 && v->t[q].type == TK_SPACE) q--;
+        int sentStart = q < 0 || v->t[q].type == TK_NL || (v->t[q].type == TK_PUNCT && wcschr(L".!?", v->t[q].s[0]));
+        int end;
+        /* sentence openers */
+        if (sentStart) {
+            const wchar_t **O = reg < 0 ? CASUALOPEN : FORMALOPEN; int done = 0;
+            for (int m = 0; O[m]; m += 2) {
+                if (!matchWords(v, i, O[m], &end)) continue;
+                int c = end; while (c < v->n && v->t[c].type == TK_SPACE) c++;
+                int comma = c < v->n && v->t[c].type == TK_PUNCT && v->t[c].s[0] == L',';
+                const wchar_t *rep = O[m + 1];
+                int repNeedsComma = reg > 0 || !wcscmp(rep, L"still") || !wcscmp(rep, L"actually") || !wcscmp(rep, L"also");
+                if (!comma && !(reg > 0 && (!wcscmp(O[m], L"so") || !wcscmp(O[m], L"but")))) break;
+                toneReplace(v, i, end, rep, st);
+                if (comma && !repNeedsComma) { free(v->t[c].s); v->t[c].s = wdup(L""); v->t[c].type = TK_SPACE; }
+                if (!comma && repNeedsComma) {
+                    Tok cm = { wdup(L","), TK_PUNCT, 1, T_PUNCT };
+                    if (v->n + 1 > v->cap) { v->cap = v->cap ? v->cap * 2 : 16; v->t = realloc(v->t, v->cap * sizeof(Tok)); }
+                    memmove(&v->t[i + 2], &v->t[i + 1], (v->n - i - 1) * sizeof(Tok)); v->t[i + 1] = cm; v->n++;
+                }
+                done = 1; break;
+            }
+            if (done) continue;
+        }
+        if (reg > 0) {
+            int hit = 0;
+            for (int m = 0; FORMALCONTR[m] && !hit; m += 2) {
+                wchar_t lc[24]; wcscpy(lc, FORMALCONTR[m]); for (wchar_t *z = lc; *z; z++) *z = towlower(*z);
+                if (matchWords(v, i, lc, &end)) { toneReplace(v, i, end, FORMALCONTR[m + 1], st); hit = 1; }
+            }
+            if (hit) continue;
+            if (gTone == TN_ACADEMIC || gType == WT_REPORT)
+                for (int m = 0; ACADMAP[m] && !hit; m += 2) if (matchWords(v, i, ACADMAP[m], &end)) { toneReplace(v, i, end, ACADMAP[m + 1], st); hit = 1; }
+            if (hit) continue;
+            for (int m = 0; MULTIMAP[m] && !hit; m += 2) if (wcschr(MULTIMAP[m], L' ') && matchWords(v, i, MULTIMAP[m], &end)) {
+                const wchar_t *rep = MULTIMAP[m + 1];
+                if (!wcscmp(rep, L"many")) {
+                    int plural = 0, c = end;
+                    for (int z = 0; z < 4 && c < v->n; c++) { if (v->t[c].type == TK_SPACE) continue; if (v->t[c].type != TK_WORD) break; if (v->t[c].tag == T_NS) { plural = 1; break; } if (v->t[c].tag == T_N) break; z++; }
+                    if (!plural) rep = L"a great deal of";
+                }
+                toneReplace(v, i, end, rep, st); hit = 1;
+            }
+            if (hit) continue;
+        } else {
+            int hit = 0;
+            for (int m = 0; MULTIMAP[m] && !hit; m += 2) if (!wcscmp(MULTIMAP[m], L"in order to") || !wcscmp(MULTIMAP[m], L"prior to")) if (matchWords(v, i, MULTIMAP[m], &end)) { toneReplace(v, i, end, MULTIMAP[m + 1], st); hit = 1; }
+            if (hit) continue;
+        }
+        const wchar_t **M = reg < 0 ? CASUALMAP : FORMALMAP;
+        int nx = i + 1; while (nx < v->n && v->t[nx].type == TK_SPACE) nx++;
+        wchar_t w[48]; int L2 = (int)wcslen(k->s); if (L2 > 47) continue; lowerInto(k->s, L2, w);
+        if (reg > 0) {
+            if (!wcscmp(w, L"about") && !(nx < v->n && (lockHasDigit(&v->t[nx]) || v->t[nx].tag == T_NUM))) continue;
+            if ((!wcscmp(w, L"get") || !wcscmp(w, L"gets")) && !(nx < v->n && isWordIn(&v->t[nx], (const wchar_t *[]){ L"a", L"an", L"the", L"some", L"more", NULL }))) continue;
+            if (!wcscmp(w, L"pretty") && !(nx < v->n && (v->t[nx].tag == T_ADJ || v->t[nx].tag == T_ADV))) continue;
+            if (!wcscmp(w, L"enough") && !(nx < v->n && (v->t[nx].tag == T_N || v->t[nx].tag == T_NS))) continue;
+            if (!wcscmp(w, L"really") && !(nx < v->n && (v->t[nx].tag == T_ADJ || v->t[nx].tag == T_ADV))) continue;
+            if (!wcscmp(w, L"plus") || !wcscmp(w, L"also") || !wcscmp(w, L"so") || !wcscmp(w, L"but")) continue;
+        } else {
+            if (!wcscmp(w, L"however") || !wcscmp(w, L"therefore") || !wcscmp(w, L"thus")) continue;
+            if (gTone == TN_SIMPLE && (!wcscmp(w, L"kids") || !wcscmp(w, L"extremely"))) continue;
+            if (gTone == TN_SIMPLE || gType == WT_EMAIL) {
+                static const wchar_t *SLANG[] = { L"gonna", L"going to", L"wanna", L"want to", L"gotta", L"have to", L"kinda", L"kind of", L"sorta", L"sort of", NULL, NULL };
+                int hit = 0; for (int m = 0; SLANG[m]; m += 2) if (!wcscmp(w, SLANG[m])) { toneReplace(v, i, i + 1, SLANG[m + 1], st); hit = 1; break; }
+                if (hit) continue;
+            }
+        }
+        for (int m = 0; M[m]; m += 2) if (!wcschr(M[m], L' ') && !wcscmp(w, M[m])) {
+            if (gTone == TN_SIMPLE && (!wcscmp(M[m], L"children") || !wcscmp(M[m], L"extremely"))) break;
+            toneReplace(v, i, i + 1, M[m + 1], st); break;
+        }
+    }
+}
+
 static void articlePass(Toks *v) {
     for (int i = 0; i + 2 < v->n; i++) {
         Tok *a = &v->t[i];
@@ -39293,9 +39532,13 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
     if (curCtx) curCtx->pass++;
     if (!curCtx || curCtx->pass == 1) { moodW = 0.8 + 0.4 * nrnd(); moodR = 0.75 + 0.5 * nrnd(); }
     if (curCtx) { if (!curCtx->contrMode) curCtx->contrMode = contrMode; contrMode = curCtx->contrMode; }
+    gTone = op->tone; gType = op->type;
+    if (toneReg() < 0) contrMode = 2;
+    else if (toneReg() > 0) contrMode = 1;
     textBudget(text);
     restructurePass(&v, op, st);
     swapPass(&v, op, st, contrMode);
+    tonePass(&v, st);
     articlePass(&v);
     openerCasePass(&v);
     Str out = {0}; sAdd(&out, L"");
@@ -40009,8 +40252,8 @@ static void dtScore(const wchar_t *t, Detect *d) {
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.7.0"
-#define APP_VERSION_W L"1.7.0"
+#define APP_VERSION   "1.8.0"
+#define APP_VERSION_W L"1.8.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
@@ -40030,7 +40273,7 @@ static void dtScore(const wchar_t *t, Detect *d) {
 #define WM_UPDFAIL    (WM_APP + 6)
 #define WM_UPDRESTART (WM_APP + 7)
 
-enum { ID_IN = 101, ID_OUT, ID_GO, ID_COPY, ID_USE, ID_CLR, ID_PASSES,
+enum { ID_IN = 101, ID_OUT, ID_GO, ID_COPY, ID_USE, ID_CLR, ID_PASSES, ID_TONE, ID_TYPE,
        ID_UCHECK = 301, ID_UINSTALL, ID_UPAGE, ID_UNOTES,
        ID_ACTKEY = 401, ID_ACT,
        ID_DIN = 501, ID_DLIST, ID_DCHECK, ID_DPASTE, ID_DFROM, ID_DCLR, ID_DPANG };
@@ -40765,7 +41008,7 @@ static void renderPages(void) {
             textAt(dc, hTitle, L"Original", 108, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
             textAt(dc, hSmall, L"paste here", 250, 64, 136, 16, HINT, DT_RIGHT | DT_SINGLELINE);
             textAt(dc, hTitle, L"Rewritten", 462, 62, 200, 20, NAVY, DT_LEFT | DT_SINGLELINE);
-            textAt(dc, hSmall, L"same meaning, new words", 590, 64, 150, 16, HINT, DT_RIGHT | DT_SINGLELINE);
+
             textAt(dc, hSmall, L"Ctrl+Enter", 392, 256, 62, 14, RGB(220, 250, 255), DT_CENTER | DT_SINGLELINE);
             textAt(dc, hTiny, L"Quotes, (parens), names and numbers stay locked.", 108, 354, 278, 24, HINT, DT_LEFT | DT_WORDBREAK);
             textAt(dc, hTiny, L"Note: running the rewriter again on the same text (outside of Passes) may give unwanted results.", 462, 354, 280, 26, RGB(176, 92, 20), DT_LEFT | DT_WORDBREAK);
@@ -41318,6 +41561,8 @@ static void doRewrite(int fromClip) {
     PJob *jb = calloc(1, sizeof *jb);
     jb->text = text; jb->toClip = fromClip;
     jb->o.strength = strength(); jb->o.strict = tog[TG_STRICT].on;
+    jb->o.tone = (int)SendDlgItemMessageW(hMain, ID_TONE, CB_GETCURSEL, 0, 0); if (jb->o.tone < 0) jb->o.tone = 0;
+    jb->o.type = (int)SendDlgItemMessageW(hMain, ID_TYPE, CB_GETCURSEL, 0, 0); if (jb->o.type < 0) jb->o.type = 0;
     jb->passes = (int)GetDlgItemInt(hMain, ID_PASSES, NULL, FALSE);
     if (jb->passes < 1) jb->passes = 1;
     if (jb->passes > 1000) { jb->passes = 1000; SetDlgItemInt(hMain, ID_PASSES, 1000, FALSE); }
@@ -41464,6 +41709,15 @@ static void buildUI(void) {
     BTN(L"Rewrite", 399, 196, 48, 48, ID_GO);
     HWND pe = mk(WS_EX_CLIENTEDGE, L"EDIT", L"1", WS_TABSTOP | ES_NUMBER | ES_CENTER, 624, 18, 50, 24, ID_PASSES);
     SendMessageW(pe, EM_SETLIMITTEXT, 4, 0);
+    {
+        static const wchar_t *TONES[] = { L"Tone: Natural", L"Tone: Casual", L"Tone: Formal", L"Tone: Academic", L"Tone: Simple", NULL };
+        static const wchar_t *TYPES[] = { L"Type: Any", L"Type: Essay", L"Type: Email", L"Type: Story", L"Type: Report", L"Type: Social post", NULL };
+        HWND c1 = mk(0, L"COMBOBOX", L"", WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST, 548, 60, 94, 200, ID_TONE);
+        HWND c2 = mk(0, L"COMBOBOX", L"", WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST, 646, 60, 98, 200, ID_TYPE);
+        for (int i = 0; TONES[i]; i++) SendMessageW(c1, CB_ADDSTRING, 0, (LPARAM)TONES[i]);
+        for (int i = 0; TYPES[i]; i++) SendMessageW(c2, CB_ADDSTRING, 0, (LPARAM)TYPES[i]);
+        SendMessageW(c1, CB_SETCURSEL, 0, 0); SendMessageW(c2, CB_SETCURSEL, 0, 0);
+    }
     BTN(L"Copy", 480, 393, 76, 30, ID_COPY);
     BTN(L"Use as input", 560, 393, 106, 30, ID_USE);
     BTN(L"Clear", 670, 393, 70, 30, ID_CLR);
@@ -41549,6 +41803,8 @@ static const wchar_t *TOGKEY[TG_N] = { L"Light", L"Medium", L"Heavy", L"Max", L"
 
 static void loadSettings(void) {
     for (int i = 0; i < TG_N; i++) tog[i].on = GetPrivateProfileIntW(L"Settings", TOGKEY[i], tog[i].on, iniPath) != 0;
+    SendDlgItemMessageW(hMain, ID_TONE, CB_SETCURSEL, GetPrivateProfileIntW(L"Settings", L"Tone", 0, iniPath) % 5, 0);
+    SendDlgItemMessageW(hMain, ID_TYPE, CB_SETCURSEL, GetPrivateProfileIntW(L"Settings", L"Type", 0, iniPath) % 6, 0);
     { int ps = GetPrivateProfileIntW(L"Settings", L"Passes", 1, iniPath); SetDlgItemInt(hMain, ID_PASSES, ps < 1 ? 1 : ps > 1000 ? 1000 : ps, FALSE); savedPasses = ps < 1 ? 1 : ps; }
     if (tog[TG_LIGHT].on + tog[TG_MED].on + tog[TG_HEAVY].on + tog[TG_MAX].on != 1) { tog[TG_LIGHT].on = tog[TG_HEAVY].on = tog[TG_MAX].on = 0; tog[TG_MED].on = 1; }
     wchar_t b[400];
@@ -41559,6 +41815,8 @@ static void loadSettings(void) {
 
 static void saveSettings(void) {
     for (int i = 0; i < TG_N; i++) WritePrivateProfileStringW(L"Settings", TOGKEY[i], tog[i].on ? L"1" : L"0", iniPath);
+    { wchar_t b[16]; swprintf(b, 16, L"%d", (int)SendDlgItemMessageW(hMain, ID_TONE, CB_GETCURSEL, 0, 0)); WritePrivateProfileStringW(L"Settings", L"Tone", b, iniPath);
+      swprintf(b, 16, L"%d", (int)SendDlgItemMessageW(hMain, ID_TYPE, CB_GETCURSEL, 0, 0)); WritePrivateProfileStringW(L"Settings", L"Type", b, iniPath); }
     { wchar_t b[16]; swprintf(b, 16, L"%d", tog[TG_MAX].on ? savedPasses : (int)GetDlgItemInt(hMain, ID_PASSES, NULL, FALSE)); WritePrivateProfileStringW(L"Settings", L"Passes", b, iniPath); }
 }
 
