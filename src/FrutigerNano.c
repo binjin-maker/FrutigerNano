@@ -40280,77 +40280,280 @@ static int dtGramCount(const wchar_t *s) {
     return c;
 }
 
-/* ---------- human-style typos (optional, after rewriting) ---------- */
+/* ---------- human-style slips (optional, after rewriting) ----------
+   weights follow what real writers get wrong most (Connors & Lunsford's error counts in student essays:
+   missing intro comma, missing compound comma, wrong word, missing possessive apostrophe, comma splice,
+   missing series comma) plus keyboard slips (deletion > insertion > adjacent-key substitution > transposition) */
 static int wordAt(const wchar_t *t, int n, int s, int *e) { int j = s; while (j < n && (iswalpha(t[j]) || (isApos(t[j]) && j + 1 < n && iswalpha(t[j + 1])))) j++; *e = j; return j > s; }
+static const char *KEYROWS[] = { "qwertyuiop", "asdfghjkl", "zxcvbnm" };
+static wchar_t adjKey(wchar_t c) {
+    char lc = (char)towlower(c);
+    for (int r = 0; r < 3; r++) { const char *p = strchr(KEYROWS[r], lc); if (!p) continue;
+        int i = (int)(p - KEYROWS[r]), L2 = (int)strlen(KEYROWS[r]);
+        int d = nri(2) ? -1 : 1; if (i + d < 0 || i + d >= L2) d = -d;
+        return (wchar_t)KEYROWS[r][i + d]; }
+    return c;
+}
+enum { SL_INTRO, SL_COMPOUND, SL_WORD, SL_POSS, SL_SPLICE, SL_SERIES, SL_SPELL, SL_KEY, SL_N };
+static const int SLW[SL_N] = { 20, 15, 15, 8, 8, 6, 12, 16 };
 static wchar_t *addTypos(const wchar_t *t, int perWords, unsigned long long seed) {
     int n = (int)wcslen(t);
     if (perWords <= 0 || !n) return wdup(t);
     nanoInit();
     nrs = seed ? seed : 0x5DEECE66DULL; for (int i = 0; i < 4; i++) nrnd();
     unsigned char *L = computeLocks(t, n, 0);
-    /* candidate edits: start, end, replacement */
-    typedef struct { int s, e, sent; wchar_t rep[48]; } Ed;
-    int cap = 256, nc = 0, words = 0, sent = 0; Ed *c = malloc(cap * sizeof(Ed));
+    typedef struct { int s, e, sent, cat; wchar_t rep[48]; } Ed;
+    int cap = 256, nc = 0, words = 0, sent = 0, sentStart = 1; Ed *c = malloc(cap * sizeof(Ed));
+    #define ADD(S, E, CAT, REP) do { if (nc == cap) { cap *= 2; c = realloc(c, cap * sizeof(Ed)); } c[nc].s = (S); c[nc].e = (E); c[nc].sent = sent; c[nc].cat = (CAT); wcsncpy(c[nc].rep, (REP), 47); c[nc].rep[47] = 0; nc++; } while (0)
     static const wchar_t *SWAP[] = { L"it's", L"its", L"their", L"there", L"than", L"then", L"you're", L"your", L"they're", L"their",
         L"don't", L"dont", L"doesn't", L"doesnt", L"didn't", L"didnt", L"can't", L"cant", L"isn't", L"isnt", L"wasn't", L"wasnt",
-        L"couldn't", L"couldnt", L"wouldn't", L"wouldnt", L"that's", L"thats", L"I'm", L"Im", L"I've", L"Ive", L"who's", L"whos",
+        L"couldn't", L"couldnt", L"wouldn't", L"wouldnt", L"that's", L"thats", L"who's", L"whos",
         L"a lot", L"alot", L"could have", L"could of", L"should have", L"should of", L"would have", L"would of", L"affect", L"effect",
-        L"loose", L"lose", L"lose", L"loose", L"to", L"too", L"too", L"to", NULL, NULL };
+        L"lose", L"loose", L"too", L"to", L"whose", L"who's", NULL, NULL };
+    static const wchar_t *INTRO[] = { L"in", L"on", L"at", L"after", L"before", L"during", L"however", L"later", L"then", L"eventually", L"finally",
+        L"instead", L"still", L"also", L"today", L"by", L"for", L"when", L"as", L"since", L"once", L"while", L"although", L"because", L"if", NULL };
     for (int i = 0; i < n;) {
         int e;
-        if (t[i] == L'.' || t[i] == L'!' || t[i] == L'?' || t[i] == L'\n') { sent++; i++; continue; }
-        if (!iswalpha(t[i]) || (i > 0 && iswalpha(t[i - 1])) || !wordAt(t, n, i, &e)) {
-            /* ", and" -> " and"  (dropped comma) */
-            if (t[i] == L',' && !L[i] && i + 5 < n && !wcsncmp(t + i + 1, L" and ", 5)) {
-                if (nc == cap) { cap *= 2; c = realloc(c, cap * sizeof(Ed)); }
-                c[nc].s = i; c[nc].e = i + 1; c[nc].sent = sent; c[nc].rep[0] = 0; nc++;
+        wchar_t ch = t[i];
+        if (ch == L'.' || ch == L'!' || ch == L'?' || ch == L'\n') {
+            /* comma splice: "short sentence. It ..." -> "short sentence, it ..." */
+            if (ch == L'.' && !L[i] && i + 2 < n && t[i + 1] == L' ' && wordAt(t, n, i + 2, &e)) {
+                wchar_t w[12]; int L2 = e - i - 2 < 11 ? e - i - 2 : 11; lowerInto(t + i + 2, L2, w);
+                static const wchar_t *SP[] = { L"it", L"this", L"he", L"she", L"they", L"that", L"there", NULL };
+                if (inList(SP, w) && !L[i + 2]) { wchar_t r[16]; swprintf(r, 16, L", %lc", towlower(t[i + 2])); ADD(i, i + 3, SL_SPLICE, r); }
+            }
+            sent++; sentStart = 1; i++; continue;
+        }
+        if (!iswalpha(ch) || (i > 0 && iswalpha(t[i - 1])) || !wordAt(t, n, i, &e)) {
+            if (ch == L',' && !L[i]) {
+                int k = i + 1; while (k < n && t[k] == L' ') k++;
+                int ke; wordAt(t, n, k, &ke);
+                wchar_t nw[12] = L""; if (ke > k && ke - k < 11) lowerInto(t + k, ke - k, nw);
+                if (!wcscmp(nw, L"and") || !wcscmp(nw, L"but") || !wcscmp(nw, L"so")) {
+                    /* series comma vs compound comma: look back for another comma in this sentence */
+                    int back = i - 1, series = 0; while (back >= 0 && !wcschr(L".!?\n", t[back]) && i - back < 80) { if (t[back] == L',') { series = 1; break; } back--; }
+                    ADD(i, i + 1, series && !wcscmp(nw, L"and") ? SL_SERIES : SL_COMPOUND, L"");
+                }
             }
             i++; continue;
         }
         words++;
         int locked = 0; for (int q = i; q < e; q++) if (L[q]) locked = 1;
-        if (locked) { i = e; continue; }
         wchar_t w[48]; int L2 = e - i < 47 ? e - i : 47; lowerInto(t + i, L2, w);
-        const wchar_t *rep = NULL; int ee = e;
+        if (sentStart) {
+            sentStart = 0;
+            /* missing comma after a short introductory element */
+            if (inList(INTRO, w)) {
+                int k = e, wc = 1; while (k < n && t[k] != L',' && !wcschr(L".!?\n", t[k]) && wc <= 5) { if (t[k] == L' ') wc++; k++; }
+                if (k < n && t[k] == L',' && wc <= 5 && !L[k]) ADD(k, k + 1, SL_INTRO, L"");
+            }
+        }
+        if (locked) { i = e; continue; }
+        int ee = e; const wchar_t *rep = NULL;
         for (int m = 0; SWAP[m]; m += 2) {
             const wchar_t *k = SWAP[m]; int kl = (int)wcslen(k);
             if (wcschr(k, L' ')) { if (i + kl <= n && !wcsncmp(t + i, k, kl) && (i + kl >= n || !iswalpha(t[i + kl]))) { rep = SWAP[m + 1]; ee = i + kl; break; } continue; }
-            if (!wcscmp(w, k) || (!wcscmp(k, L"I'm") && !wcscmp(w, L"i'm")) || (!wcscmp(k, L"I've") && !wcscmp(w, L"i've"))) { rep = SWAP[m + 1]; break; }
+            if (!wcscmp(w, k)) { rep = SWAP[m + 1]; break; }
         }
-        if (!rep) for (int m = 0; MISSP[m] || MISSP[m + 1]; m += 2) if (MISSP[m] && MISSP[m + 1] && !wcscmp(w, MISSP[m + 1]) && !wcschr(MISSP[m], L' ') && wcscmp(MISSP[m], L"lets")) { rep = MISSP[m]; break; }
-        wchar_t buf[48];
-        if (!rep && L2 >= 7 && nri(3) == 0) {
-            /* swap two inner letters of a long word */
-            wcsncpy(buf, t + i, L2); buf[L2] = 0;
-            int p = 2 + nri(L2 - 4);
-            if (buf[p] != buf[p + 1] && iswlower(buf[p]) && iswlower(buf[p + 1])) { wchar_t x = buf[p]; buf[p] = buf[p + 1]; buf[p + 1] = x; rep = buf; }
+        if (rep) { wchar_t r[48]; wcsncpy(r, rep, 47); r[47] = 0; if (iswupper(t[i])) r[0] = towupper(r[0]); ADD(i, ee, SL_WORD, r); i = ee; continue; }
+        /* possessive apostrophe left out: "the story's end" -> "the storys end" */
+        if (L2 > 3 && isApos(t[e - 2]) && towlower(t[e - 1]) == L's' && iswlower(t[i])) { wchar_t r[48]; wcsncpy(r, t + i, L2 - 2); r[L2 - 2] = L's'; r[L2 - 1] = 0; ADD(i, e, SL_POSS, r); }
+        for (int m = 0; MISSP[m] || MISSP[m + 1]; m += 2)
+            if (MISSP[m] && MISSP[m + 1] && !wcscmp(w, MISSP[m + 1]) && !wcschr(MISSP[m], L' ') && wcscmp(MISSP[m], L"lets") && wcscmp(MISSP[m], L"teh") && wcscmp(MISSP[m], L"adn")) {
+                wchar_t r[48]; wcsncpy(r, MISSP[m], 47); r[47] = 0; if (iswupper(t[i])) r[0] = towupper(r[0]); ADD(i, e, SL_SPELL, r); break; }
+        if (L2 >= 5) {
+            /* keyboard slip, by real frequency: deletion 34, insertion 27, adjacent-key 19, transposition 12 */
+            wchar_t r[48]; wcsncpy(r, t + i, L2); r[L2] = 0;
+            int p = 1 + nri(L2 - 2), roll = nri(92), ok = 1;
+            if (!iswlower(r[p])) ok = 0;
+            else if (roll < 34) { if (r[p] == r[p - 1] || r[p] == r[p + 1]) wmemmove(r + p, r + p + 1, L2 - p); else wmemmove(r + p, r + p + 1, L2 - p); }
+            else if (roll < 61) { wmemmove(r + p + 1, r + p, L2 - p + 1); r[p] = nri(2) ? r[p + 1] : adjKey(r[p + 1]); }
+            else if (roll < 80) { r[p] = adjKey(r[p]); }
+            else { if (iswlower(r[p + 1]) && r[p] != r[p + 1]) { wchar_t x = r[p]; r[p] = r[p + 1]; r[p + 1] = x; } else ok = 0; }
+            if (ok && wcscmp(r, t + i) && wcsncmp(r, t + i, L2)) ADD(i, e, SL_KEY, r);
+            else if (ok && (int)wcslen(r) != L2) ADD(i, e, SL_KEY, r);
         }
-        if (rep) {
-            if (nc == cap) { cap *= 2; c = realloc(c, cap * sizeof(Ed)); }
-            c[nc].s = i; c[nc].e = ee; c[nc].sent = sent;
-            wcsncpy(c[nc].rep, rep, 47); c[nc].rep[47] = 0;
-            if (iswupper(t[i]) && c[nc].rep[0]) c[nc].rep[0] = towupper(c[nc].rep[0]);
-            nc++;
-        }
-        i = ee;
+        i = e;
     }
+    #undef ADD
     int want = words / perWords; if (!want && words >= perWords / 2) want = 1;
-    /* pick edits, at most one per sentence, in random order */
-    for (int i = nc - 1; i > 0; i--) { int j = nri(i + 1); Ed x = c[i]; c[i] = c[j]; c[j] = x; }
-    char *usedSent = calloc(sent + 2, 1);
+    /* weighted pick by category, one per sentence, no repeats */
+    char *usedSent = calloc(sent + 2, 1), *taken = calloc(nc + 1, 1);
     Ed *pick = malloc((nc + 1) * sizeof(Ed)); int np = 0;
-    for (int i = 0; i < nc && np < want; i++) {
-        if (usedSent[c[i].sent]) continue;
-        int dup = 0; for (int k = 0; k < np; k++) if (!wcscmp(pick[k].rep, c[i].rep)) dup = 1;
-        if (dup) continue;
-        usedSent[c[i].sent] = 1; pick[np++] = c[i];
+    for (int tries = 0; np < want && tries < want * 40 + 40; tries++) {
+        int tot = 0, have[SL_N] = {0};
+        for (int k = 0; k < nc; k++) if (!taken[k] && !usedSent[c[k].sent]) have[c[k].cat] = 1;
+        for (int q = 0; q < SL_N; q++) if (have[q]) tot += SLW[q];
+        if (!tot) break;
+        int r = nri(tot), cat = 0; for (; cat < SL_N; cat++) { if (!have[cat]) continue; if (r < SLW[cat]) break; r -= SLW[cat]; }
+        int cand[512], ncand = 0;
+        for (int k = 0; k < nc && ncand < 512; k++) if (!taken[k] && !usedSent[c[k].sent] && c[k].cat == cat) cand[ncand++] = k;
+        if (!ncand) continue;
+        int k = cand[nri(ncand)];
+        int clash = 0; for (int q = 0; q < np; q++) if ((c[k].s < pick[q].e && pick[q].s < c[k].e) || (c[k].rep[0] && !wcscmp(pick[q].rep, c[k].rep))) clash = 1;
+        taken[k] = 1;
+        if (clash) continue;
+        usedSent[c[k].sent] = 1; pick[np++] = c[k];
     }
     for (int a = 1; a < np; a++) { Ed x = pick[a]; int b = a - 1; while (b >= 0 && pick[b].s > x.s) { pick[b + 1] = pick[b]; b--; } pick[b + 1] = x; }
     Str o = {0}; sAdd(&o, L"");
     int pos = 0;
-    for (int k = 0; k < np; k++) { sAddN(&o, t + pos, pick[k].s - pos); sAdd(&o, pick[k].rep); pos = pick[k].e; }
+    for (int k = 0; k < np; k++) { if (pick[k].s < pos) continue; sAddN(&o, t + pos, pick[k].s - pos); sAdd(&o, pick[k].rep); pos = pick[k].e; }
     sAdd(&o, t + pos);
-    free(c); free(pick); free(usedSent); free(L);
+    free(c); free(pick); free(usedSent); free(taken); free(L);
+    return o.s;
+}
+
+/* ---------- de-AI pass for MAX: strip the patterns detectors and readers flag ----------
+   em dashes (~10x more common in AI text), "not only ... but also", tacked-on ", highlighting/showing ..." analysis,
+   stock AI phrases, and some Oxford commas (series commas are dropped often by people) */
+static wchar_t *humanizePass2(const wchar_t *t, unsigned long long seed, int contract);
+static wchar_t *humanizePass1(const wchar_t *t, int level, unsigned long long seed);
+static wchar_t *humanizePass(const wchar_t *t, int level, unsigned long long seed, int contract) {
+    wchar_t *a = humanizePass2(t, seed, contract && level >= 2);
+    wchar_t *b = humanizePass1(a, level, seed);
+    free(a); return b;
+}
+static wchar_t *humanizePass1(const wchar_t *t, int level, unsigned long long seed) {
+    nanoInit();
+    nrs = seed ? seed : 0x1234567ULL; for (int i = 0; i < 4; i++) nrnd();
+    int n = (int)wcslen(t);
+    unsigned char *L = computeLocks(t, n, 0);
+    Str o = {0}; sAdd(&o, L"");
+    static const wchar_t *PHR[] = { L"stands as a testament to", L"shows", L"is a testament to", L"shows", L"plays a crucial role in", L"matters a lot in",
+        L"plays a vital role in", L"matters a lot in", L"plays a pivotal role in", L"matters a lot in", L"plays a significant role in", L"matters in",
+        L"plays a key role in", L"matters in", L"it is important to note that ", L"", L"it's important to note that ", L"", L"it is worth noting that ", L"",
+        L"in today's fast-paced world", L"today", L"in today's world", L"today", L"delve into", L"look at", L"delves into", L"looks at",
+        L"a rich tapestry of", L"a mix of", L"serves as a reminder", L"is a reminder", L"serves as a", L"is a", L"in conclusion,", L"in the end,",
+        L"in summary,", L"overall,", L"navigate the complexities of", L"deal with", L"a wide range of", L"lots of", L"a myriad of", L"lots of",
+        L"embark on", L"start", L"foster", L"build", L"underscores", L"shows", L"underscore", L"show", L"highlights the importance of", L"shows why",
+        L"utilize", L"use", L"utilizes", L"uses", NULL, NULL };
+    static const wchar_t *ING[] = { L"showing", L"shows", L"highlighting", L"highlights", L"underscoring", L"shows", L"emphasizing", L"shows",
+        L"reflecting", L"reflects", L"demonstrating", L"shows", L"revealing", L"reveals", L"illustrating", L"shows", L"suggesting", L"suggests", NULL, NULL };
+    int dashOpen = 0;
+    for (int i = 0; i < n;) {
+        if (L[i]) { sAddC(&o, t[i]); i++; continue; }
+        int boundary = i == 0 || !iswalpha(t[i - 1]);
+        /* stock AI phrases */
+        if (boundary && iswalpha(t[i])) {
+            int hit = 0;
+            for (int m = 0; PHR[m]; m += 2) {
+                int pl = (int)wcslen(PHR[m]), ok = i + pl <= n;
+                for (int q = 0; ok && q < pl; q++) if ((wchar_t)towlower(t[i + q]) != PHR[m][q] && !(isApos(t[i + q]) && PHR[m][q] == L'\'')) ok = 0;
+                if (!ok || (i + pl < n && iswalpha(t[i + pl]) && iswalpha(PHR[m][pl - 1]))) continue;
+                const wchar_t *r = PHR[m + 1];
+                if (r[0]) { wchar_t b[64]; wcscpy(b, r); if (iswupper(t[i])) b[0] = towupper(b[0]); sAdd(&o, b); }
+                else if (i + pl < n && iswlower(t[i + pl]) && (o.n == 0 || o.s[o.n - 1] == L' ' || o.s[o.n - 1] == L'\n')) { /* capitalize what follows if we removed a sentence opener */
+                    int sStart = o.n == 0; for (int q = o.n - 1; q >= 0 && !sStart; q--) { if (o.s[q] == L' ') continue; sStart = wcschr(L".!?\n", o.s[q]) != NULL; break; }
+                    if (sStart) { sAddC(&o, towupper(t[i + pl])); i += pl + 1; hit = 1; break; } }
+                i += pl; hit = 1; break;
+            }
+            if (hit) continue;
+            /* "not only X but also Y" -> "X and also Y" */
+            if (!wcsncmp(t + i, L"not only ", 9) && level >= 1) {
+                const wchar_t *b = wcsstr(t + i + 9, L" but also ");
+                const wchar_t *stop = t + i; while (*stop && !wcschr(L".!?\n", *stop)) stop++;
+                if (b && b < stop && b - (t + i) < 90) {
+                    int xs = i + 9, xe = (int)(b - t);
+                    int lk = 0; for (int q = xs; q < xe; q++) if (L[q]) lk = 1;
+                    if (!lk) { sAddN(&o, t + xs, xe - xs); sAdd(&o, L" and also "); i = xe + 10; continue; }
+                }
+            }
+        }
+        /* ", highlighting ..." tacked-on analysis -> ". This highlights ..." */
+        if (t[i] == L',' && i + 2 < n && t[i + 1] == L' ' && nrnd() < 0.6 * level) {
+            int hit = 0;
+            for (int m = 0; ING[m]; m += 2) {
+                int pl = (int)wcslen(ING[m]);
+                if (wcsncmp(t + i + 2, ING[m], pl) || iswalpha(t[i + 2 + pl])) continue;
+                int k = i + 2 + pl; while (k < n && t[k] == L' ') k++;
+                int ke = k; while (ke < n && iswalpha(t[ke])) ke++;
+                wchar_t nx[16] = L""; if (ke - k < 15) lowerInto(t + k, ke - k, nx);
+                if (!(!wcscmp(nx, L"that") || !wcscmp(nx, L"how") || !wcscmp(nx, L"the") || !wcscmp(nx, L"his") || !wcscmp(nx, L"her") || !wcscmp(nx, L"their") || !wcscmp(nx, L"its") || !wcscmp(nx, L"a") || !wcscmp(nx, L"an"))) break;
+                sAdd(&o, L". This "); sAdd(&o, ING[m + 1]); i += 2 + pl; hit = 1; break;
+            }
+            if (hit) continue;
+        }
+        /* em dashes -> commas / parentheses */
+        if (t[i] == 0x2014 || (t[i] == L'-' && i + 1 < n && t[i + 1] == L'-')) {
+            int w = t[i] == 0x2014 ? 1 : 2;
+            while (o.n && o.s[o.n - 1] == L' ') o.s[--o.n] = 0;
+            int j = i + w; while (j < n && t[j] == L' ') j++;
+            /* a second dash later in the sentence makes it a pair */
+            int pair = 0; for (int q = j; q < n && !wcschr(L".!?\n", t[q]); q++) if (t[q] == 0x2014 || (t[q] == L'-' && q + 1 < n && t[q + 1] == L'-')) { pair = 1; break; }
+            if (dashOpen) { sAdd(&o, nri(2) ? L")" : L","); sAddC(&o, L' '); dashOpen = 0; }
+            else if (pair) { if (nri(2)) { sAdd(&o, L" ("); dashOpen = 1; } else { sAdd(&o, L", "); dashOpen = 0; } }
+            else sAdd(&o, L", ");
+            i = j; continue;
+        }
+        if (wcschr(L".!?\n", t[i])) dashOpen = 0;
+        /* drop some series commas: "X, Y, and Z" -> "X, Y and Z" */
+        if (t[i] == L',' && level >= 2 && i + 5 < n && !wcsncmp(t + i, L", and ", 6)) {
+            int back = i - 1, series = 0; while (back >= 0 && !wcschr(L".!?\n", t[back]) && i - back < 60) { if (t[back] == L',') { series = 1; break; } back--; }
+            if (series && nri(2)) { i++; continue; }
+        }
+        sAddC(&o, t[i]); i++;
+    }
+    free(L);
+    return o.s;
+}
+
+/* plain openers and everyday contractions, the way people actually write */
+static wchar_t *humanizePass2(const wchar_t *t, unsigned long long seed, int contract) {
+    nanoInit();
+    nrs = seed ^ 0x9E3779B97F4A7C15ULL; for (int i = 0; i < 4; i++) nrnd();
+    int n = (int)wcslen(t);
+    unsigned char *L = computeLocks(t, n, 0);
+    static const wchar_t *OPEN[] = { L"However, ", L"But ", L"Therefore, ", L"So ", L"Thus, ", L"So ", L"Additionally, ", L"Also, ", L"Moreover, ", L"Also, ",
+        L"Furthermore, ", L"Also, ", L"Ultimately, ", L"In the end, ", L"Overall, ", L"In the end, ", L"Consequently, ", L"So ", L"Nevertheless, ", L"Still, ",
+        L"Nonetheless, ", L"Still, ", L"In addition, ", L"Also, ", L"Subsequently, ", L"Later, ", NULL, NULL };
+    static const wchar_t *CON[] = { L"do not", L"don't", L"does not", L"doesn't", L"did not", L"didn't", L"is not", L"isn't", L"are not", L"aren't",
+        L"was not", L"wasn't", L"were not", L"weren't", L"cannot", L"can't", L"could not", L"couldn't", L"would not", L"wouldn't", L"will not", L"won't",
+        L"should not", L"shouldn't", L"has not", L"hasn't", L"have not", L"haven't", L"it is", L"it's", L"that is", L"that's", L"there is", L"there's",
+        L"they are", L"they're", L"we are", L"we're", L"you are", L"you're", L"I am", L"I'm", L"I have", L"I've", L"let us", L"let's", NULL, NULL };
+    Str o = {0}; sAdd(&o, L"");
+    int sentStart = 1;
+    for (int i = 0; i < n;) {
+        if (L[i]) { sAddC(&o, t[i]); sentStart = 0; i++; continue; }
+        if (sentStart && iswalpha(t[i])) {
+            sentStart = 0;
+            int hit = 0;
+            for (int m = 0; OPEN[m]; m += 2) {
+                int pl = (int)wcslen(OPEN[m]);
+                if (wcsncmp(t + i, OPEN[m], pl) || nrnd() > 0.75) continue;
+                sAdd(&o, OPEN[m + 1]);
+                i += pl;
+                if (i < n && iswupper(t[i]) && !L[i] && !(t[i] == L'I' && (i + 1 >= n || !iswalpha(t[i + 1])))) {
+                    int e = i; while (e < n && iswalpha(t[e])) e++;
+                    wchar_t w[40]; int L2 = e - i < 39 ? e - i : 39; lowerInto(t + i, L2, w);
+                    if (commonLowerWord(w) || isKnownWord(w)) { sAddC(&o, towlower(t[i])); i++; }
+                }
+                hit = 1; break;
+            }
+            if (hit) continue;
+        }
+        if (contract && iswalpha(t[i]) && (i == 0 || !iswalpha(t[i - 1]))) {
+            int hit = 0;
+            for (int m = 0; CON[m]; m += 2) {
+                int pl = (int)wcslen(CON[m]), ok = i + pl <= n;
+                for (int q = 0; ok && q < pl; q++) if (towlower(t[i + q]) != towlower(CON[m][q])) ok = 0;
+                if (!ok || (i + pl < n && iswalpha(t[i + pl]))) continue;
+                int lk = 0; for (int q = i; q < i + pl; q++) if (L[q]) lk = 1;
+                if (lk) break;
+                /* "it is." / "that is," at a clause end can't contract */
+                int k = i + pl; while (k < n && t[k] == L' ') k++;
+                if (k >= n || wcschr(L".,;:!?\n", t[k])) break;
+                if (nrnd() > 0.6) break;
+                wchar_t b[16]; wcscpy(b, CON[m + 1]); if (iswupper(t[i])) b[0] = towupper(b[0]);
+                sAdd(&o, b); i += pl; hit = 1; break;
+            }
+            if (hit) continue;
+        }
+        if (wcschr(L".!?\n", t[i])) sentStart = 1;
+        else if (!iswspace(t[i]) && t[i] != L'"' && t[i] != 0x201C && t[i] != L'(') sentStart = 0;
+        sAddC(&o, t[i]); i++;
+    }
+    free(L);
     return o.s;
 }
 /* trained AI-text detector weights (logistic regression, generated by train.py) */
@@ -40499,8 +40702,8 @@ static void dtScore(const wchar_t *t, Detect *d) {
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.11.0"
-#define APP_VERSION_W L"1.11.0"
+#define APP_VERSION   "1.12.0"
+#define APP_VERSION_W L"1.12.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
@@ -41785,6 +41988,11 @@ static DWORD WINAPI PassThread(LPVOID arg) {
     curCtx = NULL;
     ssFree(&outs);
     ssFree(&ctx.retired); ssFree(&ctx.seen); free(ctx.origin.val); ssFree(&ctx.origin.keys);
+    if (j->o.strength >= 2 && !res->stopped) {
+        int contract = (j->o.tone == TN_CASUAL || j->o.tone == TN_SIMPLE || j->o.type == WT_EMAIL || j->o.type == WT_SOCIAL || j->o.type == WT_STORY || (j->o.style && gStyle.on && gStyle.contr100 > 1.5)) && j->o.tone != TN_FORMAL && j->o.tone != TN_ACADEMIC;
+        wchar_t *hz = humanizePass(cur, j->o.strength == 3 ? 2 : 1, seed ^ 0x5A5A5A5AULL, contract);
+        free(cur); cur = hz;
+    }
     if (j->typos > 0 && !res->stopped) {
         static const int PER[5] = { 0, 150, 80, 40, 20 };
         wchar_t *ty = addTypos(cur, PER[j->typos % 5], seed ^ 0xA5A5A5A5ULL);
