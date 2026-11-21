@@ -41275,8 +41275,8 @@ static void dtScore(const wchar_t *t, Detect *d) {
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.13.0"
-#define APP_VERSION_W L"1.13.0"
+#define APP_VERSION   "1.14.0"
+#define APP_VERSION_W L"1.14.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
