@@ -162,8 +162,8 @@ static const wchar_t *THES2[] = {
     L"N teenager > teen|adolescent",
     L"N expert > specialist",
     L"N audience > crowd",
-    L"N place > location|spot",
-    L"N location > place|spot",
+    L"N place > location",
+    L"N location > place",
     L"N vacation > holiday|getaway",
     L"N holiday > vacation",
     L"N career > profession",
@@ -830,7 +830,7 @@ static const wchar_t *THES2[] = {
     L"A curious > inquisitive",
     L"A relaxed > at ease",
     L"A stressed > tense|under pressure",
-    L"A generous > giving|charitable",
+    L"A generous > kind",
     L"A selfish > self-centered",
     L"A loyal > faithful|devoted",
     L"A faithful > loyal|devoted",
@@ -1150,7 +1150,6 @@ static const wchar_t *THES3[] = {
     L"R sure > certainly",
     L"N someone > person:persons",
     L"R away > forth",
-    L"J different > various|distinct|diverse",
     L"N thought:thoughts > idea:ideas",
     L"R however > nevertheless",
     L"N government:governments > authorities|regime:regimes",
@@ -1265,7 +1264,6 @@ static const wchar_t *THES3[] = {
     L"R totally > completely|entirely|wholly|altogether",
     L"N faith:faiths > religion:religions",
     L"N fashion:fashions > style:styles|manner:manners",
-    L"N gain:gains > increase:increases",
     L"J weird > supernatural",
     L"R apparently > seemingly",
     L"N engineering > technology:technologies",
@@ -1374,7 +1372,6 @@ static const wchar_t *THES3[] = {
     L"N threat:threats > menace:menaces",
     L"J careful > thorough",
     L"N cry:cries > yell:yells",
-    L"J empty > blank|vacant",
     L"N instance:instances > case:cases",
     L"J reasonable > sensible",
     L"N category:categories > class:classes",
@@ -36555,7 +36552,8 @@ static const wchar_t *THES[] = {
     L"B can't believe|cannot believe|can not believe|couldn't believe|could not believe|as it happens|as it turns out|truth be told|in truth|as soon as|common sense|in common|by the way|on the way|as usual|in case|kind of|sort of|a little|at least|take it easy|a great deal|no longer|for good|at all|in time|of all time|the same|as well|make sense|makes sense|made sense|so far|in charge|at large|in short supply|start over|starts over|started over|starting over|in a way|all the way",
 
     L"V show:shows:showed:shown:showing up|arrive",
-    L"V show:shows:showed:shown:showing|demonstrate|illustrate",
+    L"V show:shows:showed:shown:showing|demonstrate|illustrate|reveal",
+    L"V suggest:suggests:suggested:suggested:suggesting|imply",
     L"V use|utilize|employ",
     L"V assist|aid",
     L"V begin:begins:began:begun:beginning|start",
@@ -36745,7 +36743,7 @@ static const wchar_t *THES[] = {
     L"A sometimes|occasionally|at times",
     L"A usually|typically|generally|normally",
     L"A mostly|mainly|largely|primarily|for the most part",
-    L"A completely|totally|entirely|fully",
+    L"A completely|totally|entirely",
     L"A almost|nearly|practically",
     L"A fairly > rather|quite|reasonably",
     L"A suddenly|abruptly|all of a sudden",
@@ -37361,7 +37359,7 @@ static void replaceRange(Toks *v, int i, int j, wchar_t *s) {
     v->n -= j - i - 1;
 }
 
-typedef struct { int strength, strict, tone, type; } NanoOpts;
+typedef struct { int strength, strict, tone, type; const wchar_t *style; } NanoOpts;
 /* tones: 0 natural, 1 casual, 2 formal, 3 academic, 4 simple, 5 friendly
    types: 0 any, 1 essay, 2 email, 3 story, 4 report, 5 social post */
 enum { TN_NATURAL, TN_CASUAL, TN_FORMAL, TN_ACADEMIC, TN_SIMPLE, TN_FRIENDLY };
@@ -37412,6 +37410,7 @@ static void smSet(StrMap *m, const wchar_t *k, int v) {
     r = -r - 2; m->keys.k[r] = wdup(k); m->val[r] = v; m->keys.n++;
 }
 static int smGet(StrMap *m, const wchar_t *k) { int r = ssFind(&m->keys, k); return r >= 0 ? m->val[r] : -1; }
+static void smPut(StrMap *m, const wchar_t *k, int v) { int r = ssFind(&m->keys, k); if (r >= 0) m->val[r] = v; else smSet(m, k, v); }
 
 typedef struct { StrSet retired, seen; StrMap origin; int contrMode, pass; } NanoCtx;
 static NanoCtx *curCtx;
@@ -37622,6 +37621,44 @@ static int aiVocab(const wchar_t *s) {
     for (int i = 0; AIVOCAB[i]; i++) { int L2 = (int)wcslen(AIVOCAB[i]); if (!wcsncmp(w, AIVOCAB[i], L2) && (int)wcslen(w) <= L2 + 3) return 1; }
     return 0;
 }
+/* ---- writing-style sample: the rewrite leans toward the sample's words, sentence length and contractions ---- */
+typedef struct { int on, words, sents; double meanLen, contr100; StrMap vocab; } StyleProf;
+static StyleProf gStyle;
+static unsigned long long gStyleHash;
+static void styleBuild(const wchar_t *t) {
+    unsigned long long h = 1469598103934665603ULL; for (const wchar_t *p = t; *p; p++) h = (h ^ (unsigned)*p) * 1099511628211ULL;
+    if (gStyle.on && h == gStyleHash) return;
+    ssFree(&gStyle.vocab.keys); free(gStyle.vocab.val); memset(&gStyle, 0, sizeof gStyle);
+    gStyleHash = h;
+    int n = (int)wcslen(t), inQ = 0, sw = 0, contr = 0;
+    for (int i = 0; i < n;) {
+        wchar_t c = t[i];
+        if (c == 0x201C || (c == L'"' && !inQ)) { inQ = 1; i++; continue; }
+        if (c == 0x201D || (c == L'"' && inQ)) { inQ = 0; i++; continue; }
+        if ((c == L'.' || c == L'!' || c == L'?') && !inQ) { if (sw > 2) { gStyle.sents++; } sw = 0; i++; continue; }
+        if (!iswalpha(c)) { i++; continue; }
+        int j = i; while (j < n && (iswalpha(t[j]) || (isApos(t[j]) && j + 1 < n && iswalpha(t[j + 1])))) j++;
+        if (!inQ) {
+            gStyle.words++; sw++;
+            wchar_t w[40]; int L2 = j - i < 39 ? j - i : 39; lowerInto(t + i, L2, w);
+            for (int q = 0; q < L2; q++) if (w[q] == L'\'') { contr++; break; }
+            if (!(iswupper(t[i]) && i > 0 && t[i - 2] != L'.')) { int c0 = smGet(&gStyle.vocab, w); smPut(&gStyle.vocab, w, c0 < 0 ? 1 : c0 + 1); }
+        }
+        i = j;
+    }
+    if (gStyle.words < 40) return;
+    gStyle.on = 1;
+    gStyle.meanLen = gStyle.sents ? (double)gStyle.words / gStyle.sents : 15;
+    gStyle.contr100 = 100.0 * contr / gStyle.words;
+}
+static int styleHas(const wchar_t *w) {
+    if (!gStyle.on) return 0;
+    wchar_t b[48]; int k = 0; while (w[k] && k < 47) { b[k] = isApos(w[k]) ? L'\'' : (wchar_t)towlower(w[k]); k++; } b[k] = 0;
+    return smGet(&gStyle.vocab, b) > 0;
+}
+/* a person picks one word for a thing and sticks with it: the same source maps to the same choice for the whole run */
+static StrMap gChoice;
+
 static int pickTarget(Grp *g, int not, int f) {
     int c[64], nc = 0, ff = f < nForms(g->type) ? f : 0;
     int zs = not >= 0 ? zipfOf(g->m[not].f[ff] ? g->m[not].f[ff] : g->m[not].f[0]) : 45;
@@ -37636,7 +37673,15 @@ static int pickTarget(Grp *g, int not, int f) {
         c[nc++] = i;
     }
     if (!nc) return -1;
-    if (not < 0 || nrnd() < 0.15) return c[nri(nc)];
+    wchar_t ck[32]; swprintf(ck, 32, L"%d:%d:%d", (int)(g - grp), not, ff);
+    { int prev = smGet(&gChoice, ck); if (prev >= 0) for (int i = 0; i < nc; i++) if (c[i] == prev) return prev; }
+    if (gStyle.on) {
+        int in[64], ni = 0;
+        for (int i = 0; i < nc; i++) if (styleHas(g->m[c[i]].f[ff] ? g->m[c[i]].f[ff] : g->m[c[i]].f[0])) in[ni++] = c[i];
+        if (ni) { int m = in[nri(ni)]; smSet(&gChoice, ck, m); return m; }
+        if (not >= 0 && styleHas(g->m[not].f[ff] ? g->m[not].f[ff] : g->m[not].f[0]) && nrnd() < 0.7) return -1;
+    }
+    if (not < 0 || nrnd() < 0.15) { int m = c[nri(nc)]; smSet(&gChoice, ck, m); return m; }
     const wchar_t *src = g->m[not].f[0];
     int best = 1 << 30, cand[64], nb = 0;
     for (int i = 0; i < nc; i++) {
@@ -37646,6 +37691,7 @@ static int pickTarget(Grp *g, int not, int f) {
     }
     int m = cand[nri(nb)];
     pickBump(src, g->m[m].f[0]);
+    smSet(&gChoice, ck, m);
     return m;
 }
 
@@ -37699,6 +37745,12 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
                         PC[4] = { 0.25, 0.7, 1.0, 1.0 }, PL[4] = { 0.08, 0.15, 0.25, 0.15 };
     int s = o->strength;
     tagAll(v);
+    StrMap kc = {0};
+    for (int i = 0; i < v->n; i++) if (v->t[i].type == TK_WORD && !wcschr(v->t[i].s, L' ')) {
+        int L2 = (int)wcslen(v->t[i].s); if (L2 < 4 || L2 > 38) continue;
+        wchar_t w[40]; lowerInto(v->t[i].s, L2, w); int c0 = smGet(&kc, w); smPut(&kc, w, c0 < 0 ? 1 : c0 + 1);
+        if (L2 > 4 && w[L2 - 1] == L's') { w[L2 - 1] = 0; c0 = smGet(&kc, w); smPut(&kc, w, c0 < 0 ? 1 : c0 + 1); }
+    }
     for (int i = 0; i < v->n; i++) {
         Tok *t = &v->t[i];
         if (t->type != TK_WORD || t->chg) continue;
@@ -37718,6 +37770,12 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
         if (!e) continue;
         Ent eo = *e;
         int jump = nw > 1 ? endTok - 1 : i;
+        if (nw == 1 && v->t[i].type == TK_WORD && !wcschr(v->t[i].s, L' ')) {
+            int L2 = (int)wcslen(v->t[i].s);
+            if (L2 >= 4 && L2 <= 38) { wchar_t w[40]; lowerInto(v->t[i].s, L2, w); if (smGet(&kc, w) >= 3) { i = jump; continue; }
+                /* plurals and verb forms of a repeated word count too */
+                if (L2 > 4 && w[L2 - 1] == L's') { w[L2 - 1] = 0; if (smGet(&kc, w) >= 2) { i = jump; continue; } } }
+        }
         wchar_t mk[200] = L"";
         if (curCtx) {
             int p2 = 0;
@@ -37828,6 +37886,7 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
                 if (k2 >= 0 && isWordish(&v->t[k2])) { lastWordLower(v->t[k2].s, pp, 40); if (inList(PPCUE, pp)) f = 3; }
             }
         }
+        if (v->t[i].type == TK_WORD && !wcschr(v->t[i].s, L' ')) { int L2 = (int)wcslen(v->t[i].s); if (L2 >= 4 && L2 <= 38) { wchar_t w[40]; lowerInto(v->t[i].s, L2, w); if (smGet(&kc, w) >= 3) { i = jump; continue; } } }
         int m = pickTarget(g, e->m, f);
         if (m < 0) { i = jump; continue; }
         retire(g->m[e->m].f[f < nForms(g->type) ? f : 0]);
@@ -37845,6 +37904,7 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
         replaceRange(v, i, endTok, casedCopy(v->t[i].s, tgt));
         st->changed += nw;
     }
+    ssFree(&kc.keys); free(kc.val);
 }
 
 /* ---------- sentence restructuring ---------- */
@@ -38041,6 +38101,7 @@ static int patTrailSub(Tok *t, int n, Toks *o) {
 }
 
 /* "X, but Y." / "X, so Y." */
+static int startsClause(Tok *k) { return k->type == TK_LOCK || isWordIn(k, SUBJ) || isWordIn(k, CLAUSEDET) || k->tag == T_NP; }
 static int patButSo(Tok *t, int n, Toks *o) {
     if (sentShape(t, n) != 1) return 0;
     int comma = firstComma(t, n);
@@ -38053,6 +38114,8 @@ static int patButSo(Tok *t, int n, Toks *o) {
     if (spanWords(x) < 3 || spanWords(y) < 3) return 0;
     wchar_t yw[40]; wordL(&y.t[0], yw);
     if (!wcscmp(yw, L"that") || !wcscmp(yw, L"far") || !wcscmp(yw, L"much") || !wcscmp(yw, L"not")) return 0;
+    if (!startsClause(&y.t[0])) return 0;
+    { int p3, q3, ye = npEnd(y.t, y.n, 0, &p3, &q3); if (ye < 0) return 0; int yv = nextNS(y.t, y.n, ye); if (yv >= y.n || !isFiniteTok(y.t, yv)) return 0; }
     int choice = nri(isSo ? 3 : 2);
     if (choice == 0 && !lowerable(&x.t[0])) choice = 1;
     if (choice == 0) {
@@ -38162,6 +38225,7 @@ static int patReport(Tok *t, int n, Toks *o) {
             if (isFiniteTok(cl.t, q)) fin = 1;
         }
         if (!(fin && (aux || hadThat))) return 0;
+        for (int q = 0; q + 2 < cl.n; q++) if (wordIs(&cl.t[q], L"and") || wordIs(&cl.t[q], L"but")) { int k3 = nextNS(cl.t, cl.n, q + 1); if (k3 < cl.n && isFiniteTok(cl.t, k3) && cl.t[k3].tag != T_VB) return 0; }
         for (int q = 0; q + 2 < cl.n; q++) if (wordIs(&cl.t[q], L"and") && wordIs(&cl.t[nextNS(cl.t, cl.n, q + 1)], L"that")) return 0;
         pushSpan(o, cl, 1); pushP(o, L','); pushSp(o);
         pushSpan(o, subj, -1); pushSp(o);
@@ -38205,6 +38269,7 @@ static int patSplit(Tok *t, int n, Toks *o) {
         if (wcscmp(w, L"and")) continue;
         int s = k + 1; while (s < n && t[s].type == TK_SPACE) s++;
         if (s >= n || !(isWordIn(&t[s], SUBJ) || t[s].type == TK_LOCK)) continue;
+        if (isWordIn(&t[s], (const wchar_t *[]){ L"that", L"this", NULL })) { int s2 = nextNS(t, n, s + 1); if (s2 < n && (t[s2].tag == T_PRON || t[s2].tag == T_DET || t[s2].type == TK_LOCK || t[s2].tag == T_NP)) continue; }
         Span x = trimSpan(t, 0, c), y = trimSpan(t, s, n - 1);
         if (spanWords(x) < 3 || spanWords(y) < 3) continue;
         pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
@@ -38492,6 +38557,7 @@ static int patSplitMore(Tok *t, int n, Toks *o) {
             for (int q = 0; q < x.n; q++) { int tg = x.t[q].tag; if (tg == T_VBD || tg == T_VBZ || tg == T_VB || tg == T_BE || tg == T_HV || tg == T_MD) hasVerbX = 1; }
             if (!hasVerb || !hasVerbX) continue;
             { int cc = 0; for (int q = 0; q < x.n; q++) if (x.t[q].type == TK_PUNCT && x.t[q].s[0] == L',') cc++; if (cc >= 2) continue; }
+            if (isWordIn(&y.t[0], (const wchar_t *[]){ L"that", L"which", L"who", L"what", L"whether", L"how", NULL })) continue;
             { int p3, q3, ye = npEnd(y.t, y.n, 0, &p3, &q3); if (ye < 0) continue; int yv = nextNS(y.t, y.n, ye); if (yv >= y.n || !isFiniteTok(y.t, yv)) continue; }
             pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
             if (!wcscmp(w, L"but")) { pushW(o, L"However", 1); pushP(o, L','); pushSp(o); pushSpan(o, y, -1); }
@@ -38611,7 +38677,6 @@ static void mkIngB(const char *base, wchar_t *out) {
         { swprintf(out, 64, L"%ls%lcing", b, b[n - 1]); return; }
     swprintf(out, 64, L"%lsing", b);
 }
-static int startsClause(Tok *k) { return k->type == TK_LOCK || isWordIn(k, SUBJ) || isWordIn(k, CLAUSEDET) || k->tag == T_NP; }
 
 /* "Note the absence." -> "Let's note the absence." / "It is worth noting the absence." */
 static int budgetOK(int used, int per) { return used < 1 + gSents / per; }
@@ -39000,6 +39065,7 @@ static int patTimeWordBack(Tok *t, int n, Toks *o) {
 /* "X and is Y" verb-phrase coordination -> two sentences: "Today it is taught in 23 countries and is the only poem ..." */
 static int patVPSplit(Tok *t, int n, Toks *o) {
     if (sentShape(t, n) < 0) return 0;
+    if (isWordIn(&t[0], (const wchar_t *[]){ L"when", L"if", L"because", L"while", L"after", L"before", L"as", L"since", L"although", L"though", L"once", L"until", L"unless", L"whenever", L"by", NULL })) return 0;
     int p1, q1, s = 0;
     while (s < n && !((t[s].type == TK_WORD && (t[s].tag == T_PRON || t[s].tag == T_DET)) || t[s].type == TK_LOCK)) { if (t[s].type == TK_PUNCT) return 0; s++; }
     int e = npEnd(t, n, s, &p1, &q1);
@@ -39028,6 +39094,18 @@ static int patVPSplit(Tok *t, int n, Toks *o) {
 static int dtGramCount(const wchar_t *s);
 static int rebuildOK(Toks *in, Toks *out) {
     tagAll(out);
+    {   /* keep the sentence's ending, and don't strand a quote that ends in a comma */
+        int li = in->n - 1; while (li >= 0 && in->t[li].type == TK_SPACE) li--;
+        int lo = out->n - 1; while (lo >= 0 && out->t[lo].type == TK_SPACE) lo--;
+        if (li >= 0 && in->t[li].type == TK_PUNCT && (lo < 0 || out->t[lo].type != TK_PUNCT)) return 0;
+        for (int i = 0; i < out->n; i++) if (out->t[i].type == TK_LOCK) {
+            int L2 = (int)wcslen(out->t[i].s);
+            if (L2 >= 2 && out->t[i].s[L2 - 2] == L',' ) {
+                int nx = i + 1; while (nx < out->n && out->t[nx].type == TK_SPACE) nx++;
+                if (nx >= out->n || (out->t[nx].type == TK_PUNCT && wcschr(L".!?", out->t[nx].s[0]))) return 0;
+            }
+        }
+    }
     /* every piece needs a finite verb (headings and quotes aside) */
     int segStart = 0, fin = 0, words = 0;
     for (int i = 0; i < out->n; i++) {
@@ -39195,8 +39273,10 @@ static int sentWords(Toks *s) { Span sp = { s->t, s->n }; return spanWords(sp); 
 
 /* sentence rhythm: break up runs of same-length sentences (join two similar short ones, split a long one) */
 static void rhythmPass(Toks *units, int *kind, int nu, int str, NanoStats *st) {
-    static const double PJ[4] = { 0.0, 0.25, 0.4, 0.5 }, PS[4] = { 0.0, 0.35, 0.6, 0.8 };
+    static const double PJ[4] = { 0.0, 0.1, 0.15, 0.2 }, PS[4] = { 0.0, 0.35, 0.6, 0.8 };
     if (str < 1) return;
+    int splitAt = 26, joinMax = 16;
+    if (gStyle.on) { splitAt = (int)(gStyle.meanLen * 1.7); if (splitAt < 18) splitAt = 18; joinMax = (int)(gStyle.meanLen * 0.75); if (joinMax < 6) joinMax = 6; }
     static const wchar_t *NOSTART[] = { L"but", L"so", L"however", L"therefore", L"yet", L"still", L"also", L"because", L"although", L"then",
         L"instead", L"meanwhile", L"and", L"or", L"for", L"thus", L"even", L"in", L"on", L"at", L"after", L"before", L"if", L"when", NULL };
     for (int u = 0; u < nu; u++) {
@@ -39204,7 +39284,7 @@ static void rhythmPass(Toks *units, int *kind, int nu, int str, NanoStats *st) {
         Toks *a = &units[u];
         int wa = sentWords(a);
         /* split a long sentence */
-        if (wa > 26 && nrnd() < PS[str]) {
+        if (wa > splitAt && nrnd() < PS[str]) {
             int saveE = escLevel; escLevel = escLevel < 1 ? 1 : escLevel;
             static PatFn SP[] = { patSplitMore, patSplit, patVPSplit };
             for (int k = 0; k < 3; k++) {
@@ -39219,7 +39299,8 @@ static void rhythmPass(Toks *units, int *kind, int nu, int str, NanoStats *st) {
         if (u + 2 >= nu || kind[u + 2] != 1 || units[u + 1].n != 1 || units[u + 1].t[0].type != TK_SPACE) continue;
         Toks *b = &units[u + 2];
         int wb = sentWords(b);
-        if (wa < 3 || wb < 3 || wa > 16 || wb > 16 || abs(wa - wb) > 5 || nrnd() >= PJ[str]) continue;
+        double pj = PJ[str] * (gStyle.on && gStyle.meanLen > 18 ? 2.5 : 1.0);
+        if (wa < 3 || wb < 3 || wa > joinMax || wb > joinMax || abs(wa - wb) > 6 || nrnd() >= pj) continue;
         if (sentShape(a->t, a->n) != 0 || sentShape(b->t, b->n) < 0 || a->t[a->n - 1].s[0] != L'.') continue;
         if (!lowerable(&b->t[0]) || isWordIn(&b->t[0], NOSTART) || b->t[0].type == TK_LOCK) continue;
         int bad = 0; Toks *ab[2] = { a, b };
@@ -39618,12 +39699,14 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
     if (!curCtx || curCtx->pass == 1) {
         moodW = 0.8 + 0.4 * nrnd(); moodR = 0.75 + 0.5 * nrnd();
         double r = nrnd(); gMood = r < 0.2 ? 0 : r < 0.47 ? 1 : r < 0.73 ? 2 : 3;
+        ssFree(&gChoice.keys); free(gChoice.val); memset(&gChoice, 0, sizeof gChoice);
         gMoodBase = countMoodAdv(text);
     }
     if (curCtx) { if (!curCtx->contrMode) curCtx->contrMode = contrMode; contrMode = curCtx->contrMode; }
     gTone = op->tone; gType = op->type;
-    if (toneReg() < 0) contrMode = 2;
-    else if (toneReg() > 0) contrMode = 1;
+    if (op->style && op->style[0]) styleBuild(op->style); else gStyle.on = 0;
+    if (gStyle.on) { contrMode = gStyle.contr100 < 0.4 ? 1 : gStyle.contr100 > 1.5 ? 2 : contrMode; }
+    if (!gStyle.on) { if (toneReg() < 0) contrMode = 2; else if (toneReg() > 0) contrMode = 1; }
     textBudget(text);
     restructurePass(&v, op, st);
     swapPass(&v, op, st, contrMode);
@@ -40416,8 +40499,8 @@ static void dtScore(const wchar_t *t, Detect *d) {
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.10.0"
-#define APP_VERSION_W L"1.10.0"
+#define APP_VERSION   "1.11.0"
+#define APP_VERSION_W L"1.11.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
@@ -41636,6 +41719,8 @@ static void finishRewrite(NRes *r) {
 
 typedef struct { wchar_t *text; NanoOpts o; int passes, toClip, typos; } PJob;
 static volatile LONG stopPasses;
+static wchar_t *sampleText = L"";
+
 
 
 static void setRunPct(int p) { runPct = p; RECT r = RS(96, 432, 654, 30); InvalidateRect(hMain, &r, FALSE); }
@@ -41707,6 +41792,7 @@ static DWORD WINAPI PassThread(LPVOID arg) {
     }
     res->out = cur;
     res->maxRun = maxRun;
+    free((void *)j->o.style);
     free(j);
     setRunPct(-1);
     PostMessageW(hMain, WM_NANODONE, 0, (LPARAM)res);
@@ -41731,7 +41817,8 @@ static void doRewrite(int fromClip) {
     jb->text = text; jb->toClip = fromClip;
     jb->typos = (int)SendDlgItemMessageW(hMain, ID_TYPOS, CB_GETCURSEL, 0, 0); if (jb->typos < 0) jb->typos = 0;
     jb->o.strength = strength(); jb->o.strict = tog[TG_STRICT].on;
-    jb->o.tone = (int)SendDlgItemMessageW(hMain, ID_TONE, CB_GETCURSEL, 0, 0); if (jb->o.tone < 0) jb->o.tone = 0;
+    jb->o.tone = (int)SendDlgItemMessageW(hMain, ID_TONE, CB_GETCURSEL, 0, 0); if (jb->o.tone < 0 || jb->o.tone > 5) jb->o.tone = 0;
+    if (jb->o.tone == 5) { jb->o.tone = 0; jb->o.style = sampleText[0] ? wdup(sampleText) : NULL; }
     jb->o.type = (int)SendDlgItemMessageW(hMain, ID_TYPE, CB_GETCURSEL, 0, 0); if (jb->o.type < 0) jb->o.type = 0;
     jb->passes = (int)GetDlgItemInt(hMain, ID_PASSES, NULL, FALSE);
     if (jb->passes < 1) jb->passes = 1;
@@ -41880,7 +41967,7 @@ static void buildUI(void) {
     HWND pe = mk(WS_EX_CLIENTEDGE, L"EDIT", L"1", WS_TABSTOP | ES_NUMBER | ES_CENTER, 624, 18, 50, 24, ID_PASSES);
     SendMessageW(pe, EM_SETLIMITTEXT, 4, 0);
     {
-        static const wchar_t *TONES[] = { L"Tone: Natural", L"Tone: Casual", L"Tone: Formal", L"Tone: Academic", L"Tone: Simple", NULL };
+        static const wchar_t *TONES[] = { L"Tone: Natural", L"Tone: Casual", L"Tone: Formal", L"Tone: Academic", L"Tone: Simple", L"Tone: My writing", L"Edit my sample...", NULL };
         static const wchar_t *TYPES[] = { L"Type: Any", L"Type: Essay", L"Type: Email", L"Type: Story", L"Type: Report", L"Type: Social post", NULL };
         HWND c1 = mk(0, L"COMBOBOX", L"", WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST, 548, 60, 94, 200, ID_TONE);
         HWND c2 = mk(0, L"COMBOBOX", L"", WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST, 646, 60, 98, 200, ID_TYPE);
@@ -41977,9 +42064,68 @@ static void rescaleAll(void) {
 
 static const wchar_t *TOGKEY[TG_N] = { L"Light", L"Medium", L"Heavy", L"Max", L"LockFacts", L"Highlight", L"UpdateCheck", L"UpdateAuto" };
 
+/* ---- "My writing" sample ---- */
+static HWND hSample;
+static void samplePath(wchar_t *p) { wcscpy(p, iniPath); wchar_t *d = wcsrchr(p, L'\\'); if (d) wcscpy(d + 1, L"FrutigerNano-sample.txt"); }
+static void loadSample(void) {
+    wchar_t p[MAX_PATH + 32]; samplePath(p);
+    FILE *f = _wfopen(p, L"rb"); if (!f) return;
+    fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
+    if (n <= 2 || n > 4000000) { fclose(f); return; }
+    char *b = malloc(n + 2); fread(b, 1, n, f); fclose(f); b[n] = b[n + 1] = 0;
+    int off = ((unsigned char)b[0] == 0xFF && (unsigned char)b[1] == 0xFE) ? 2 : 0;
+    sampleText = wdup((wchar_t *)(b + off)); free(b);
+}
+static void saveSample(const wchar_t *t) {
+    wchar_t p[MAX_PATH + 32]; samplePath(p);
+    FILE *f = _wfopen(p, L"wb"); if (!f) return;
+    unsigned char bom[2] = { 0xFF, 0xFE }; fwrite(bom, 1, 2, f); fwrite(t, sizeof(wchar_t), wcslen(t), f); fclose(f);
+}
+static LRESULT CALLBACK SampleProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
+    switch (m) {
+    case WM_COMMAND:
+        if (LOWORD(wp) == 1) {
+            HWND e = GetDlgItem(h, 10); int n = GetWindowTextLengthW(e);
+            wchar_t *t = calloc(n + 2, sizeof(wchar_t)); GetWindowTextW(e, t, n + 1);
+            if (sampleText[0]) free(sampleText);
+            sampleText = t; saveSample(t);
+            SendDlgItemMessageW(hMain, ID_TONE, CB_SETCURSEL, 5, 0);
+            int words = 0; for (wchar_t *q = t; *q; q++) if (iswalpha(*q) && (q == t || !iswalpha(q[-1]))) words++;
+            if (words < 60) status(L"Saved, but the sample is short (%d words). A few paragraphs works much better.", words);
+            else status(L"Writing sample saved (%d words). Tone is set to My writing.", words);
+            DestroyWindow(h); return 0;
+        }
+        if (LOWORD(wp) == 2) { DestroyWindow(h); return 0; }
+        break;
+    case WM_CLOSE: DestroyWindow(h); return 0;
+    case WM_DESTROY: hSample = NULL; EnableWindow(hFrame, TRUE); SetForegroundWindow(hFrame); return 0;
+    }
+    return DefWindowProcW(h, m, wp, lp);
+}
+static void openSampleBox(void) {
+    if (hSample) { SetForegroundWindow(hSample); return; }
+    static int reg;
+    if (!reg) { WNDCLASSW c = {0}; c.lpfnWndProc = SampleProc; c.hInstance = GetModuleHandleW(NULL); c.lpszClassName = L"NanoSample"; c.hCursor = LoadCursor(NULL, IDC_ARROW); c.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1); RegisterClassW(&c); reg = 1; }
+    RECT fr; GetWindowRect(hFrame, &fr);
+    int w = S(560), hh = S(420);
+    hSample = CreateWindowExW(WS_EX_DLGMODALFRAME, L"NanoSample", L"My writing sample", WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_VISIBLE,
+                              fr.left + (fr.right - fr.left - w) / 2, fr.top + (fr.bottom - fr.top - hh) / 2, w, hh, hFrame, NULL, GetModuleHandleW(NULL), NULL);
+    HWND l = CreateWindowExW(0, L"STATIC", L"Paste a few paragraphs you (or your class) wrote. Nano will lean toward these words, sentence lengths and contractions when Tone is set to My writing.",
+                             WS_CHILD | WS_VISIBLE, S(12), S(8), w - S(30), S(36), hSample, NULL, NULL, NULL);
+    HWND e = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", sampleText, WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN,
+                             S(12), S(48), w - S(30), hh - S(130), hSample, (HMENU)10, NULL, NULL);
+    SendMessageW(e, EM_SETLIMITTEXT, 0, 0);
+    HWND b1 = CreateWindowExW(0, L"BUTTON", L"Save", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, w - S(200), hh - S(74), S(84), S(28), hSample, (HMENU)1, NULL, NULL);
+    HWND b2 = CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE, w - S(106), hh - S(74), S(84), S(28), hSample, (HMENU)2, NULL, NULL);
+    HWND ctl[4] = { l, e, b1, b2 }; for (int i = 0; i < 4; i++) SendMessageW(ctl[i], WM_SETFONT, (WPARAM)(i == 1 ? hEdit : hFont), TRUE);
+    EnableWindow(hFrame, FALSE);
+    SetFocus(e);
+}
+
 static void loadSettings(void) {
     for (int i = 0; i < TG_N; i++) tog[i].on = GetPrivateProfileIntW(L"Settings", TOGKEY[i], tog[i].on, iniPath) != 0;
-    SendDlgItemMessageW(hMain, ID_TONE, CB_SETCURSEL, GetPrivateProfileIntW(L"Settings", L"Tone", 0, iniPath) % 5, 0);
+    SendDlgItemMessageW(hMain, ID_TONE, CB_SETCURSEL, GetPrivateProfileIntW(L"Settings", L"Tone", 0, iniPath) % 6, 0);
+    loadSample();
     SendDlgItemMessageW(hMain, ID_TYPOS, CB_SETCURSEL, GetPrivateProfileIntW(L"Settings", L"Typos", 0, iniPath) % 5, 0);
     SendDlgItemMessageW(hMain, ID_TYPE, CB_SETCURSEL, GetPrivateProfileIntW(L"Settings", L"Type", 0, iniPath) % 6, 0);
     { int ps = GetPrivateProfileIntW(L"Settings", L"Passes", 1, iniPath); SetDlgItemInt(hMain, ID_PASSES, ps < 1 ? 1 : ps > 1000 ? 1000 : ps, FALSE); savedPasses = ps < 1 ? 1 : ps; }
@@ -42129,6 +42275,12 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     case WM_COMMAND:
         switch (LOWORD(wp)) {
         case ID_ACT: tryActivate(); break;
+        case ID_TONE:
+            if (HIWORD(wp) == CBN_SELCHANGE) {
+                int sel = (int)SendDlgItemMessageW(h, ID_TONE, CB_GETCURSEL, 0, 0);
+                if (sel == 6 || (sel == 5 && !sampleText[0])) { SendDlgItemMessageW(h, ID_TONE, CB_SETCURSEL, sampleText[0] ? 5 : 0, 0); openSampleBox(); }
+            }
+            break;
         case ID_GO: doRewrite(0); break;
         case ID_COPY: {
             wchar_t *t = getRichText(GetDlgItem(h, ID_OUT));

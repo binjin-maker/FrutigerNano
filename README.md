@@ -17,6 +17,8 @@ Turn on **Highlight locked parts** to see exactly what's protected (blue = locke
 
 A built-in grammar tagger (an HMM trained on the Brown corpus) labels every word as noun, verb, adjective and so on, so swaps only happen when the part of speech and tense match. Everything runs offline, instantly. Nano rearranges sentences (moves "because/although" clauses, time phrases and adverbs to the other end, flips "X says Y" into "Y, X says", splits long sentences and merges short ones), flips active and passive voice, then swaps words and phrases from a built-in thesaurus (hand-written entries plus WordNet synonyms filtered by GloVe similarity) with verb tenses and plurals handled, flips contractions and swaps sentence openers. Each press gives a different version.
 
+**My writing**: pick "Edit my sample..." in the Tone list, paste a few paragraphs of your own writing, and set Tone to My writing. Rewrites then prefer words from your sample and match its sentence length and contraction habits. The sample is saved next to the app (FrutigerNano-sample.txt) and never leaves your PC.
+
 **Rhythm & mood**: on Medium and up, long sentences get split and runs of similar short ones get joined so sentence length varies. Each rewrite also picks a slight mood (a bit more emphatic, hedged or relaxed) and adds a word or two to match, scaled to the tone.
 
 **Typos** (dropdown next to the toggles): Off, Rare, Some, Many or Lots. After rewriting, Nano slips in small human-looking mistakes (its/it's, then/than, dont, could of, a dropped comma, a common misspelling or two swapped letters), at most one per sentence and never inside quotes, names or numbers.
