@@ -476,7 +476,6 @@ static const wchar_t *THES2[] = {
     L"A amazed > astonished|stunned",
     L"A puzzled > confused|baffled",
     L"A baffled > confused|puzzled",
-    L"A welcoming > friendly|inviting",
     L"A incredible > amazing|unbelievable",
     L"A remarkable > extraordinary|notable",
     L"A fundamental > basic|core",
@@ -563,7 +562,6 @@ static const wchar_t *THES2[] = {
     L"Lw also > additionally",
     L"LX[of,more,times,other,others,than,a] many > numerous|plenty of",
     L"L, while > whereas",
-    L"LA then > after that|afterward",
     L"LN about > around|roughly",
     L"LN over > more than",
     L"LN almost > nearly|close to",
@@ -1017,11 +1015,11 @@ static const wchar_t *THES2[] = {
     L"A extreme > intense|severe",
     L"A intense > extreme|fierce",
     L"A fierce > intense|ferocious",
-    L"A friendly > kind|welcoming",
+    L"A friendly > kind",
     L"A hostile > unfriendly|aggressive",
     L"A aggressive > hostile|forceful",
     L"A peaceful > calm|tranquil",
-    L"A calm > relaxed|peaceful",
+    L"A calm > relaxed",
     L"A nervous > anxious|jittery",
     L"A tense > nervous|stressed",
     L"A grateful > thankful|appreciative",
@@ -1261,7 +1259,6 @@ static const wchar_t *THES3[] = {
     L"R mostly > largely",
     L"J smart > clever",
     L"R totally > completely|entirely|wholly|altogether",
-    L"N faith:faiths > religion:religions",
     L"N fashion:fashions > style:styles|manner:manners",
     L"J weird > supernatural",
     L"R apparently > seemingly",
@@ -1948,7 +1945,6 @@ static const wchar_t *THES3[] = {
     L"J pleasing > charming|gratifying|delightful|delicious",
     L"J splendid > beautiful",
     L"J unreasonable > unjustified",
-    L"J vivid > realistic",
     L"R appropriately > suitably",
     L"N authorization:authorizations > mandate:mandates",
     L"N challenger:challengers > contender:contenders",
@@ -37195,7 +37191,7 @@ static const wchar_t *THES[] = {
     L"A important|vital|crucial|essential",
     L"A difficult > hard|challenging|tough",
     L"A challenging > difficult|tough",
-    L"A easy|simple|straightforward",
+    L"A easy > simple|straightforward",
     L"A quick > fast|rapid|swift",
     L"A rapid > quick|swift",
     L"A quickly|rapidly|swiftly",
@@ -37277,7 +37273,6 @@ static const wchar_t *THES[] = {
     L"A worried|anxious|nervous",
     L"A surprised|astonished|amazed",
     L"A confused|puzzled|baffled|perplexed",
-    L"A friendly|welcoming",
     L"A amazing|incredible|remarkable|astonishing",
     L"A awesome > amazing|fantastic",
     L"A basic|fundamental",
@@ -38425,6 +38420,15 @@ static void swapPass(Toks *v, const NanoOpts *o, NanoStats *st, int contrMode) {
             }
         }
         if (v->t[i].type == TK_WORD && !wcschr(v->t[i].s, L' ')) { int L2 = (int)wcslen(v->t[i].s); if (L2 >= 4 && L2 <= 38) { wchar_t w[40]; lowerInto(v->t[i].s, L2, w); if (smGet(&kc, w) >= 3) { i = jump; continue; } } }
+        if ((g->type == L'J' || g->type == L'A') && nw == 1) {
+            /* an adjective swap needs an adjective slot: "calm always returns" / "welcoming others" are not */
+            int nq = endTok; while (nq < v->n && v->t[nq].type == TK_SPACE) nq++;
+            if (v->t[i].tag == T_VBG || v->t[i].tag == T_N || v->t[i].tag == T_NS) { i = jump; continue; }
+            if (nq < v->n && v->t[nq].type == TK_WORD && (v->t[nq].tag == T_ADV || v->t[nq].tag == T_VBZ || v->t[nq].tag == T_VBD || v->t[nq].tag == T_MD || v->t[nq].tag == T_PRON)) {
+                int pq = i - 1; while (pq >= 0 && v->t[pq].type == TK_SPACE) pq--;
+                if (!(pq >= 0 && (v->t[pq].tag == T_BE || v->t[pq].tag == T_ADV))) { i = jump; continue; }
+            }
+        }
         gCtxPrev[0] = gCtxNext[0] = 0;
         { int pq = i - 1; while (pq >= 0 && v->t[pq].type == TK_SPACE) pq--;
           if (pq >= 0 && v->t[pq].type == TK_WORD) { wchar_t f0[40]; edgeWords(v->t[pq].s, f0, gCtxPrev); }
@@ -39178,6 +39182,9 @@ static int patListShuffle(Tok *t, int n, Toks *o) {
             break;
         }
         if (ni < 2) continue;
+        { int lk = 0, hasAnd = 0;
+          for (int q = is[0]; q < ie[ni - 1]; q++) { if (t[q].type == TK_LOCK) lk = 1; if (wordIs(&t[q], L"and") || wordIs(&t[q], L"or")) hasAnd = 1; }
+          if (lk || !hasAnd) continue; }
         int after = nextNS(t, n, ie[ni - 1]);
         if (!(after == n - 1 || (after < n && t[after].type == TK_PUNCT && t[after].s[0] == L','))) continue;
         if (after < n - 1) { int a2 = nextNS(t, n, after + 1); if (a2 < n && (wordIs(&t[a2], L"and") || wordIs(&t[a2], L"or"))) continue; }
@@ -39282,7 +39289,7 @@ static int patPseudoCleft(Tok *t, int n, Toks *o) {
 /* "A critic in New York wrote that ..." -> "There was a critic in New York who wrote that ..." */
 static int patThereWas(Tok *t, int n, Toks *o) {
     if (!budgetOK(gThere, 15)) return 0;
-    if (sentShape(t, n) < 0) return 0;
+    if (sentShape(t, n) != 0) return 0;
     static const wchar_t *INDEF[] = { L"a", L"an", L"some", L"several", L"many", L"two", L"three", L"four", L"few", NULL };
     if (!isWordIn(&t[0], INDEF)) return 0;
     int p1, q1, e = npEnd(t, n, 0, &p1, &q1);
@@ -39652,14 +39659,24 @@ static int rebuildOK(Toks *in, Toks *out) {
         }
     }
     /* every piece needs a finite verb (headings and quotes aside) */
-    int segStart = 0, fin = 0, words = 0;
+    int segStart = 0, fin = 0, words = 0, inRel = 0, subOpen = 0, afterComma = 0, finAfter = 0;
+    static const wchar_t *RELW[] = { L"that", L"which", L"who", L"whom", L"whose", L"where", L"when", NULL };
+    static const wchar_t *SUBO[] = { L"through", L"by", L"because", L"although", L"though", L"if", L"when", L"while", L"since", L"after",
+        L"before", L"as", L"unless", L"until", L"once", L"whenever", L"with", L"without", L"despite", L"in", L"on", L"at", L"from", L"for", L"during", NULL };
     for (int i = 0; i < out->n; i++) {
         Tok *k = &out->t[i];
-        if (k->type == TK_WORD) { words++; if (isFiniteTok(out->t, i)) fin = 1; }
+        if (k->type == TK_WORD) {
+            if (words == 0 && isWordIn(k, SUBO)) subOpen = 1;
+            if (words > 0 && isWordIn(k, RELW)) inRel = 1;
+            words++;
+            if (isFiniteTok(out->t, i) && !inRel) { fin = 1; if (afterComma) finAfter = 1; }
+        }
         if (k->type == TK_LOCK) words++;
+        if (k->type == TK_PUNCT && k->s[0] == L',') { inRel = 0; afterComma = 1; }
         if (k->type == TK_PUNCT && (k->s[0] == L'.' || k->s[0] == L'!' || k->s[0] == L'?')) {
             if (words >= 3 && !fin) return 0;
-            segStart = i + 1; fin = 0; words = 0;
+            if (words >= 5 && subOpen && !finAfter) return 0;
+            segStart = i + 1; fin = 0; words = 0; inRel = 0; subOpen = 0; afterComma = 0; finAfter = 0;
         }
         if (i > 0 && k->type == TK_WORD && out->t[i - 1].type == TK_SPACE && i > 1 && out->t[i - 2].type == TK_WORD) {
             wchar_t a[40], b[40]; lastWordLower(out->t[i - 2].s, a, 40); firstWordLower(k->s, b, 40);
