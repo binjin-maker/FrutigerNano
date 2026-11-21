@@ -17,6 +17,8 @@ Turn on **Highlight locked parts** to see exactly what's protected (blue = locke
 
 A built-in grammar tagger (an HMM trained on the Brown corpus) labels every word as noun, verb, adjective and so on, so swaps only happen when the part of speech and tense match. Everything runs offline, instantly. Nano rearranges sentences (moves "because/although" clauses, time phrases and adverbs to the other end, flips "X says Y" into "Y, X says", splits long sentences and merges short ones), flips active and passive voice, then swaps words and phrases from a built-in thesaurus (hand-written entries plus WordNet synonyms filtered by GloVe similarity) with verb tenses and plurals handled, flips contractions and swaps sentence openers. Each press gives a different version.
 
+**Typos** (dropdown next to the toggles): Off, Rare, Some, Many or Lots. After rewriting, Nano slips in small human-looking mistakes (its/it's, then/than, dont, could of, a dropped comma, a common misspelling or two swapped letters), at most one per sentence and never inside quotes, names or numbers.
+
 **Tone & Type** (dropdowns above the Rewritten box): Tone = Natural, Casual, Formal, Academic or Simple; Type = Any, Essay, Email, Story, Report or Social post. They change the word register (plain vs formal words, contractions, "But/So" vs "However/Therefore"), which sentence rebuilds are allowed (no stiff passives in casual writing, shorter sentences for Simple/Social), and slang cleanup.
 
 **Strength**: Light / Medium / Heavy / MAX controls how much changes. Rough success rates: Light 20%, Medium 45%, Heavy 50–75%, MAX 85–100%.
@@ -41,7 +43,7 @@ First launch asks for a key (`NANO-XXXX-XXXX-XXXX`). Keys are checked offline ag
 
 ## Download
 
-Grab [`update/FrutigerNano.exe`](https://github.com/binjin-maker/FrutigerNano/raw/main/update/FrutigerNano.exe). It isn't code-signed, so Smart App Control has to be off. Updates install from the **Update** tab (checks `update/latest.json`, verifies SHA-256).
+Grab [`update/FrutigerNano.ex_`](https://github.com/binjin-maker/FrutigerNano/raw/main/update/FrutigerNano.ex_) and rename it to `FrutigerNano.exe`. It isn't code-signed, so Smart App Control has to be off. Updates install from the **Update** tab (checks `update/latest.json`, verifies SHA-256).
 
 ## Building
 
