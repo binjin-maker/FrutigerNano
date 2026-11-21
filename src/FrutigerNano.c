@@ -41776,7 +41776,9 @@ static DWORD WINAPI InstallThread(LPVOID unused) {
     status(L"Downloading update %ls…", updLatest);
     updPct = 0; InvalidateRect(hMain, NULL, FALSE);
     char *b; size_t len; DWORD st;
-    int e = httpGet(updUrl, NULL, &b, &len, &st, 1);
+    wchar_t fresh[1100];
+    swprintf(fresh, 1100, L"%ls%lsv=%ls&t=%llu", updUrl, wcschr(updUrl, L'?') ? L"&" : L"?", updLatest, (unsigned long long)GetTickCount64());
+    int e = httpGet(fresh, L"Cache-Control: no-cache\r\n", &b, &len, &st, 1);
     if (e || st != 200) { free(b); updFail(L"Update download failed — check your connection and try again."); return 0; }
     if (len < 20000 || b[0] != 'M' || b[1] != 'Z') { free(b); updFail(L"The downloaded file isn't a valid EXE, so nothing was changed."); return 0; }
     if (updDigest[0]) {
