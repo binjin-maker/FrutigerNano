@@ -591,7 +591,7 @@ static wchar_t *addTypos(const wchar_t *t, int perWords, unsigned long long seed
             if (ch == L'.' && !L[i] && i + 2 < n && t[i + 1] == L' ' && wordAt(t, n, i + 2, &e)) {
                 wchar_t w[12]; int L2 = e - i - 2 < 11 ? e - i - 2 : 11; lowerInto(t + i + 2, L2, w);
                 static const wchar_t *SP[] = { L"it", L"this", L"he", L"she", L"they", L"that", L"there", NULL };
-                if (inList(SP, w) && !L[i + 2]) { wchar_t r[16]; swprintf(r, 16, L", %lc", towlower(t[i + 2])); ADD(i, i + 3, SL_SPLICE, r); }
+                if (inList(SP, w) && !L[i + 2] && !(e < n && t[e] == L',')) { wchar_t r[16]; swprintf(r, 16, L", %lc", towlower(t[i + 2])); ADD(i, i + 3, SL_SPLICE, r); }
             }
             sent++; sentStart = 1; i++; continue;
         }

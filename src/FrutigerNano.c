@@ -38609,6 +38609,29 @@ static int isFiniteTok(Tok *t, int i) {
     return 0;
 }
 
+static TagEnt *tagLookupFwd(const char *w);
+static int isFiniteN(Tok *t, int n, int i) {
+    if (isFiniteTok(t, i)) return 1;
+    int tg = t[i].tag;
+    if (t[i].type != TK_WORD) return 0;
+    if (tg == T_NS || tg == T_N) {
+        /* tagger slips like "Nye ends with", "no one outranks another": a noun-tagged word that can be a verb, right after the subject */
+        int p = i - 1; while (p >= 0 && t[p].type == TK_SPACE) p--;
+        int q = i + 1; while (q < n && t[q].type == TK_SPACE) q++; if (q >= n) return 0;
+        if (p < 0 || !(t[p].tag == T_NP || t[p].tag == T_PRON || t[p].type == TK_LOCK || (t[p].tag == T_N && iswupper(t[p].s[0])) || wordIs(&t[p], L"one"))) return 0;
+        if (t[q].type != TK_WORD || !(t[q].tag == T_ADP || t[q].tag == T_DET || t[q].tag == T_ADV || t[q].tag == T_PRON || t[q].tag == T_ADJ)) return 0;
+        char nb[48]; int kk = 0; for (const wchar_t *c = t[i].s; *c && *c != L' ' && kk < 46; c++) { if (*c > 127) return 0; nb[kk++] = (char)towlower(*c); } nb[kk] = 0;
+        TagEnt *e = tagLookupFwd(nb); if (!e) return tg == T_NS && kk > 3 && nb[kk - 1] == 's' && nb[kk - 2] != 's';
+        for (int z = 0; z < e->nt; z++) if (e->tag[z] == (tg == T_NS ? T_VBZ : T_VBD)) return 1;
+        if (tg == T_NS && kk > 3 && nb[kk - 1] == 's') {
+            nb[kk - 1] = 0; TagEnt *b2 = tagLookupFwd(nb);
+            if (!b2 && kk > 4 && nb[kk - 2] == 'e') { nb[kk - 2] = 0; b2 = tagLookupFwd(nb); }
+            if (b2) for (int z = 0; z < b2->nt; z++) if (b2->tag[z] == T_VB) return 1;
+        }
+    }
+    return 0;
+}
+
 static int patFrontSub(Tok *t, int n, Toks *o) {
     const wchar_t *cj;
     int commas = sentShape(t, n), cn = conjAt(t, n, 0, FRONT, &cj);
@@ -39669,13 +39692,13 @@ static int rebuildOK(Toks *in, Toks *out) {
             if (words == 0 && isWordIn(k, SUBO)) subOpen = 1;
             if (words > 0 && isWordIn(k, RELW)) inRel = 1;
             words++;
-            if (isFiniteTok(out->t, i) && !inRel) { fin = 1; if (afterComma) finAfter = 1; }
+            if (isFiniteN(out->t, out->n, i) && !inRel) { fin = 1; if (afterComma) finAfter = 1; }
         }
         if (k->type == TK_LOCK) words++;
         if (k->type == TK_PUNCT && k->s[0] == L',') { inRel = 0; afterComma = 1; }
         if (k->type == TK_PUNCT && (k->s[0] == L'.' || k->s[0] == L'!' || k->s[0] == L'?')) {
             if (words >= 3 && !fin) return 0;
-            if (words >= 5 && subOpen && !finAfter) return 0;
+            if (words >= 5 && subOpen && afterComma && !finAfter) return 0;
             segStart = i + 1; fin = 0; words = 0; inRel = 0; subOpen = 0; afterComma = 0; finAfter = 0;
         }
         if (i > 0 && k->type == TK_WORD && out->t[i - 1].type == TK_SPACE && i > 1 && out->t[i - 2].type == TK_WORD) {
@@ -39843,6 +39866,89 @@ static int restructureOnce(Toks *s, unsigned *used) {
 static int sentWords(Toks *s) { Span sp = { s->t, s->n }; return spanWords(sp); }
 
 /* sentence rhythm: break up runs of same-length sentences (join two similar short ones, split a long one) */
+/* split one sentence at a clause boundary; mode 0 = most even halves, 1 = leave a short punchy piece */
+static int rhSplit(Tok *t, int n, Toks *o, int mode) {
+    if (n < 8 || t[n - 1].type != TK_PUNCT || !(t[n - 1].s[0] == L'.' || t[n - 1].s[0] == L'!')) return 0;
+    int total = 0; for (int i = 0; i < n; i++) { if (t[i].type == TK_NL) return 0; if (t[i].type == TK_WORD || t[i].type == TK_LOCK) total++; }
+    int best = -1, bestKind = 0, bestScore = -1000000, words = 0, inQ = 0, paren = 0;
+    for (int c = 0; c < n - 3; c++) {
+        Tok *k = &t[c];
+        if (k->type == TK_WORD || k->type == TK_LOCK) words++;
+        if (k->type == TK_PUNCT) {
+            wchar_t ch = k->s[0];
+            if (ch == L'\u201C') inQ = 1; else if (ch == L'\u201D') inQ = 0; else if (ch == L'"') inQ = !inQ;
+            if (ch == L'(') paren++; else if (ch == L')') paren--;
+        }
+        int bare = !inQ && paren <= 0 && k->type == TK_SPACE && c + 1 < n && (wordIs(&t[c + 1], L"so") || wordIs(&t[c + 1], L"but")) && words >= 5;
+        if (!bare && (inQ || paren > 0 || k->type != TK_PUNCT || !(k->s[0] == L',' || k->s[0] == L';'))) continue;
+        int a = nextNS(t, n, c + 1); if (a >= n) continue;
+        int kind = 0, y0 = a;
+        if (bare) { int pv = c - 1; while (pv >= 0 && t[pv].type == TK_SPACE) pv--; if (pv < 0 || t[pv].type != TK_WORD) continue; }
+        if (k->s[0] == L';') kind = 1;
+        else if (wordIs(&t[a], L"and") || wordIs(&t[a], L"but") || wordIs(&t[a], L"so") || wordIs(&t[a], L"yet")) {
+            y0 = nextNS(t, n, a + 1); if (y0 >= n) continue;
+            if (wordIs(&t[y0], L"that") || wordIs(&t[y0], L"this")) continue;
+            kind = wordIs(&t[a], L"and") ? 1 : 2;
+        } else if (wordIs(&t[a], L"where") || wordIs(&t[a], L"because")) {
+            y0 = nextNS(t, n, a + 1); if (y0 >= n) continue;
+            kind = wordIs(&t[a], L"where") ? 4 : 5;
+        } else if (wordIs(&t[a], L"just") && nextNS(t, n, a + 1) < n && wordIs(&t[nextNS(t, n, a + 1)], L"as")) {
+            y0 = nextNS(t, n, nextNS(t, n, a + 1) + 1); if (y0 >= n) continue;
+            kind = 6;
+        } else if (!bare && (wordIs(&t[a], L"while") || wordIs(&t[a], L"when"))) {
+            y0 = nextNS(t, n, a + 1); if (y0 >= n) continue;
+            if (!(t[y0].type == TK_LOCK || t[y0].tag == T_DET || t[y0].tag == T_PRON || t[y0].tag == T_NP)) continue;
+            int f = 0; for (int q = y0; q < n && t[q].type != TK_PUNCT; q++) if (q > y0 && isFiniteN(t, n, q)) { f = 1; break; } if (!f) continue;
+            kind = wordIs(&t[a], L"while") ? 7 : 8;
+        } else if (!bare && (wordIs(&t[a], L"a") || wordIs(&t[a], L"an"))) {
+            /* appositive at the end: "..., a highly poisonous fish that can kill." -> ". It is a highly poisonous fish that can kill." */
+            int pv = c - 1; while (pv >= 0 && t[pv].type == TK_SPACE) pv--;
+            if (pv < 0 || !(t[pv].tag == T_N || t[pv].tag == T_NS || t[pv].tag == T_NP)) continue;
+            int more = 0; for (int q = a; q < n - 1; q++) if (t[q].type == TK_PUNCT && t[q].s[0] != L'\u201D' && t[q].s[0] != L'"') more = 1;
+            if (more) continue;
+            int lf = 0; for (int q = 0; q < c; q++) if (isFiniteN(t, n, q)) lf = 1; if (!lf) continue;
+            y0 = a; kind = 9;
+        } else if (wordIs(&t[a], L"which")) {
+            y0 = nextNS(t, n, a + 1); if (y0 >= n || t[y0].tag != T_VBZ) continue;
+            kind = 3;
+        } else continue;
+        if (kind >= 4 && kind <= 6) { int f = 0; for (int q = y0; q < n && t[q].type != TK_PUNCT; q++) if (isFiniteN(t, n, q)) { f = 1; break; } if (!f) continue; }
+        else if (kind <= 2) {
+            int p3, q3, ye = npEnd(t, n, y0, &p3, &q3), okc = 0;
+            if (ye >= 0) { int yv = nextNS(t, n, ye);
+                for (int pp = 0; pp < 2 && yv < n && t[yv].tag == T_ADP && !wordIs(&t[yv], L"that"); pp++) { int e2 = npEnd(t, n, nextNS(t, n, yv + 1), &p3, &q3); if (e2 < 0) break; yv = nextNS(t, n, e2); }
+                while (yv < n && t[yv].tag == T_ADV) yv = nextNS(t, n, yv + 1);
+                okc = yv < n && isFiniteN(t, n, yv); }
+            if (!okc && (t[y0].type == TK_LOCK || t[y0].tag == T_DET || t[y0].tag == T_PRON || t[y0].tag == T_NP || t[y0].tag == T_N || t[y0].tag == T_NS || t[y0].tag == T_ADJ)) { int w2 = 0; for (int q = y0; q < n && t[q].type != TK_PUNCT && w2 < 4; q++) if (t[q].type == TK_WORD) { if (q > y0 && isFiniteN(t, n, q)) { okc = 1; break; } w2++; } }
+            if (!okc) continue;
+        }
+        int left = words, right = total - words - (kind == 1 && k->s[0] == L';' ? 0 : 1);
+        if (left < 4 || right < 3) continue;
+        int sc = mode == 0 ? -abs(left - right) : abs(left - right);
+        if (mode == 1 && (left > 9 && right > 9)) sc -= 100;
+        if (sc > bestScore) { bestScore = sc; best = c; bestKind = kind; }
+    }
+    if (best < 0) return 0;
+    int a = nextNS(t, n, best + 1);
+    Span x = t[best].type == TK_SPACE ? trimSpan(t, 0, best + 1) : trimSpan(t, 0, best);
+    pushSpan(o, x, 0); pushP(o, L'.'); pushSp(o);
+    if (bestKind == 1) { int y0 = t[best].s[0] == L';' ? a : nextNS(t, n, a + 1); pushSpan(o, trimSpan(t, y0, n - 1), 1); }
+    else if (bestKind == 2) { pushCap(o, t[a].s); pushSp(o); int y0 = nextNS(t, n, a + 1); pushSpan(o, trimSpan(t, y0, n - 1), 0); }
+    else if (bestKind == 3) { pushW(o, L"This", 1); pushSp(o); int y0 = nextNS(t, n, a + 1); pushSpan(o, trimSpan(t, y0, n - 1), 0); }
+    else {
+        int y0 = nextNS(t, n, a + 1);
+        if (bestKind == 6) y0 = nextNS(t, n, y0 + 1);
+        if (bestKind == 9) y0 = a;
+        pushWs(o, bestKind == 4 ? L"There," : bestKind == 5 ? L"This is because" : bestKind == 6 ? L"In the same way," :
+                  bestKind == 7 ? L"At the same time," : bestKind == 8 ? L"That is when" : L"It is", 1);
+        if (bestKind == 4 || bestKind == 6 || bestKind == 7) { Tok *lt = &o->t[o->n - 1]; /* "There," came in as one word: split the comma off */
+            size_t L2 = wcslen(lt->s); if (L2 && lt->s[L2 - 1] == L',') { lt->s[L2 - 1] = 0; pushP(o, L','); } }
+        pushSp(o); pushSpan(o, trimSpan(t, y0, n - 1), -1);
+    }
+    tCopy(o, &t[n - 1]);
+    return 1;
+}
+
 static void rhythmPass(Toks *units, int *kind, int nu, int str, NanoStats *st) {
     static const double PJ[4] = { 0.0, 0.1, 0.15, 0.2 }, PS[4] = { 0.0, 0.35, 0.6, 0.8 };
     if (str < 1) return;
@@ -39850,6 +39956,63 @@ static void rhythmPass(Toks *units, int *kind, int nu, int str, NanoStats *st) {
     if (gStyle.on) { splitAt = (int)(gStyle.meanLen * 1.7); if (splitAt < 18) splitAt = 18; joinMax = (int)(gStyle.meanLen * 0.75); if (joinMax < 6) joinMax = 6; }
     static const wchar_t *NOSTART[] = { L"but", L"so", L"however", L"therefore", L"yet", L"still", L"also", L"because", L"although", L"then",
         L"instead", L"meanwhile", L"and", L"or", L"for", L"thus", L"even", L"in", L"on", L"at", L"after", L"before", L"if", L"when", NULL };
+    {   /* burstiness: if sentence lengths are too even, split some long ones and leave a short piece behind */
+        static const double TARGET[4] = { 0.0, 0.45, 0.55, 0.65 };
+        double sum = 0, sq = 0; int cnt = 0;
+        for (int u = 0; u < nu; u++) if (kind[u] == 1) { int w = sentWords(&units[u]); if (w >= 2) { sum += w; sq += (double)w * w; cnt++; } }
+        if (cnt >= 3) {
+            double mean = sum / cnt, sd = sqrt(sq / cnt - mean * mean);
+            int prev = -1, budget = cnt / 3 + 1;
+            for (int u = 0; u < nu && budget > 0 && sd / mean < TARGET[str]; u++) {
+                if (kind[u] != 1) continue;
+                int w = sentWords(&units[u]);
+                int even = prev >= 0 && abs(w - prev) <= (int)(mean * 0.35);
+                if (w >= 14 && (even || w > mean * 1.15) && nrnd() < 0.8) {
+                    Toks o = {0};
+                    int got = rhSplit(units[u].t, units[u].n, &o, nrnd() < 0.65 ? 1 : 0);
+                    if (getenv("RHDBG")) fprintf(stderr, "[rh w=%d got=%d seen=%d ok=%d]\n", w, got, got ? sentSeen(&o) : -1, got ? rebuildOK(&units[u], &o) : -1);
+                    if (got && !sentSeen(&o) && rebuildOK(&units[u], &o)) {
+                        tFree(&units[u]); units[u] = o; st->restructured++; budget--;
+                        Toks *nw = &units[u]; double w2 = sentWords(nw);
+                        sum += 0; sq += 0; (void)w2;
+                        /* recompute stats */
+                        sum = 0; sq = 0; cnt = 0;
+                        for (int z = 0; z < nu; z++) if (kind[z] == 1) {
+                            Span sp = { units[z].t, units[z].n }; int dots = 0, ww = 0;
+                            for (int q = 0; q < sp.n; q++) { if (sp.t[q].type == TK_WORD || sp.t[q].type == TK_LOCK) ww++; if (sp.t[q].type == TK_PUNCT && sp.t[q].s[0] == L'.') { if (ww >= 2) { sum += ww; sq += (double)ww * ww; cnt++; } ww = 0; dots++; } }
+                            if (ww >= 2) { sum += ww; sq += (double)ww * ww; cnt++; }
+                        }
+                        mean = sum / cnt; sd = sqrt(fmax(0, sq / cnt - mean * mean));
+                        prev = 4; continue;
+                    }
+                    tFree(&o);
+                }
+                prev = w;
+            }
+            /* still too even: join a pair of plain mid-length neighbours into one long sentence */
+            static const wchar_t *NOSTART2[] = { L"but", L"so", L"however", L"therefore", L"yet", L"still", L"also", L"because", L"although", L"then",
+                L"instead", L"meanwhile", L"and", L"or", L"for", L"thus", L"even", L"this", L"that", L"these", L"it", L"finally", L"first", L"by", L"in", L"as", L"when", L"if", NULL };
+            int joins = cnt / 8 + 1;
+            for (int u = 0; u + 2 < nu && joins > 0 && sd / mean < TARGET[str]; u++) {
+                if (kind[u] != 1 || kind[u + 2] != 1 || units[u + 1].n != 1 || units[u + 1].t[0].type != TK_SPACE) continue;
+                Toks *a = &units[u], *b = &units[u + 2];
+                int wa = sentWords(a), wb = sentWords(b);
+                if (wa < 7 || wb < 7 || wa + wb > 44 || wa + wb < mean * 1.6 || nrnd() > 0.6) continue;
+                if (a->t[a->n - 1].type != TK_PUNCT || a->t[a->n - 1].s[0] != L'.' || sentShape(a->t, a->n) < 0 || sentShape(a->t, a->n) > 1 || sentShape(b->t, b->n) < 0 || sentShape(b->t, b->n) > 1) continue;
+                if (!lowerable(&b->t[0]) || isWordIn(&b->t[0], NOSTART2) || b->t[0].type == TK_LOCK || wcschr(b->t[0].s, L' ')) continue;
+                int bad = 0; Toks *ab[2] = { a, b };
+                for (int z = 0; z < 2; z++) for (int q = 0; q + 2 < ab[z]->n; q++) if (ab[z]->t[q].type == TK_PUNCT && ab[z]->t[q].s[0] == L',' && (wordIs(&ab[z]->t[q + 2], L"and") || wordIs(&ab[z]->t[q + 2], L"but"))) bad = 1;
+                if (bad) continue;
+                Toks m = {0};
+                Span sa = { a->t, a->n - 1 }, sb = { b->t, b->n };
+                pushSpan(&m, sa, 0); pushP(&m, L','); pushSp(&m); pushW(&m, L"and", 1); pushSp(&m); pushSpan(&m, sb, -1);
+                if (sentSeen(&m) || !rebuildOK(a, &m)) { tFree(&m); continue; }
+                tFree(a); *a = m; tFree(&units[u + 1]); tFree(b);
+                kind[u + 1] = kind[u + 2] = 2; st->restructured++; joins--;
+                u += 2;
+            }
+        }
+    }
     for (int u = 0; u < nu; u++) {
         if (kind[u] != 1) continue;
         Toks *a = &units[u];
@@ -40893,7 +41056,7 @@ static wchar_t *addTypos(const wchar_t *t, int perWords, unsigned long long seed
             if (ch == L'.' && !L[i] && i + 2 < n && t[i + 1] == L' ' && wordAt(t, n, i + 2, &e)) {
                 wchar_t w[12]; int L2 = e - i - 2 < 11 ? e - i - 2 : 11; lowerInto(t + i + 2, L2, w);
                 static const wchar_t *SP[] = { L"it", L"this", L"he", L"she", L"they", L"that", L"there", NULL };
-                if (inList(SP, w) && !L[i + 2]) { wchar_t r[16]; swprintf(r, 16, L", %lc", towlower(t[i + 2])); ADD(i, i + 3, SL_SPLICE, r); }
+                if (inList(SP, w) && !L[i + 2] && !(e < n && t[e] == L',')) { wchar_t r[16]; swprintf(r, 16, L", %lc", towlower(t[i + 2])); ADD(i, i + 3, SL_SPLICE, r); }
             }
             sent++; sentStart = 1; i++; continue;
         }
@@ -41275,8 +41438,8 @@ static void dtScore(const wchar_t *t, Detect *d) {
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.14.0"
-#define APP_VERSION_W L"1.14.0"
+#define APP_VERSION   "1.15.0"
+#define APP_VERSION_W L"1.15.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")
