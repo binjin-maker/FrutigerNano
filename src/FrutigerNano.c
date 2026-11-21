@@ -39193,6 +39193,49 @@ static int restructureOnce(Toks *s, unsigned *used) {
 
 static int sentWords(Toks *s) { Span sp = { s->t, s->n }; return spanWords(sp); }
 
+/* sentence rhythm: break up runs of same-length sentences (join two similar short ones, split a long one) */
+static void rhythmPass(Toks *units, int *kind, int nu, int str, NanoStats *st) {
+    static const double PJ[4] = { 0.0, 0.25, 0.4, 0.5 }, PS[4] = { 0.0, 0.35, 0.6, 0.8 };
+    if (str < 1) return;
+    static const wchar_t *NOSTART[] = { L"but", L"so", L"however", L"therefore", L"yet", L"still", L"also", L"because", L"although", L"then",
+        L"instead", L"meanwhile", L"and", L"or", L"for", L"thus", L"even", L"in", L"on", L"at", L"after", L"before", L"if", L"when", NULL };
+    for (int u = 0; u < nu; u++) {
+        if (kind[u] != 1) continue;
+        Toks *a = &units[u];
+        int wa = sentWords(a);
+        /* split a long sentence */
+        if (wa > 26 && nrnd() < PS[str]) {
+            int saveE = escLevel; escLevel = escLevel < 1 ? 1 : escLevel;
+            static PatFn SP[] = { patSplitMore, patSplit, patVPSplit };
+            for (int k = 0; k < 3; k++) {
+                Toks o = {0};
+                if (SP[k](a->t, a->n, &o) && !sentSeen(&o) && rebuildOK(a, &o)) { tFree(a); *a = o; st->restructured++; break; }
+                tFree(&o);
+            }
+            escLevel = saveE;
+            continue;
+        }
+        /* join two similar, short neighbours */
+        if (u + 2 >= nu || kind[u + 2] != 1 || units[u + 1].n != 1 || units[u + 1].t[0].type != TK_SPACE) continue;
+        Toks *b = &units[u + 2];
+        int wb = sentWords(b);
+        if (wa < 3 || wb < 3 || wa > 16 || wb > 16 || abs(wa - wb) > 5 || nrnd() >= PJ[str]) continue;
+        if (sentShape(a->t, a->n) != 0 || sentShape(b->t, b->n) < 0 || a->t[a->n - 1].s[0] != L'.') continue;
+        if (!lowerable(&b->t[0]) || isWordIn(&b->t[0], NOSTART) || b->t[0].type == TK_LOCK) continue;
+        int bad = 0; Toks *ab[2] = { a, b };
+        static const wchar_t *NOJ[] = { L"and", L"but", L"so", L"or", L"not", L"never", L"no", L"because", L"although", L"however", NULL };
+        for (int z = 0; z < 2; z++) for (int q = 0; q < ab[z]->n; q++) if (isWordIn(&ab[z]->t[q], NOJ) || (ab[z]->t[q].type == TK_WORD && wcsstr(ab[z]->t[q].s, L"n't"))) bad = 1;
+        if (bad) continue;
+        Toks m = {0};
+        Span sa = { a->t, a->n - 1 }, sb = { b->t, b->n };
+        pushSpan(&m, sa, 0); pushP(&m, L','); pushSp(&m); pushW(&m, L"and", 1); pushSp(&m); pushSpan(&m, sb, -1);
+        if (sentSeen(&m) || !rebuildOK(a, &m)) { tFree(&m); continue; }
+        tFree(a); *a = m; tFree(&units[u + 1]); tFree(b);
+        kind[u + 1] = kind[u + 2] = 2; st->restructured++;
+        u += 2;
+    }
+}
+
 static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
     static const double P1[4] = { 0.3, 0.75, 1.0, 1.0 }, P2[4] = { 0.0, 0.3, 0.75, 0.9 }, PM[4] = { 0.0, 0.3, 0.6, 0.7 };
     int str = op->strength;
@@ -39306,6 +39349,7 @@ static void restructurePass(Toks *v, const NanoOpts *op, NanoStats *st) {
         if (!done[u]) st->restructured++;
         u += 2;
     }
+    rhythmPass(units, kind, nu, str, st);
     for (int u = 0; u < nu; u++) if (kind[u] == 1) sentRemember(units[u].t, units[u].n);
     Toks out = {0};
     for (int u = 0; u < nu; u++) {
@@ -39476,6 +39520,47 @@ static void tonePass(Toks *v, NanoStats *st) {
     }
 }
 
+/* mood: each run leans a little emphatic, hedged or relaxed */
+static int gMood, gMoodBase;
+static const wchar_t *MOODADV[] = { L"really", L"very", L"truly", L"fairly", L"somewhat", L"rather", L"pretty", L"quite", L"a bit", L"probably", L"likely", NULL };
+static int countMoodAdv(const wchar_t *t) {
+    int c = 0, n = (int)wcslen(t);
+    for (int i = 0; i < n; i++) {
+        if (i > 0 && iswalpha(t[i - 1])) continue;
+        for (int k = 0; MOODADV[k]; k++) { int L2 = (int)wcslen(MOODADV[k]); if (!wcsncmp(t + i, MOODADV[k], L2) && (i + L2 >= n || !iswalpha(t[i + L2]))) { c++; break; } }
+    }
+    return c;
+}
+static void moodPass(Toks *v, int str, int curCount) {
+    if (!gMood || str < 1) return;
+    int sents = gSents > 0 ? gSents : 1;
+    int budget = gMoodBase + 1 + sents / 8 - curCount;
+    if (budget <= 0) return;
+    int reg = toneReg();
+    for (int i = 0; i + 2 < v->n && budget > 0; i++) {
+        Tok *k = &v->t[i];
+        if (k->type != TK_WORD || nrnd() > 0.35) continue;
+        int a = i + 1; while (a < v->n && v->t[a].type == TK_SPACE) a++;
+        if (a >= v->n || v->t[a].type != TK_WORD || wcschr(v->t[a].s, L' ')) continue;
+        const wchar_t *adv = NULL;
+        if (k->tag == T_BE && isFiniteTok(v->t, i) && v->t[a].tag == T_ADJ) {
+            int b2 = a + 1; while (b2 < v->n && v->t[b2].type == TK_SPACE) b2++;
+            if (b2 < v->n && (v->t[b2].tag == T_N || v->t[b2].tag == T_NS)) continue;
+            if (isWordIn(&v->t[a], (const wchar_t *[]){ L"able", L"unable", L"sure", L"aware", L"alone", L"alive", L"dead", L"true", L"false", L"right", L"wrong", L"possible", L"impossible", L"certain", L"same", L"only", L"first", L"last", L"next", L"other", L"such", L"ready", L"done", L"finished", L"gone", L"full", L"empty", L"open", L"closed", NULL })) continue;
+            if (gMood == 1) adv = reg < 0 ? L"really" : reg > 0 ? L"very" : (nri(2) ? L"really" : L"very");
+            else if (gMood == 2) adv = reg > 0 ? L"somewhat" : (nri(2) ? L"fairly" : L"rather");
+            else adv = reg > 0 ? L"quite" : (nri(2) ? L"pretty" : L"quite");
+        } else if (gMood == 2 && wordIs(k, L"will") && isVerbTag(v->t[a].tag) && v->t[a].tag == T_VB) {
+            adv = reg < 0 ? L"probably" : L"likely";
+        } else continue;
+        Tok nt = { wdup(adv), TK_WORD, 1, T_ADV }, sp = { wdup(L" "), TK_SPACE, 0, -1 };
+        if (v->n + 2 > v->cap) { v->cap = (v->cap ? v->cap : 16) * 2 + 2; v->t = realloc(v->t, v->cap * sizeof(Tok)); }
+        memmove(&v->t[a + 2], &v->t[a], (v->n - a) * sizeof(Tok));
+        v->t[a] = nt; v->t[a + 1] = sp; v->n += 2;
+        budget--; i = a + 2;
+    }
+}
+
 static void articlePass(Toks *v) {
     for (int i = 0; i + 2 < v->n; i++) {
         Tok *a = &v->t[i];
@@ -39530,7 +39615,11 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
     }
     int contrMode = countContractions(&v) ? 1 : 2;
     if (curCtx) curCtx->pass++;
-    if (!curCtx || curCtx->pass == 1) { moodW = 0.8 + 0.4 * nrnd(); moodR = 0.75 + 0.5 * nrnd(); }
+    if (!curCtx || curCtx->pass == 1) {
+        moodW = 0.8 + 0.4 * nrnd(); moodR = 0.75 + 0.5 * nrnd();
+        double r = nrnd(); gMood = r < 0.2 ? 0 : r < 0.47 ? 1 : r < 0.73 ? 2 : 3;
+        gMoodBase = countMoodAdv(text);
+    }
     if (curCtx) { if (!curCtx->contrMode) curCtx->contrMode = contrMode; contrMode = curCtx->contrMode; }
     gTone = op->tone; gType = op->type;
     if (toneReg() < 0) contrMode = 2;
@@ -39539,6 +39628,7 @@ static wchar_t *nanoRewrite(const wchar_t *text, const NanoOpts *op, NanoStats *
     restructurePass(&v, op, st);
     swapPass(&v, op, st, contrMode);
     tonePass(&v, st);
+    moodPass(&v, op->strength, countMoodAdv(text));
     articlePass(&v);
     openerCasePass(&v);
     Str out = {0}; sAdd(&out, L"");
@@ -40326,8 +40416,8 @@ static void dtScore(const wchar_t *t, Detect *d) {
 
 /* ---------- app globals ---------- */
 
-#define APP_VERSION   "1.9.0"
-#define APP_VERSION_W L"1.9.0"
+#define APP_VERSION   "1.10.0"
+#define APP_VERSION_W L"1.10.0"
 
 #if defined(__has_include)
 #if __has_include("secret.h")

@@ -17,6 +17,8 @@ Turn on **Highlight locked parts** to see exactly what's protected (blue = locke
 
 A built-in grammar tagger (an HMM trained on the Brown corpus) labels every word as noun, verb, adjective and so on, so swaps only happen when the part of speech and tense match. Everything runs offline, instantly. Nano rearranges sentences (moves "because/although" clauses, time phrases and adverbs to the other end, flips "X says Y" into "Y, X says", splits long sentences and merges short ones), flips active and passive voice, then swaps words and phrases from a built-in thesaurus (hand-written entries plus WordNet synonyms filtered by GloVe similarity) with verb tenses and plurals handled, flips contractions and swaps sentence openers. Each press gives a different version.
 
+**Rhythm & mood**: on Medium and up, long sentences get split and runs of similar short ones get joined so sentence length varies. Each rewrite also picks a slight mood (a bit more emphatic, hedged or relaxed) and adds a word or two to match, scaled to the tone.
+
 **Typos** (dropdown next to the toggles): Off, Rare, Some, Many or Lots. After rewriting, Nano slips in small human-looking mistakes (its/it's, then/than, dont, could of, a dropped comma, a common misspelling or two swapped letters), at most one per sentence and never inside quotes, names or numbers.
 
 **Tone & Type** (dropdowns above the Rewritten box): Tone = Natural, Casual, Formal, Academic or Simple; Type = Any, Essay, Email, Story, Report or Social post. They change the word register (plain vs formal words, contractions, "But/So" vs "However/Therefore"), which sentence rebuilds are allowed (no stiff passives in casual writing, shorter sentences for Simple/Social), and slang cleanup.
